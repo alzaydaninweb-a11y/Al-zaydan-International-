@@ -1,0 +1,25 @@
+# robots.txt - Al Zaydan International FZE
+# https://www.alzaydaninternational.com/robots.txt
+#
+# Rule: Googlebot has FULL access to all public pages.
+# Only private/admin/transactional paths are blocked.
+
+User-agent: *
+Allow: /
+
+# -- Admin & Internal Panels --
+Disallow: /admin/
+Disallow: /dm/
+
+# -- Transactional / Private Pages --
+Disallow: /cart/
+Disallow: /checkout/
+Disallow: /order-success/
+Disallow: /login/
+Disallow: /thank-you/
+
+# -- Search Query Parameters (prevent duplicate content indexing) --
+Disallow: /search?
+
+# -- Sitemap --
+Sitemap: https://www.alzaydaninternational.com/sitemap.xml
