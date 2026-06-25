@@ -184,16 +184,16 @@ export default function ProductPage() {
                   <button 
                     key={i} 
                     onClick={() => setActiveImgIdx(i)}
-                    className={`w-16 h-16 md:w-20 md:h-20 shrink-0 snap-start border-2 rounded-lg overflow-hidden transition-all ${i === activeImgIdx ? 'border-blue-600 shadow-md scale-95' : 'border-slate-200 hover:border-slate-300'}`}
+                    className={`w-16 h-16 md:w-20 md:h-20 shrink-0 snap-start border-2 rounded-lg overflow-hidden transition-all bg-white ${i === activeImgIdx ? 'border-blue-600 shadow-md scale-95' : 'border-slate-200 hover:border-slate-300'}`}
                   >
-                    <img src={img} className="w-full h-full object-cover mix-blend-multiply" alt={`Thumbnail ${i + 1}`} />
+                    <img src={img} className="w-full h-full object-contain p-1 mix-blend-multiply" alt={`Thumbnail ${i + 1}`} />
                   </button>
                 ))}
               </div>
             )}
             
             {/* Main Image Container */}
-            <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl aspect-square flex items-center justify-center relative p-0 overflow-hidden group">
+            <div className="flex-1 bg-white border border-slate-200 rounded-xl aspect-square flex items-center justify-center relative p-0 overflow-hidden group">
               {product.discount > 0 && (
                 <div className="absolute top-4 left-4 bg-amber-400 text-black text-xs font-bold px-3 py-1.5 rounded-full z-10 shadow-sm">
                   SAVE {product.discount}%
@@ -221,7 +221,7 @@ export default function ProductPage() {
                     key={idx}
                     src={img}
                     alt={product.name}
-                    className={`absolute inset-0 w-full h-full object-cover mix-blend-multiply transition-opacity duration-700 ease-in-out ${idx === activeImgIdx ? 'opacity-100' : 'opacity-0'}`}
+                    className={`absolute inset-0 w-full h-full object-contain p-4 md:p-6 mix-blend-multiply transition-opacity duration-700 ease-in-out ${idx === activeImgIdx ? 'opacity-100' : 'opacity-0'}`}
                   />
                 ))}
               </div>
