@@ -193,7 +193,7 @@ export default function ProductPage() {
             )}
             
             {/* Main Image Container */}
-            <div className="flex-1 bg-white border border-slate-200 rounded-xl aspect-square flex items-center justify-center relative p-0 overflow-hidden group">
+            <div className="w-full md:w-auto md:flex-1 bg-white border border-slate-200 rounded-xl aspect-square flex items-center justify-center relative p-0 overflow-hidden group">
               {product.discount > 0 && (
                 <div className="absolute top-4 left-4 bg-amber-400 text-black text-xs font-bold px-3 py-1.5 rounded-full z-10 shadow-sm">
                   SAVE {product.discount}%
