@@ -163,7 +163,7 @@ export default function ProductPage() {
     <div className="bg-white min-h-screen">
       {/* Breadcrumb */}
       <div className="border-b border-slate-200 bg-slate-50 py-3 px-4 md:px-6 text-[13px] md:text-sm text-slate-500">
-        <div className="max-w-7xl mx-auto flex items-center gap-1.5 md:gap-2">
+        <div className="max-w-7xl mx-auto flex items-center gap-1.5 md:gap-2 min-w-0 overflow-hidden">
           <Link to="/" className="hover:text-amber-500 transition-colors shrink-0">Home</Link>
           <span className="text-slate-400">/</span>
           <Link to={`/category/${categorySlug}`} className="hover:text-amber-500 transition-colors shrink-0 whitespace-nowrap">{product.category}</Link>

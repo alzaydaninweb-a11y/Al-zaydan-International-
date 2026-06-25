@@ -13,7 +13,7 @@ export default function Layout() {
   const { toastItem, clearToast } = useCart();
 
   return (
-    <div className="flex flex-col min-h-screen bg-white text-gray-900 font-sans pb-28 lg:pb-0">
+    <div className="flex flex-col min-h-screen bg-white text-gray-900 font-sans overflow-x-hidden">
       <Navbar />
       <main className="flex-grow flex flex-col">
         <Outlet />

@@ -9,7 +9,7 @@ export default function Footer() {
   const { settings, categories, categoryDetails } = useStore();
 
   return (
-    <footer className="bg-slate-900 border-t border-slate-800 pt-16 pb-8 text-sm text-slate-300">
+    <footer className="bg-slate-900 border-t border-slate-800 pt-16 pb-32 lg:pb-8 text-sm text-slate-300">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         
         {/* Trust Signals Row */}
