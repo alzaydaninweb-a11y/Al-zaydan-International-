@@ -176,10 +176,10 @@ export default function ProductPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           
           {/* Left: Images */}
-          <div className="flex flex-col-reverse md:flex-row gap-4 h-max relative md:sticky md:top-32 z-10">
+          <div className="flex flex-col-reverse md:flex-row items-start gap-4 h-max relative md:sticky md:top-32 z-10">
             {/* Thumbnails */}
             {allImages.length > 1 && (
-              <div className="flex md:flex-col gap-3 overflow-x-auto snap-x md:w-20 shrink-0 no-scrollbar">
+              <div className="flex md:flex-col gap-3 overflow-x-auto snap-x md:w-20 shrink-0 no-scrollbar md:max-h-[500px] md:overflow-y-auto">
                 {allImages.map((img, i) => (
                   <button 
                     key={i} 
