@@ -26,6 +26,12 @@
   status = 200
   force  = true
 
+[[redirects]]
+  from   = "/api/upload-to-r2"
+  to     = "/.netlify/functions/upload-to-r2"
+  status = 200
+  force  = true
+
 # -- Dynamic Sitemap via Netlify Function ------------------------------------
 # Must come BEFORE the SPA catch-all redirect below
 [[redirects]]
