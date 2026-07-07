@@ -170,12 +170,19 @@ export default function ProductCard({ product, compact = false }: Props) {
           </div>
         )}
 
-        <img
-          src={imgError ? fallbackImg : product.image}
-          alt={product.name}
-          onError={() => setImgError(true)}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-400"
-        />
+        {imgError || !product.image ? (
+          <div className="w-full h-full bg-slate-50 flex flex-col items-center justify-center text-slate-400 gap-2">
+            <Package className="w-8 h-8 stroke-[1.2] text-slate-400" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400/80">No Image</span>
+          </div>
+        ) : (
+          <img
+            src={product.image}
+            alt={product.name}
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-400"
+          />
+        )}
       </div>
 
       {/* ── Body ── */}

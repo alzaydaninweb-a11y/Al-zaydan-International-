@@ -235,8 +235,8 @@ const getCategoryIcon = (name: string) => {
 const getCategoryImage = (categoryName: string, products: Product[], categoryImages: Record<string, string>) => {
   if (categoryImages[categoryName]) return categoryImages[categoryName];
 
-  // Try to find the first product in the category
-  const prod = products.find(p => p.category === categoryName);
+  // Try to find the first product in the category, skipping known hotlink-blocked domains
+  const prod = products.find(p => p.category === categoryName && p.image && !p.image.includes('rosmertatech.com'));
   if (prod && prod.image) return prod.image;
   
   // High-quality fallback images if no products are found in this category
@@ -652,6 +652,20 @@ export default function Home() {
                           src={image}
                           alt={`${catName} Products UAE | B2B Industrial Supply`}
                           title={`${catName} Products UAE | B2B Industrial Supply`}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            const fallbacks: Record<string, string> = {
+                              'Traffic Safety': 'https://images.unsplash.com/photo-1541888081198-a0e2dc113ea4?q=80&w=400&auto=format&fit=crop',
+                              'Safety Gear': 'https://images.unsplash.com/photo-1582136005230-05e81d7d0a2b?q=80&w=400&auto=format&fit=crop',
+                              'Road Studs': 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=400&auto=format&fit=crop',
+                              'Barriers': 'https://images.unsplash.com/photo-1579762593175-20226054cad0?q=80&w=400&auto=format&fit=crop',
+                              'Reflectors & Signage': 'https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?q=80&w=400&auto=format&fit=crop',
+                              'Lighting & Beacons': 'https://images.unsplash.com/photo-1513826308963-f6ecb473cddb?q=80&w=400&auto=format&fit=crop',
+                              'Industrial Tools': 'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?q=80&w=400&auto=format&fit=crop',
+                              'Bulk Offers': 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=400&auto=format&fit=crop',
+                            };
+                            target.src = fallbacks[catName] || 'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?q=80&w=400&auto=format&fit=crop';
+                          }}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       </div>
