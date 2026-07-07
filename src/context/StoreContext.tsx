@@ -184,6 +184,7 @@ type StoreState = {
   redirects: Redirect[];
   pagesSeo: Record<string, PageSeoSettings>;
   imagesSeo: Record<string, ImageSEO>;
+  productsLoaded: boolean;
 };
 
 type Subscriber = (state: StoreState) => void;
@@ -290,6 +291,7 @@ let state: StoreState = {
   redirects:           loadCachedRedirects(),
   pagesSeo:            loadCachedPagesSeo(),
   imagesSeo:           loadCachedImagesSeo(),
+  productsLoaded:      false,
 };
 
 const subscribers = new Set<Subscriber>();
@@ -323,6 +325,7 @@ function startListeners() {
         products,
         loading: false,
         firestoreError: null,
+        productsLoaded: true,
       });
     },
     (err) => {

@@ -6,6 +6,7 @@ import { uploadToR2 } from '../../lib/cloudflareR2';
 import { Upload, Link as LinkIcon, ChevronLeft, Save, ImageOff, Loader2, X, Package, Globe, ExternalLink } from 'lucide-react';
 import { generateSlug } from '../../lib/blogService';
 import { generateProductSEO } from '../../lib/seoGenerator';
+import { auth } from '../../lib/firebase';
 
 const EMPTY_FORM = {
   name: '', brand: '', category: '', price: '', mrp: '', discount: '',
@@ -147,9 +148,14 @@ export default function AdminProductForm() {
       const fnBase = window.location.port === '3000'
         ? 'http://localhost:8888'
         : '';
+      const idToken = await auth.currentUser?.getIdToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (idToken) {
+        headers['Authorization'] = `Bearer ${idToken}`;
+      }
       const res = await fetch(`${fnBase}/.netlify/functions/parse-product-ai`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           rawText: rawInputText,
           activeCategories: categories
@@ -388,9 +394,14 @@ export default function AdminProductForm() {
 
     try {
       const fnBase = window.location.port === '3000' ? 'http://localhost:8888' : '';
+      const idToken = await auth.currentUser?.getIdToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (idToken) {
+        headers['Authorization'] = `Bearer ${idToken}`;
+      }
       const res = await fetch(`${fnBase}/.netlify/functions/generate-product-content`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           name: form.name.trim(),
           brand: form.brand.trim(),

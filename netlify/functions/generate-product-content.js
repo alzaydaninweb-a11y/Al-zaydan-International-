@@ -13,14 +13,70 @@
  * }
  */
 
+const getAllowedOrigin = (event) => {
+  const origin = event.headers.origin || event.headers.Origin;
+  if (!origin) return 'https://www.alzaydaninternational.com';
+
+  const allowedOrigins = [
+    'https://www.alzaydaninternational.com',
+    'https://alzaydaninternational.com',
+    'http://localhost:3000',
+    'http://localhost:8888'
+  ];
+
+  if (allowedOrigins.includes(origin)) {
+    return origin;
+  }
+
+  if (/^https:\/\/.*--alzaydaninternational\.netlify\.app$/i.test(origin) ||
+      /^https:\/\/.*--alzaydan\.netlify\.app$/i.test(origin)) {
+    return origin;
+  }
+
+  return 'https://www.alzaydaninternational.com';
+};
+
+const verifyAuth = async (event) => {
+  const authHeader = event.headers.authorization || event.headers.Authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new Error('Unauthorized: Missing or invalid authorization token.');
+  }
+
+  const idToken = authHeader.split(' ')[1];
+  const apiKey = process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('Server configuration error: Firebase API Key is missing.');
+  }
+
+  const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken })
+  });
+
+  if (!res.ok) {
+    throw new Error('Unauthorized: Invalid or expired token.');
+  }
+
+  const data = await res.json();
+  if (!data.users || data.users.length === 0) {
+    throw new Error('Unauthorized: User not found.');
+  }
+
+  return data.users[0];
+};
+
 export const handler = async (event) => {
+  const origin = getAllowedOrigin(event);
+
   // CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Methods': 'POST, OPTIONS'
       },
       body: ''
@@ -30,8 +86,24 @@ export const handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': origin
+      },
       body: JSON.stringify({ error: 'Method Not Allowed. Use POST.' })
+    };
+  }
+
+  try {
+    await verifyAuth(event);
+  } catch (authError) {
+    return {
+      statusCode: 401,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': origin
+      },
+      body: JSON.stringify({ error: authError.message })
     };
   }
 
@@ -121,7 +193,7 @@ Ensure the JSON is valid and can be parsed by JSON.parse(). Provide exactly 5-10
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': origin
       },
       body: JSON.stringify(parsedJson)
     };
@@ -130,7 +202,10 @@ Ensure the JSON is valid and can be parsed by JSON.parse(). Provide exactly 5-10
     console.error('[generate-product-content] Error:', err);
     return {
       statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': origin
+      },
       body: JSON.stringify({
         error: 'Failed to generate product content.',
         details: err.message

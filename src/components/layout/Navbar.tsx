@@ -174,7 +174,6 @@ export default function Navbar() {
     { label: 'Blogs', to: '/blog', dropdown: false, highlight: false },
     { label: 'Contact', to: '/contact', dropdown: false, highlight: false },
     { label: 'RFQ / Bulk Order', to: '/rfq', dropdown: false, highlight: true },
-    { label: 'Become a Supplier', to: '/contact', dropdown: false, highlight: true },
   ];
 
   const mobileNavLinks = [
@@ -185,7 +184,6 @@ export default function Navbar() {
     { label: 'Blogs', to: '/blog', highlight: false },
     { label: 'Contact', to: '/contact', highlight: false },
     { label: 'RFQ / Bulk Order', to: '/rfq', highlight: true },
-    { label: 'Become a Supplier', to: '/contact', highlight: true },
   ];
 
   return (
@@ -261,13 +259,6 @@ export default function Navbar() {
 
           {/* Right Links */}
           <div className="flex items-center gap-6 text-gray-600 shrink-0 text-[13px] font-medium">
-            <Link to="/contact" className="hover:text-blue-600 transition-colors">Become a Supplier</Link>
-
-            <div className="relative group cursor-pointer flex items-center gap-1 hover:text-blue-600 py-2">
-              <span>Buyer Center</span>
-              <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-            </div>
-
             <div className="relative group cursor-pointer flex items-center gap-1.5 hover:text-blue-600 py-2">
               <Globe className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
               <span>{language}</span>
@@ -519,16 +510,6 @@ export default function Navbar() {
                   <span>View All Categories</span>
                 </Link>
               </div>
-            </div>
-
-            <div className="p-4 border-t border-gray-100">
-              <Link
-                to="/contact"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-2 w-full py-2.5 bg-[#0052d9] hover:bg-blue-700 text-white font-semibold text-sm rounded-md transition-colors"
-              >
-                <span>Become a Supplier</span>
-              </Link>
             </div>
 
           </div>

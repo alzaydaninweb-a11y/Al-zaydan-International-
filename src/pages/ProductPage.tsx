@@ -15,7 +15,7 @@ import InternalLinkingEngine from '../components/seo/InternalLinkingEngine';
 export default function ProductPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { products, categoryDetails, categories } = useStore();
+  const { products, categoryDetails, categories, productsLoaded } = useStore();
   const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [isAdded, setIsAdded] = useState(false);
@@ -24,8 +24,12 @@ export default function ProductPage() {
 
   const product = useMemo(() => {
     if (!slug || !products.length) return null;
-    return products.find(p => p.slug === slug || generateSlug(p.name) === slug || p.id === slug) || products[0];
-  }, [products, slug]);
+    const found = products.find(p => p.slug === slug || generateSlug(p.name) === slug || p.id === slug);
+    if (found) return found;
+    // Wait for Firestore load if it's not found in cache
+    if (!productsLoaded) return null;
+    return null;
+  }, [products, slug, productsLoaded]);
 
   const productSlug = useMemo(() => {
     if (!product) return '';
@@ -143,7 +147,7 @@ export default function ProductPage() {
     }
   };
 
-  if (!products.length) {
+  if (!products.length || (!product && !productsLoaded)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
@@ -151,7 +155,7 @@ export default function ProductPage() {
     );
   }
 
-  if (!product) {
+  if (!product && productsLoaded) {
     return <Navigate to="/" replace />;
   }
 

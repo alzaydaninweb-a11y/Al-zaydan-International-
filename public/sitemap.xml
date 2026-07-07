@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Al Zaydan International FZE — XML Sitemap -->
-<!-- Build-time generated: 2026-07-02T05:45:44.421Z -->
+<!-- Build-time generated: 2026-07-07T13:38:38.596Z -->
 <!-- Total URLs: 12 -->
 <!-- NOTE: Real-time version served by Netlify Function at /sitemap.xml -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -11,55 +11,55 @@
   <!-- ── Static Pages ──────────────────────────────────────── -->
   <url>
     <loc>https://www.alzaydaninternational.com/</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-07</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.alzaydaninternational.com/about</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.alzaydaninternational.com/solutions</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.alzaydaninternational.com/contact</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.alzaydaninternational.com/rfq</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.alzaydaninternational.com/categories</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.alzaydaninternational.com/blog</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.alzaydaninternational.com/search</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.alzaydaninternational.com/legal</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-07</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

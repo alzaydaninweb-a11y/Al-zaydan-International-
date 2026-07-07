@@ -40,9 +40,89 @@ require('dotenv').config({ path: path.join(ROOT, '.env') });
 
 // ── Load data ─────────────────────────────────────────────────────────────────
 const data = JSON.parse(fs.readFileSync(INITIAL_DATA, 'utf-8'));
-const products = (data.products || []);
+let products = (data.products || []);
 const categories = (data.categories && data.categories.list) ? data.categories.list : [];
 const settings = data.settings || {};
+
+let productCount = 0;
+let staticCount = 0;
+let categoryCount = 0;
+
+function valueFromFirestore(field) {
+  if (!field) return undefined;
+  if ('stringValue' in field) return field.stringValue;
+  if ('booleanValue' in field) return field.booleanValue;
+  if ('integerValue' in field) return parseInt(field.integerValue, 10);
+  if ('doubleValue' in field) return parseFloat(field.doubleValue);
+  if ('arrayValue' in field) {
+    const values = field.arrayValue.values || [];
+    return values.map(valueFromFirestore);
+  }
+  if ('mapValue' in field) {
+    const fields = field.mapValue.fields || {};
+    const res = {};
+    for (const key of Object.keys(fields)) {
+      res[key] = valueFromFirestore(fields[key]);
+    }
+    return res;
+  }
+  return undefined;
+}
+
+function mapFirestoreDoc(doc) {
+  const fields = doc.fields || {};
+  const res = { id: doc.name.split('/').pop() };
+  for (const key of Object.keys(fields)) {
+    res[key] = valueFromFirestore(fields[key]);
+  }
+  return res;
+}
+
+function fetchFirestoreProducts() {
+  return new Promise((resolve) => {
+    const projectId = process.env.VITE_FIREBASE_PROJECT_ID || 'al-zaydan-international';
+    const apiKey = process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY;
+    
+    let allProducts = [];
+    
+    function fetchPage(pageToken) {
+      const baseUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/products?pageSize=100`;
+      let url = pageToken ? `${baseUrl}&pageToken=${pageToken}` : baseUrl;
+      if (apiKey) url += `&key=${apiKey}`;
+
+      https.get(url, (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          try {
+            if (res.statusCode !== 200) {
+              console.log(`⚠️ Firestore products fetch returned status ${res.statusCode}. Falling back to initialState.`);
+              return resolve([]);
+            }
+            const parsed = JSON.parse(data);
+            if (parsed && parsed.documents) {
+              const mapped = parsed.documents.map(mapFirestoreDoc);
+              allProducts = allProducts.concat(mapped);
+            }
+            if (parsed.nextPageToken) {
+              fetchPage(parsed.nextPageToken);
+            } else {
+              resolve(allProducts);
+            }
+          } catch (err) {
+            console.error('❌ Failed to parse Firestore products page:', err);
+            resolve([]);
+          }
+        });
+      }).on('error', (err) => {
+        console.error('❌ Failed to fetch Firestore products page:', err.message);
+        resolve([]);
+      });
+    }
+
+    fetchPage();
+  });
+}
 
 // ── Read the Vite-built index.html template ───────────────────────────────────
 const templateHtml = fs.readFileSync(path.join(DIST, 'index.html'), 'utf-8');
@@ -78,7 +158,7 @@ function writeFile(filePath, content) {
  * Patch the built index.html template with page-specific SEO fields
  * and inject a static content block visible to crawlers inside <body>.
  */
-function buildPage({ title, description, canonical, ogTitle, ogDesc, bodyHtml, schemaJson }) {
+function buildPage({ title, description, canonical, ogTitle, ogDesc, ogImage, bodyHtml, schemaJson }) {
   let html = templateHtml;
 
   // 1. Title
@@ -110,6 +190,17 @@ function buildPage({ title, description, canonical, ogTitle, ogDesc, bodyHtml, s
     html = html.replace(
       /<meta property="og:description"[^>]*\/>/,
       `<meta property="og:description" content="${esc(ogDesc)}" />`
+    );
+  }
+  // 4b. OG image / Twitter image
+  if (ogImage) {
+    html = html.replace(
+      /<meta property="og:image"[^>]*\/>/,
+      `<meta property="og:image" content="${esc(ogImage)}" />`
+    );
+    html = html.replace(
+      /<meta name="twitter:image"[^>]*\/>/,
+      `<meta name="twitter:image" content="${esc(ogImage)}" />`
     );
   }
 
@@ -153,10 +244,24 @@ ${categories.map(c => `        <li><a href="/category/${encodeURIComponent(slug(
     </nav>`;
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PRODUCT PAGES  — dist/product/[slug]/index.html
+// DYNAMIC PRE-RENDER RUNNER
 // ═══════════════════════════════════════════════════════════════════════════════
-console.log(`\n🏗  Pre-rendering ${products.length} product pages…`);
-let productCount = 0;
+async function main() {
+  console.log('📡 Fetching latest products from Firestore...');
+  try {
+    const firestoreProducts = await fetchFirestoreProducts();
+    if (firestoreProducts && firestoreProducts.length > 0) {
+      products = firestoreProducts;
+      console.log(`  ✅ Mapped ${products.length} products dynamically from Firestore!`);
+    } else {
+      console.log(`  ⚠️ Using ${products.length} fallback products from initialState.json`);
+    }
+  } catch (err) {
+    console.error('  ⚠️ Error loading products from Firestore:', err);
+  }
+
+  console.log(`\n🏗  Pre-rendering ${products.length} product pages…`);
+  productCount = 0;
 
 for (const p of products) {
   if (!p.id) continue;
@@ -278,6 +383,7 @@ for (const p of products) {
     canonical: canonicalUrl,
     ogTitle: p.ogTitle || productTitle,
     ogDesc: p.ogDescription || productDesc,
+    ogImage: p.image || (p.images && p.images[0]) || 'https://www.alzaydaninternational.com/images/og-banner.jpg',
     bodyHtml,
     schemaJson: productSchemaArray,
   });
@@ -570,6 +676,7 @@ for (const page of STATIC_PAGES) {
     canonical: page.canonical,
     ogTitle: page.title,
     ogDesc: page.description,
+    ogImage: 'https://www.alzaydaninternational.com/images/og-banner.jpg',
     bodyHtml: page.bodyHtml,
     schemaJson: null,
   });
@@ -578,6 +685,9 @@ for (const page of STATIC_PAGES) {
   writeFile(outPath, html);
   staticCount++;
   console.log(`  ✅  ${page.route}/index.html`);
+}
+
+  await generateCategoriesAndRedirects();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -661,12 +771,23 @@ function fetchFirestoreRedirects() {
   });
 }
 
+function getCategoryImage(catName) {
+  // Check if we have dynamic image mapping in initialState
+  if (data.categories && data.categories.images && data.categories.images[catName]) {
+    return data.categories.images[catName];
+  }
+  // Fall back to first product image in this category
+  const prod = products.find(p => p.category === catName);
+  if (prod && prod.image) return prod.image;
+  return 'https://www.alzaydaninternational.com/images/og-banner.jpg';
+}
+
 async function generateCategoriesAndRedirects() {
   console.log(`\n🏗  Fetching latest Category SEO details from Firestore...`);
   const activeDetails = await fetchFirestoreCategoriesDetails();
 
   console.log(`\n🏗  Pre-rendering ${categories.length} category pages…`);
-  let categoryCount = 0;
+  categoryCount = 0;
 
   for (const c of categories) {
     const cSlug = slug(c);
@@ -729,6 +850,7 @@ async function generateCategoriesAndRedirects() {
       canonical: canonicalUrl,
       ogTitle: catTitle,
       ogDesc: catDesc,
+      ogImage: getCategoryImage(c),
       bodyHtml,
       schemaJson: [orgSchema, breadcrumbSchema, itemListSchema],
     });
@@ -803,4 +925,4 @@ async function generateCategoriesAndRedirects() {
   console.log(`\n    Google and Screaming Frog can now discover all ${totalPages} pages from HTML source.\n`);
 }
 
-generateCategoriesAndRedirects();
+main();

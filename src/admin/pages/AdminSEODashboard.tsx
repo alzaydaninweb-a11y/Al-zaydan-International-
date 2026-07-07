@@ -6,6 +6,7 @@ import {
   TrendingUp, BarChart3, Globe, Package, Tag, FileText, Layers, RefreshCw, Wand2, Loader2, Play, Square
 } from 'lucide-react';
 import { generateProductSEO } from '../../lib/seoGenerator';
+import { auth } from '../../lib/firebase';
 
 export default function AdminSEODashboard() {
   const { products, categories, categoryDetails, redirects, pagesSeo, imagesSeo, updateProduct } = useStore();
@@ -43,6 +44,7 @@ export default function AdminSEODashboard() {
     stopBulkGenRef.current = false;
 
     const fnBase = window.location.port === '3000' ? 'http://localhost:8888' : '';
+    const idToken = await auth.currentUser?.getIdToken();
 
     for (let i = 0; i < productsMissingContent.length; i++) {
       if (stopBulkGenRef.current) break;
@@ -50,9 +52,13 @@ export default function AdminSEODashboard() {
       setBulkGenCurrent(p.name);
 
       try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (idToken) {
+          headers['Authorization'] = `Bearer ${idToken}`;
+        }
         const res = await fetch(`${fnBase}/.netlify/functions/generate-product-content`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             name: p.name,
             brand: p.brand,

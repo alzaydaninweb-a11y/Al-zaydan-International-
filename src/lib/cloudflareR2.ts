@@ -1,3 +1,5 @@
+import { auth } from './firebase';
+
 /**
  * Uploads a file to Cloudflare R2 via Netlify serverless function proxy and returns the public URL.
  * @param file The File object to upload
@@ -8,14 +10,24 @@ export async function uploadToR2(file: File, folder: string): Promise<string> {
   if (!file) throw new Error('No file provided');
 
   try {
-    const response = await fetch('/api/upload-to-r2', {
+    const fnBase = window.location.port === '3000'
+      ? 'http://localhost:8888'
+      : '';
+    const idToken = await auth.currentUser?.getIdToken();
+    const headers: Record<string, string> = {
+      'Content-Type': file.type,
+      'X-Filename': file.name,
+      'X-Folder': folder,
+    };
+
+    if (idToken) {
+      headers['Authorization'] = `Bearer ${idToken}`;
+    }
+
+    const response = await fetch(`${fnBase}/.netlify/functions/upload-to-r2`, {
       method: 'POST',
       body: file,
-      headers: {
-        'Content-Type': file.type,
-        'X-Filename': file.name,
-        'X-Folder': folder,
-      },
+      headers,
     });
 
     if (!response.ok) {

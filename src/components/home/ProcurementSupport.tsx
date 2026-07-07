@@ -53,33 +53,6 @@ const SERVICES = [
   }
 ];
 
-const WORKFLOW_STEPS = [
-  {
-    num: '01',
-    title: 'Submit Your Requirement',
-    desc: 'Provide exact specifications and volume needs'
-  },
-  {
-    num: '02',
-    title: 'Procurement Team Reviews',
-    desc: 'Our experts analyze and scope the request'
-  },
-  {
-    num: '03',
-    title: 'Supplier Matching & Verification',
-    desc: 'We identify and vet top-tier manufacturers'
-  },
-  {
-    num: '04',
-    title: 'Receive Quotations',
-    desc: 'Review competitive bids and terms'
-  },
-  {
-    num: '05',
-    title: 'Confirm & Process Order',
-    desc: 'Finalize purchase with assured fulfillment'
-  }
-];
 
 export default function ProcurementSupport() {
   const navigate = useNavigate();
@@ -133,53 +106,6 @@ export default function ProcurementSupport() {
           })}
         </div>
 
-        {/* ── 2. Procurement Workflow Section ── */}
-        <div className="bg-slate-900 rounded-3xl p-8 sm:p-10 mb-16 relative overflow-hidden shadow-2xl">
-          {/* Background decorative elements */}
-          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-          <div className="relative z-10 mb-10 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div>
-              <h3 className="text-2xl font-bold text-white mb-2">How Our Sourcing Works</h3>
-              <p className="text-slate-400 text-sm max-w-xl">
-                A streamlined, transparent process designed to handle complex industrial procurement requirements with efficiency.
-              </p>
-            </div>
-            <button 
-              onClick={() => navigate('/rfq')}
-              className="shrink-0 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-6 rounded-lg transition-colors border border-blue-500 shadow-lg"
-            >
-              Start Sourcing
-            </button>
-          </div>
-
-          <div className="relative z-10">
-            {/* Desktop Horizontal Line */}
-            <div className="hidden lg:block absolute top-[28px] left-[10%] right-[10%] h-[2px] bg-slate-700/50"></div>
-            
-            {/* Mobile Vertical Line */}
-            <div className="lg:hidden absolute top-8 bottom-8 left-[28px] w-[2px] bg-slate-700/50"></div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-4 relative">
-              {WORKFLOW_STEPS.map((step, idx) => (
-                <div key={idx} className="relative flex lg:flex-col items-start lg:items-center gap-4 lg:gap-4 group">
-                  <div className="relative">
-                    <div className="w-14 h-14 bg-slate-800 border-2 border-slate-700 group-hover:border-blue-500 rounded-full flex items-center justify-center shadow-lg transition-colors z-10 relative">
-                      <span className="text-sm font-black text-slate-300 group-hover:text-blue-400 transition-colors">{step.num}</span>
-                    </div>
-                    {/* Active state indicator glow */}
-                    <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  </div>
-                  <div className="pt-2 lg:pt-0 lg:text-center flex-1">
-                    <h4 className="text-[15px] font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">{step.title}</h4>
-                    <p className="text-[12px] text-slate-400 leading-relaxed">{step.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
 
         {/* ── 3. Procurement Team CTA Area ── */}
         {settings?.expertProfile?.active && (

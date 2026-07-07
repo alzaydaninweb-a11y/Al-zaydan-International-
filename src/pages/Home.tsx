@@ -272,6 +272,7 @@ const getCategorySub = (categoryName: string, products: Product[]) => {
 export default function Home() {
   const { products, categories, settings, categoryImages, categoryDetails } = useStore();
   const [activeSlide, setActiveSlide] = useState(0);
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
   useSEO({
     title: 'Industrial Supplies, Traffic Safety & Reflective Materials Supplier UAE | Al Zaydan International',
@@ -285,6 +286,10 @@ export default function Home() {
   const activeCategories = useMemo(() => {
     return categories.filter(catName => products.some(p => p.category === catName));
   }, [categories, products]);
+
+  const topLevelCategories = useMemo(() => {
+    return categories.filter(catName => !categoryDetails?.[catName]?.parentId);
+  }, [categories, categoryDetails]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
@@ -412,27 +417,42 @@ export default function Home() {
         <div className="max-w-[1400px] mx-auto px-6 py-4 flex gap-6">
 
           {/* Categories Sidebar (Desktop only) */}
-          <div className="hidden lg:block w-[240px] xl:w-[260px] border border-gray-200 rounded-lg overflow-hidden shrink-0 h-[420px] bg-white">
-            <div className="flex flex-col h-full justify-between py-2">
-              {activeCategories.slice(0, 9).map(catName => {
-                const IconComponent = getCategoryIcon(catName);
-                return (
-                  <Link
-                    key={catName}
-                    to={`/category/${categoryDetails?.[catName]?.slug || generateSlug(catName)}`}
-                    className="flex items-center justify-between px-4 py-2 text-[13px] text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors font-semibold"
-                  >
-                    <span className="flex items-center gap-3">
-                      <IconComponent className="w-4 h-4 text-gray-400" />
-                      <span className="truncate max-w-[150px]">{catName}</span>
-                    </span>
-                    <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
-                  </Link>
-                );
-              })}
+          <div 
+            className="hidden lg:block w-[240px] xl:w-[260px] border border-gray-200 rounded-lg shrink-0 h-[420px] bg-white relative"
+            onMouseLeave={() => setHoveredCategory(null)}
+          >
+            <div className="flex flex-col h-full py-2">
+              {/* Scrollable list */}
+              <div className="flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gray-200 hover:[&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent">
+                {topLevelCategories.map(catName => {
+                  const IconComponent = getCategoryIcon(catName);
+                  const hasSub = categories.some(sub => categoryDetails?.[sub]?.parentId === catName);
+                  const isHovered = hoveredCategory === catName;
+                  return (
+                    <Link
+                      key={catName}
+                      to={`/category/${categoryDetails?.[catName]?.slug || generateSlug(catName)}`}
+                      onMouseEnter={() => setHoveredCategory(catName)}
+                      className={`flex items-center justify-between px-4 py-2 text-[13px] transition-colors font-semibold ${
+                        isHovered 
+                          ? 'bg-blue-50 text-blue-600' 
+                          : 'text-gray-700 hover:bg-blue-50/50 hover:text-blue-600'
+                      }`}
+                    >
+                      <span className="flex items-center gap-3">
+                        <IconComponent className={`w-4 h-4 ${isHovered ? 'text-blue-500' : 'text-gray-400'}`} />
+                        <span className="truncate max-w-[150px]">{catName}</span>
+                      </span>
+                      {hasSub ? (
+                        <ChevronRight className={`w-3.5 h-3.5 ${isHovered ? 'text-blue-500' : 'text-gray-300'}`} />
+                      ) : null}
+                    </Link>
+                  );
+                })}
+              </div>
               <Link
                 to="/search"
-                className="flex items-center justify-between px-4 py-2.5 text-[13px] text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors font-bold border-t border-gray-100 mt-1"
+                className="flex items-center justify-between px-4 py-2.5 text-[13px] text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors font-bold border-t border-gray-100 mt-1 shrink-0"
               >
                 <span className="flex items-center gap-3">
                   <Menu className="w-4 h-4 text-gray-400" />
@@ -441,6 +461,29 @@ export default function Home() {
                 <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
               </Link>
             </div>
+
+            {/* Subcategories Flyout Menu */}
+            {hoveredCategory && (() => {
+              const subCats = categories.filter(sub => categoryDetails?.[sub]?.parentId === hoveredCategory);
+              if (subCats.length === 0) return null;
+              return (
+                <div className="absolute left-[100%] top-0 z-20 w-[240px] xl:w-[260px] border border-gray-200 rounded-r-lg bg-white h-[420px] shadow-lg flex flex-col py-2 overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gray-200 hover:[&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent transition-all duration-150 ease-out">
+                  <div className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 mb-1.5 truncate">
+                    {hoveredCategory}
+                  </div>
+                  {subCats.map(subCat => (
+                    <Link
+                      key={subCat}
+                      to={`/category/${categoryDetails?.[subCat]?.slug || generateSlug(subCat)}`}
+                      className="flex items-center justify-between px-4 py-2 text-[13px] text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors font-semibold"
+                    >
+                      <span className="truncate max-w-[180px]">{subCat}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
+                    </Link>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Hero Slider — full-bleed background image */}
