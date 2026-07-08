@@ -80,10 +80,24 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         const data = await res.json();
         if (data && data.ip) {
           setCurrentIp(data.ip);
+          return;
         }
       }
+      // If endpoint is not found (e.g. running on Vite port 3000), throw to trigger fallback
+      throw new Error('Local API endpoint returned non-ok status');
     } catch (err) {
-      console.error('[AdminAuth] Error fetching client IP:', err);
+      console.warn('[AdminAuth] Local IP endpoint failed, falling back to ipify:', err.message || err);
+      try {
+        const fallbackRes = await fetch('https://api.ipify.org?format=json');
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json();
+          if (fallbackData && fallbackData.ip) {
+            setCurrentIp(fallbackData.ip);
+          }
+        }
+      } catch (fallbackErr) {
+        console.error('[AdminAuth] Fallback IP detection failed:', fallbackErr);
+      }
     } finally {
       setIpLoading(false);
     }

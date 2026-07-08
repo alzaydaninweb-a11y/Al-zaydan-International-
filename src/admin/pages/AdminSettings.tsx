@@ -20,11 +20,22 @@ export default function AdminSettings() {
 
   useEffect(() => {
     fetch('/api/get-ip')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Not ok');
+        return res.json();
+      })
       .then(data => {
         if (data && data.ip) setCurrentIp(data.ip);
       })
-      .catch(err => console.error('Failed to get current IP for setting', err));
+      .catch(err => {
+        console.warn('Local IP fetch failed, trying ipify fallback:', err);
+        fetch('https://api.ipify.org?format=json')
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.ip) setCurrentIp(data.ip);
+          })
+          .catch(fallbackErr => console.error('All IP fetches failed:', fallbackErr));
+      });
   }, []);
 
   const [newBrandName, setNewBrandName] = useState('');
@@ -852,86 +863,87 @@ export default function AdminSettings() {
         </div>
 
         {/* Security & IP Whitelisting */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="p-5 border-b border-gray-100 bg-slate-50 flex items-center justify-between">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
             <div>
-              <h2 className="text-[15px] font-bold text-slate-800 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-indigo-600" />
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-slate-500" />
                 Security & IP Restrictions
               </h2>
-              <p className="text-[13px] text-slate-500 mt-0.5">Restrict access to the Admin panel to specific office IP networks.</p>
+              <p className="text-xs text-slate-500 mt-0.5">Restrict access to the Admin panel to specific whitelisted IP addresses.</p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={!!form.adminIpRestrictionEnabled}
+            <div>
+              <select
+                value={form.adminIpRestrictionEnabled ? 'enabled' : 'disabled'}
                 onChange={e => {
-                  setForm({ ...form, adminIpRestrictionEnabled: e.target.checked });
+                  setForm({ ...form, adminIpRestrictionEnabled: e.target.value === 'enabled' });
                   setSaved(false);
                 }}
-                className="sr-only peer"
-              />
-              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
+                className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500 bg-white font-medium text-slate-700 cursor-pointer shadow-sm"
+              >
+                <option value="disabled">Access: Open (Anyone)</option>
+                <option value="enabled">Access: Restricted (Whitelist Only)</option>
+              </select>
+            </div>
           </div>
 
           <div className="p-6 space-y-6">
             {/* Show Current Detected IP */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Your Current Public IP</p>
-                <code className="text-sm font-semibold text-slate-800 bg-white px-2.5 py-1 border border-slate-200 rounded-lg inline-block">
-                  {currentIp || 'Loading IP...'}
-                </code>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs bg-slate-50 p-4 border border-gray-150 rounded-xl">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-500 font-medium">Your current public IP:</span>
+                <span className="font-semibold text-slate-900 font-mono text-[13px]">
+                  {currentIp || 'detecting...'}
+                </span>
               </div>
               {currentIp && !(form.adminAllowedIps || []).includes(currentIp) && (
                 <button
                   type="button"
                   onClick={() => addWhitelistedIp(currentIp)}
-                  className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-4 py-2 rounded-xl text-[11px] transition-colors border border-indigo-200"
+                  className="text-blue-600 hover:text-blue-700 font-semibold transition-colors flex items-center gap-1 text-xs"
                 >
-                  + Add my current IP to Whitelist
+                  + Whitelist My Current IP
                 </button>
               )}
             </div>
 
             {/* List & Add Whitelisted IPs */}
             <div className="space-y-4">
-              <div className="flex flex-col md:flex-row gap-3">
+              <div className="flex gap-2">
                 <input
                   type="text"
                   value={newIpInput}
                   onChange={e => setNewIpInput(e.target.value)}
-                  placeholder="e.g. 192.168.1.1 (Static Office IP)"
-                  className="flex-1 text-sm border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  placeholder="e.g. 192.168.1.1"
+                  className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-blue-500"
                 />
                 <button
                   type="button"
                   onClick={() => addWhitelistedIp(newIpInput)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-colors shadow-sm"
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4 py-2 rounded-lg text-xs transition-colors shadow-sm"
                 >
-                  Whitelist IP
+                  Add IP
                 </button>
               </div>
 
               {/* Whitelisted IP Addresses */}
               <div className="space-y-2">
-                <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest px-1">Whitelisted IPs</h3>
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Whitelisted IP List</h3>
                 {(form.adminAllowedIps || []).length === 0 ? (
-                  <div className="text-center py-6 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                  <div className="text-center py-5 border border-dashed border-gray-200 rounded-lg">
                     <p className="text-xs text-slate-400">No IP addresses whitelisted yet. Anyone can access the panel.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 gap-2">
+                  <div className="border border-gray-200 rounded-lg divide-y divide-gray-150 overflow-hidden">
                     {(form.adminAllowedIps || []).map((ip: string) => (
-                      <div key={ip} className="flex items-center justify-between p-3.5 bg-white border border-gray-150 rounded-xl shadow-sm">
-                        <span className="text-sm font-medium text-slate-700 font-mono">{ip}</span>
+                      <div key={ip} className="flex items-center justify-between px-4 py-2.5 bg-white text-xs">
+                        <span className="font-mono text-slate-700 font-medium">{ip}</span>
                         <button
                           type="button"
                           onClick={() => removeWhitelistedIp(ip)}
-                          className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                          className="text-red-500 hover:text-red-600 font-semibold"
                         >
-                          <X className="w-4 h-4" />
+                          Remove
                         </button>
                       </div>
                     ))}
@@ -943,59 +955,56 @@ export default function AdminSettings() {
         </div>
 
         {/* DM Team Management */}
-
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-5 border-b border-gray-100 bg-slate-50 flex items-center justify-between">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
             <div>
-              <h2 className="text-[15px] font-bold text-slate-800">Digital Marketing Team</h2>
-              <p className="text-[13px] text-slate-500 mt-0.5">Manage employees who can edit SEO tracking codes.</p>
-            </div>
-            <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
-              <Shield className="w-3 h-3" /> Managed Access
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Users className="w-4 h-4 text-slate-500" />
+                Digital Marketing Team
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">Manage employees who can edit SEO tracking codes.</p>
             </div>
           </div>
           <div className="p-6 space-y-6">
             {/* Add New DM Employee */}
-            <div className="bg-slate-50/80 rounded-xl p-5 border border-slate-200/60">
-              <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <Plus className="w-3.5 h-3.5" /> Create New DM Login
-              </h3>
+            <div className="bg-slate-50 border border-gray-200 rounded-xl p-5">
+              <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-3">Create New DM Login</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Full Name</label>
+                  <label className="block text-[11px] font-semibold text-slate-500 mb-1">Full Name</label>
                   <input
                     type="text"
                     placeholder="e.g. John Doe"
                     value={newDM.name}
                     onChange={e => setNewDM({ ...newDM, name: e.target.value })}
-                    className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                    className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Username</label>
+                  <label className="block text-[11px] font-semibold text-slate-500 mb-1">Username</label>
                   <input
                     type="text"
                     placeholder="e.g. dm_john"
                     value={newDM.username}
                     onChange={e => setNewDM({ ...newDM, username: e.target.value })}
-                    className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                    className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Password</label>
+                  <label className="block text-[11px] font-semibold text-slate-500 mb-1">Password</label>
                   <div className="flex gap-2">
                     <input
                       type="password"
                       placeholder="••••••••"
                       value={newDM.password}
                       onChange={e => setNewDM({ ...newDM, password: e.target.value })}
-                      className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                      className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-blue-500"
                     />
                     <button
                       type="button"
                       onClick={handleAddDM}
                       disabled={dmLoading || !newDM.username || !newDM.password}
-                      className="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-sm shadow-blue-600/20"
+                      className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4 py-2 rounded-lg text-xs transition-colors disabled:opacity-50 shadow-sm"
                     >
                       {dmLoading ? '...' : 'Add'}
                     </button>
@@ -1005,25 +1014,23 @@ export default function AdminSettings() {
             </div>
 
             {/* List DM Employees */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-2 px-1">
-                <Users className="w-3.5 h-3.5" /> Current DM Team members
-              </h3>
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Current DM Team Members</h3>
               {dmEmployees.length === 0 ? (
-                <div className="text-center py-8 bg-slate-50/30 rounded-xl border border-dashed border-slate-200">
-                  <p className="text-sm text-slate-400">No DM employees created yet.</p>
+                <div className="text-center py-5 border border-dashed border-gray-200 rounded-lg">
+                  <p className="text-xs text-slate-400">No DM employees created yet.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="border border-gray-200 rounded-lg divide-y divide-gray-150 overflow-hidden">
                   {dmEmployees.map(emp => (
-                    <div key={emp.id} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-shadow group">
+                    <div key={emp.id} className="flex items-center justify-between px-4 py-3 bg-white text-xs group">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-sm">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 font-bold text-[13px]">
                           {emp.name.charAt(0)}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-slate-800">{emp.name}</p>
-                          <p className="text-[11px] text-slate-500 font-medium">@{emp.username}</p>
+                          <p className="font-bold text-slate-800">{emp.name}</p>
+                          <p className="text-[10px] text-slate-500">@{emp.username}</p>
                         </div>
                       </div>
                       <button
@@ -1031,7 +1038,7 @@ export default function AdminSettings() {
                         onClick={() => {
                           if (confirm(`Delete DM access for ${emp.name}?`)) deleteDMEmployee(emp.id);
                         }}
-                        className="p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                        className="text-red-500 hover:text-red-600 font-semibold"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
