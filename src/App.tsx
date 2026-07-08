@@ -29,7 +29,6 @@ import ScriptInjector    from './components/ScriptInjector';
 
 // ── Admin panel — lazy loaded (large, only needed by admins) ──────────────────
 const AdminApp = lazy(() => import('./admin/AdminApp'));
-const DMApp    = lazy(() => import('./dm/DMApp'));
 
 // ── Admin loading fallback ────────────────────────────────────────────────────
 const AdminFallback = () => (
@@ -160,17 +159,7 @@ export default function App() {
                 }
               />
 
-              {/* DM Panel — lazy loaded */}
-              <Route
-                path="/dm/*"
-                element={
-                  <AppErrorBoundary>
-                    <Suspense fallback={<AdminFallback />}>
-                      <DMApp />
-                    </Suspense>
-                  </AppErrorBoundary>
-                }
-              />
+              {/* DM Panel removed */}
 
               {/* Main Storefront — ALL EAGER, zero Suspense, zero blank flash */}
               <Route path="/" element={<Layout />}>

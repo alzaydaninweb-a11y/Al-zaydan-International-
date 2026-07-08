@@ -6,13 +6,10 @@ import { useStore } from '../../context/StoreContext';
 import { uploadToR2 } from '../../lib/cloudflareR2';
 
 export default function AdminSettings() {
-  const { settings, updateGeneralSettings, dmEmployees, addDMEmployee, deleteDMEmployee } = useStore();
+  const { settings, updateGeneralSettings } = useStore();
   const [form, setForm] = useState(settings || {});
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
-  
-  const [newDM, setNewDM] = useState({ name: '', username: '', password: '' });
-  const [dmLoading, setDmLoading] = useState(false);
 
   // Security IP states
   const [currentIp, setCurrentIp] = useState('');
@@ -254,20 +251,7 @@ export default function AdminSettings() {
     setForm({ ...form, emails });
   };
 
-  const handleAddDM = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newDM.name || !newDM.username || !newDM.password) return;
-    setDmLoading(true);
-    try {
-      await addDMEmployee(newDM);
-      setNewDM({ name: '', username: '', password: '' });
-    } catch (err) {
-      console.error(err);
-      alert('Failed to add employee');
-    } finally {
-      setDmLoading(false);
-    }
-  };
+  // DM login section removed
 
   return (
     <div className="max-w-4xl mx-auto pb-20">
@@ -954,101 +938,7 @@ export default function AdminSettings() {
           </div>
         </div>
 
-        {/* DM Team Management */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Users className="w-4 h-4 text-slate-500" />
-                Digital Marketing Team
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">Manage employees who can edit SEO tracking codes.</p>
-            </div>
-          </div>
-          <div className="p-6 space-y-6">
-            {/* Add New DM Employee */}
-            <div className="bg-slate-50 border border-gray-200 rounded-xl p-5">
-              <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-3">Create New DM Login</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 mb-1">Full Name</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. John Doe"
-                    value={newDM.name}
-                    onChange={e => setNewDM({ ...newDM, name: e.target.value })}
-                    className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 mb-1">Username</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. dm_john"
-                    value={newDM.username}
-                    onChange={e => setNewDM({ ...newDM, username: e.target.value })}
-                    className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 mb-1">Password</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="password"
-                      placeholder="••••••••"
-                      value={newDM.password}
-                      onChange={e => setNewDM({ ...newDM, password: e.target.value })}
-                      className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-blue-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddDM}
-                      disabled={dmLoading || !newDM.username || !newDM.password}
-                      className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4 py-2 rounded-lg text-xs transition-colors disabled:opacity-50 shadow-sm"
-                    >
-                      {dmLoading ? '...' : 'Add'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* List DM Employees */}
-            <div className="space-y-2">
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Current DM Team Members</h3>
-              {dmEmployees.length === 0 ? (
-                <div className="text-center py-5 border border-dashed border-gray-200 rounded-lg">
-                  <p className="text-xs text-slate-400">No DM employees created yet.</p>
-                </div>
-              ) : (
-                <div className="border border-gray-200 rounded-lg divide-y divide-gray-150 overflow-hidden">
-                  {dmEmployees.map(emp => (
-                    <div key={emp.id} className="flex items-center justify-between px-4 py-3 bg-white text-xs group">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 font-bold text-[13px]">
-                          {emp.name.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-800">{emp.name}</p>
-                          <p className="text-[10px] text-slate-500">@{emp.username}</p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm(`Delete DM access for ${emp.name}?`)) deleteDMEmployee(emp.id);
-                        }}
-                        className="text-red-500 hover:text-red-600 font-semibold"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        {/* DM Team Management section removed */}
 
         <div className="flex justify-end pt-4">
           <button
