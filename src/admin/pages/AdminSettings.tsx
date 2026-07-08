@@ -14,6 +14,19 @@ export default function AdminSettings() {
   const [newDM, setNewDM] = useState({ name: '', username: '', password: '' });
   const [dmLoading, setDmLoading] = useState(false);
 
+  // Security IP states
+  const [currentIp, setCurrentIp] = useState('');
+  const [newIpInput, setNewIpInput] = useState('');
+
+  useEffect(() => {
+    fetch('/api/get-ip')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.ip) setCurrentIp(data.ip);
+      })
+      .catch(err => console.error('Failed to get current IP for setting', err));
+  }, []);
+
   const [newBrandName, setNewBrandName] = useState('');
   const [newBrandLogo, setNewBrandLogo] = useState('');
 
@@ -132,8 +145,55 @@ export default function AdminSettings() {
     setSaved(false);
   };
 
+  const addWhitelistedIp = (ipAddress: string) => {
+    const cleanIp = ipAddress.trim();
+    if (!cleanIp) return;
+    
+    if (!/^[0-9a-fA-F.:]+$/.test(cleanIp)) {
+      alert('Please enter a valid IP address.');
+      return;
+    }
+    
+    const allowedIps = [...(form.adminAllowedIps || [])];
+    if (allowedIps.includes(cleanIp)) {
+      alert('This IP is already whitelisted.');
+      return;
+    }
+    
+    allowedIps.push(cleanIp);
+    setForm({ ...form, adminAllowedIps: allowedIps });
+    setNewIpInput('');
+    setSaved(false);
+  };
+
+  const removeWhitelistedIp = (ipToRemove: string) => {
+    const allowedIps = (form.adminAllowedIps || []).filter((ip: string) => ip !== ipToRemove);
+    setForm({ ...form, adminAllowedIps: allowedIps });
+    setSaved(false);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Lockout safety prevention check
+    if (form.adminIpRestrictionEnabled) {
+      const allowedIps = form.adminAllowedIps || [];
+      if (currentIp && !allowedIps.includes(currentIp)) {
+        const confirmSave = window.confirm(
+          `⚠️ WARNING: Your current IP (${currentIp}) is not added to the Whitelist.\n\n` +
+          `If you save now, you will be immediately locked out of the admin panel!\n\n` +
+          `Do you want to add ${currentIp} to the whitelist automatically and continue?`
+        );
+        if (confirmSave) {
+          const newAllowed = [...allowedIps, currentIp];
+          form.adminAllowedIps = newAllowed;
+          setForm({ ...form, adminAllowedIps: newAllowed });
+        } else {
+          return; // cancel save
+        }
+      }
+    }
+
     setLoading(true);
     try {
       await updateGeneralSettings(form);
@@ -734,7 +794,7 @@ export default function AdminSettings() {
           <div className="p-5 border-b border-gray-100 bg-slate-50 flex items-center justify-between">
             <div>
               <h2 className="text-[15px] font-bold text-slate-800 flex items-center gap-2">
-                <MessageCircle className="w-4 h-4 text-green-600" />
+                <MessageCircle className="w-4 h-4 text-indigo-600" />
                 WhatsApp & Call Button Numbers
               </h2>
               <p className="text-[13px] text-slate-500 mt-0.5">Default numbers for WhatsApp chat and phone call buttons across the site.</p>
@@ -744,8 +804,8 @@ export default function AdminSettings() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Default WhatsApp Number */}
               <div className="space-y-2">
-                <label className="block text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-1.5">
-                  <MessageCircle className="w-3.5 h-3.5 text-green-600" /> Default WhatsApp Number
+                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                  <MessageCircle className="w-3.5 h-3.5 text-slate-500" /> Default WhatsApp Number
                 </label>
                 <input
                   type="text"
@@ -753,15 +813,15 @@ export default function AdminSettings() {
                   value={form.orderWhatsAppNumber || ''}
                   onChange={handleChange}
                   placeholder="e.g. +971 52 987 1369"
-                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-slate-50/50"
+                  className="w-full text-sm border border-gray-250 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
                 />
                 <p className="text-[11px] text-slate-400 px-1">This number is used for the floating WhatsApp button and as a fallback across all pages.</p>
               </div>
 
               {/* Default Call Number */}
               <div className="space-y-2">
-                <label className="block text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-amber-600" /> Default Call Number
+                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-slate-500" /> Default Call Number
                 </label>
                 <input
                   type="text"
@@ -769,14 +829,14 @@ export default function AdminSettings() {
                   value={form.phoneNumber || ''}
                   onChange={handleChange}
                   placeholder="e.g. +971 55 155 1329"
-                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 bg-slate-50/50"
+                  className="w-full text-sm border border-gray-250 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
                 />
                 <p className="text-[11px] text-slate-400 px-1">This is the primary phone number used for the call button in the procurement dock.</p>
               </div>
             </div>
 
             {/* Link to advanced routing */}
-            <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-4 flex items-center justify-between">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-center justify-between">
               <div>
                 <p className="text-[13px] font-bold text-slate-700">Need per-page routing?</p>
                 <p className="text-[12px] text-slate-500 mt-0.5">Route different pages to different WhatsApp / call numbers (e.g. RFQ to one team, Contact page to another).</p>
@@ -787,6 +847,97 @@ export default function AdminSettings() {
               >
                 Advanced Routing <ArrowRight className="w-3.5 h-3.5" />
               </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Security & IP Whitelisting */}
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="p-5 border-b border-gray-100 bg-slate-50 flex items-center justify-between">
+            <div>
+              <h2 className="text-[15px] font-bold text-slate-800 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-indigo-600" />
+                Security & IP Restrictions
+              </h2>
+              <p className="text-[13px] text-slate-500 mt-0.5">Restrict access to the Admin panel to specific office IP networks.</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!form.adminIpRestrictionEnabled}
+                onChange={e => {
+                  setForm({ ...form, adminIpRestrictionEnabled: e.target.checked });
+                  setSaved(false);
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {/* Show Current Detected IP */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Your Current Public IP</p>
+                <code className="text-sm font-semibold text-slate-800 bg-white px-2.5 py-1 border border-slate-200 rounded-lg inline-block">
+                  {currentIp || 'Loading IP...'}
+                </code>
+              </div>
+              {currentIp && !(form.adminAllowedIps || []).includes(currentIp) && (
+                <button
+                  type="button"
+                  onClick={() => addWhitelistedIp(currentIp)}
+                  className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-4 py-2 rounded-xl text-[11px] transition-colors border border-indigo-200"
+                >
+                  + Add my current IP to Whitelist
+                </button>
+              )}
+            </div>
+
+            {/* List & Add Whitelisted IPs */}
+            <div className="space-y-4">
+              <div className="flex flex-col md:flex-row gap-3">
+                <input
+                  type="text"
+                  value={newIpInput}
+                  onChange={e => setNewIpInput(e.target.value)}
+                  placeholder="e.g. 192.168.1.1 (Static Office IP)"
+                  className="flex-1 text-sm border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+                <button
+                  type="button"
+                  onClick={() => addWhitelistedIp(newIpInput)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-colors shadow-sm"
+                >
+                  Whitelist IP
+                </button>
+              </div>
+
+              {/* Whitelisted IP Addresses */}
+              <div className="space-y-2">
+                <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest px-1">Whitelisted IPs</h3>
+                {(form.adminAllowedIps || []).length === 0 ? (
+                  <div className="text-center py-6 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                    <p className="text-xs text-slate-400">No IP addresses whitelisted yet. Anyone can access the panel.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2">
+                    {(form.adminAllowedIps || []).map((ip: string) => (
+                      <div key={ip} className="flex items-center justify-between p-3.5 bg-white border border-gray-150 rounded-xl shadow-sm">
+                        <span className="text-sm font-medium text-slate-700 font-mono">{ip}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeWhitelistedIp(ip)}
+                          className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

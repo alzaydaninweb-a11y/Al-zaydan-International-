@@ -39,23 +39,30 @@ export default function AdminLogin() {
           align-items: center;
           justify-content: center;
           padding: 2rem 1rem;
-          background: #f1f5f9;
+          background: radial-gradient(circle at top, rgba(99, 102, 241, 0.12) 0%, transparent 50%), 
+                      linear-gradient(135deg, #090d16 0%, #0f172a 100%);
           font-family: 'Inter', sans-serif;
+          position: relative;
+          overflow: hidden;
         }
 
         .lp-card {
           width: 100%;
-          max-width: 400px;
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 20px;
-          padding: 2.5rem 2rem;
-          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.04), 0 20px 40px -8px rgba(0,0,0,0.08);
-          animation: fadeUp 0.35s ease;
+          max-width: 420px;
+          background: rgba(15, 23, 42, 0.6);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 24px;
+          padding: 3rem 2.25rem;
+          box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4), 
+                      0 1px 0 rgba(255, 255, 255, 0.1) inset;
+          animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          z-index: 10;
         }
 
         @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(14px); }
+          from { opacity: 0; transform: translateY(20px); }
           to   { opacity: 1; transform: translateY(0); }
         }
 
@@ -63,166 +70,173 @@ export default function AdminLogin() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          margin-bottom: 2rem;
+          margin-bottom: 2.25rem;
         }
         .lp-logo-icon {
-          width: 56px; height: 56px;
-          border-radius: 16px;
-          background: linear-gradient(135deg, #6366f1, #7c3aed);
+          width: 60px; height: 60px;
+          border-radius: 18px;
+          background: linear-gradient(135deg, #4f46e5, #6366f1);
           display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 8px 20px rgba(99,102,241,0.3);
-          margin-bottom: 14px;
+          box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4),
+                      0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+          margin-bottom: 16px;
         }
         .lp-logo-title {
-          font-size: 1.25rem;
+          font-size: 1.35rem;
           font-weight: 800;
-          color: #0f172a;
-          letter-spacing: -0.3px;
+          color: #ffffff;
+          letter-spacing: -0.5px;
         }
         .lp-logo-sub {
-          font-size: 0.78rem;
+          font-size: 0.8rem;
           color: #94a3b8;
           font-weight: 500;
-          margin-top: 3px;
+          margin-top: 4px;
+          opacity: 0.85;
         }
 
         .lp-heading {
-          font-size: 1rem;
-          font-weight: 700;
-          color: #0f172a;
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: #e2e8f0;
           margin-bottom: 1.5rem;
+          text-align: center;
+          opacity: 0.9;
         }
 
-        .lp-field { margin-bottom: 16px; }
+        .lp-field { margin-bottom: 20px; }
         .lp-label {
           display: block;
           font-size: 0.72rem;
           font-weight: 700;
-          color: #475569;
+          color: #94a3b8;
           text-transform: uppercase;
-          letter-spacing: 0.07em;
-          margin-bottom: 6px;
+          letter-spacing: 0.08em;
+          margin-bottom: 8px;
+          padding-left: 2px;
         }
         .lp-input-wrap { position: relative; }
         .lp-icon {
           position: absolute;
-          left: 12px; top: 50%;
+          left: 14px; top: 50%;
           transform: translateY(-50%);
-          color: #94a3b8;
+          color: #64748b;
           display: flex; align-items: center;
           pointer-events: none;
         }
         .lp-input {
           width: 100%;
-          border: 1.5px solid #e2e8f0;
-          border-radius: 10px;
-          padding: 11px 14px 11px 38px;
-          font-size: 0.9rem;
+          border: 1.5px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          padding: 12px 14px 12px 42px;
+          font-size: 0.92rem;
           font-family: 'Inter', sans-serif;
           font-weight: 500;
-          color: #0f172a;
-          background: #f8fafc;
+          color: #ffffff;
+          background: rgba(15, 23, 42, 0.4);
           outline: none;
-          transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+          transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
         }
-        .lp-input::placeholder { color: #cbd5e1; font-weight: 400; }
+        .lp-input::placeholder { color: #475569; font-weight: 400; }
         .lp-input:focus {
           border-color: #6366f1;
-          background: #fff;
-          box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+          background: rgba(15, 23, 42, 0.6);
+          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
         }
-        .lp-input-pr { padding-right: 42px; }
+        .lp-input-pr { padding-right: 44px; }
 
         .lp-eye {
           position: absolute;
-          right: 12px; top: 50%;
+          right: 14px; top: 50%;
           transform: translateY(-50%);
           background: none; border: none;
           cursor: pointer; padding: 2px;
-          color: #94a3b8;
+          color: #64748b;
           display: flex; align-items: center;
           transition: color 0.15s;
         }
-        .lp-eye:hover { color: #475569; }
+        .lp-eye:hover { color: #94a3b8; }
 
         .lp-row-right {
           display: flex;
           justify-content: flex-end;
-          margin-top: -6px;
-          margin-bottom: 20px;
+          margin-top: -8px;
+          margin-bottom: 24px;
         }
         .lp-link {
           background: none; border: none;
-          color: #6366f1; font-size: 0.78rem;
+          color: #818cf8; font-size: 0.8rem;
           font-weight: 600; cursor: pointer;
           font-family: 'Inter', sans-serif;
           padding: 0;
           transition: color 0.15s;
         }
-        .lp-link:hover { color: #4f46e5; text-decoration: underline; }
+        .lp-link:hover { color: #a5b4fc; text-decoration: none; }
 
         .lp-btn {
           width: 100%;
-          padding: 12px;
+          padding: 13px;
           border: none;
-          border-radius: 10px;
-          background: linear-gradient(135deg, #6366f1, #7c3aed);
-          color: #fff;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+          color: #ffffff;
           font-size: 0.92rem;
           font-weight: 700;
           font-family: 'Inter', sans-serif;
           cursor: pointer;
           display: flex; align-items: center; justify-content: center;
           gap: 8px;
-          box-shadow: 0 4px 14px rgba(99,102,241,0.32);
-          transition: box-shadow 0.2s, transform 0.1s, opacity 0.2s;
+          box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3),
+                      0 1px 0 rgba(255, 255, 255, 0.2) inset;
+          transition: all 0.2s;
         }
         .lp-btn:hover:not(:disabled) {
-          box-shadow: 0 6px 20px rgba(99,102,241,0.42);
+          box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45);
           transform: translateY(-1px);
+          filter: brightness(1.05);
         }
         .lp-btn:active:not(:disabled) { transform: translateY(0); }
         .lp-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
         .lp-back {
           background: none; border: none;
-          color: #94a3b8; font-size: 0.77rem;
+          color: #64748b; font-size: 0.8rem;
           font-weight: 600; cursor: pointer;
           font-family: 'Inter', sans-serif;
-          display: flex; align-items: center; gap: 4px;
-          padding: 0; margin-bottom: 1.25rem;
+          display: flex; align-items: center; gap: 6px;
+          padding: 0; margin-bottom: 1.5rem;
           transition: color 0.15s;
         }
-        .lp-back:hover { color: #475569; }
+        .lp-back:hover { color: #94a3b8; }
 
         .lp-error {
           display: flex; align-items: flex-start; gap: 8px;
-          background: #fff5f5;
-          border: 1.5px solid #fed7d7;
-          border-radius: 10px;
-          padding: 10px 14px;
-          color: #c53030;
-          font-size: 0.8rem;
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          border-radius: 12px;
+          padding: 12px 14px;
+          color: #fca5a5;
+          font-size: 0.82rem;
           line-height: 1.5;
-          margin-bottom: 16px;
+          margin-bottom: 20px;
         }
 
         .lp-divider {
           border: none;
-          border-top: 1px solid #f1f5f9;
-          margin: 1.25rem 0;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          margin: 1.5rem 0;
         }
 
         .lp-info {
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 10px;
-          padding: 12px 14px;
-          font-size: 0.78rem;
-          color: #64748b;
+          background: rgba(30, 41, 59, 0.4);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 12px;
+          padding: 14px;
+          font-size: 0.8rem;
+          color: #94a3b8;
           line-height: 1.6;
           text-align: center;
-          margin-bottom: 1.25rem;
+          margin-bottom: 1.5rem;
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -235,7 +249,7 @@ export default function AdminLogin() {
           {/* Logo */}
           <div className="lp-logo">
             <div className="lp-logo-icon">
-              <ShieldCheck size={26} color="#fff" strokeWidth={2.2} />
+              <ShieldCheck size={28} color="#fff" strokeWidth={2.2} />
             </div>
             <div className="lp-logo-title">Admin Portal</div>
             <div className="lp-logo-sub">Al Zaydan International</div>

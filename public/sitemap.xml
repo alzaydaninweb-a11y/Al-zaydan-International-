@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Al Zaydan International FZE — XML Sitemap -->
-<!-- Build-time generated: 2026-07-08T04:45:44.658Z -->
-<!-- Total URLs: 9 -->
+<!-- Build-time generated: 2026-07-08T07:11:27.216Z -->
+<!-- Total URLs: 12 -->
 <!-- NOTE: Real-time version served by Netlify Function at /sitemap.xml -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -65,6 +65,23 @@
   </url>
 
   <!-- ── Blog Posts (Firestore-dynamic, priority 0.6) ──────── -->
-  <!-- No published blog posts at build time -->
+  <url>
+    <loc>https://www.alzaydaninternational.com/blog/why-choosing-the-right-traffic-safety-products-matters-for-your-business</loc>
+    <lastmod>2026-06-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.alzaydaninternational.com/blog/middle-east-war-2026-how-global-conflict-is-increasing-construction-material-prices</loc>
+    <lastmod>2026-05-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.alzaydaninternational.com/blog/current-steel-market-outlook-2026-prices-demand-trends-future-forecast</loc>
+    <lastmod>2026-05-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
 
 </urlset>

@@ -3,7 +3,9 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useMemo,
 } from 'react';
+import { useStore } from './StoreContext';
 import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
@@ -30,6 +32,10 @@ interface AdminAuthContextType {
   resetLoading: boolean;
   // Logout
   logout: () => Promise<void>;
+  // Security IP verification
+  currentIp: string;
+  isIpAuthorized: boolean;
+  ipLoading: boolean;
 }
 
 // ─── Friendly error messages ──────────────────────────────────────────────────
@@ -55,12 +61,46 @@ const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefin
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
+  const { settings } = useStore();
   const [user, setUser]               = useState<User | null>(null);
   const [loading, setLoading]         = useState(true);
   const [loginError, setLoginError]   = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [resetError, setResetError]   = useState('');
   const [resetLoading, setResetLoading] = useState(false);
+
+  // IP state
+  const [currentIp, setCurrentIp] = useState('');
+  const [ipLoading, setIpLoading] = useState(true);
+
+  const fetchClientIp = async () => {
+    try {
+      const res = await fetch('/api/get-ip');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.ip) {
+          setCurrentIp(data.ip);
+        }
+      }
+    } catch (err) {
+      console.error('[AdminAuth] Error fetching client IP:', err);
+    } finally {
+      setIpLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClientIp();
+    // Poll every 30 seconds to catch active session network changes
+    const interval = setInterval(fetchClientIp, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isIpAuthorized = useMemo(() => {
+    if (!settings?.adminIpRestrictionEnabled) return true;
+    const allowedIps = settings.adminAllowedIps || [];
+    return allowedIps.includes(currentIp);
+  }, [settings, currentIp]);
 
   // Watch Firebase auth state
   useEffect(() => {
@@ -120,6 +160,9 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         resetError,
         resetLoading,
         logout,
+        currentIp,
+        isIpAuthorized,
+        ipLoading,
       }}
     >
       {children}

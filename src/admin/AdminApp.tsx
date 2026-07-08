@@ -23,10 +23,10 @@ import AdminRedirects from './pages/AdminRedirects';
 import AdminPageSEO from './pages/AdminPageSEO';
 
 function AdminRoutes() {
-  const { isAuthenticated, loading } = useAdminAuth();
+  const { isAuthenticated, loading, isIpAuthorized, ipLoading } = useAdminAuth();
 
-  // Wait for Firebase to resolve auth state (prevents login flash on refresh)
-  if (loading) {
+  // Wait for Firebase to resolve auth state & IP check (prevents login flash on refresh)
+  if (loading || ipLoading) {
     return (
       <div
         style={{
@@ -49,10 +49,33 @@ function AdminRoutes() {
             animation: 'spin 0.8s linear infinite',
           }}
         />
-        <p style={{ color: '#334155', fontSize: '0.82rem', fontFamily: 'Inter, sans-serif' }}>
-          Authenticating…
+        <p style={{ color: '#6366f1', fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
+          Verifying security & credentials…
         </p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  // 1. IP restriction check
+  if (!isIpAuthorized) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center font-sans">
+        <div className="max-w-md space-y-4">
+          <h1 className="text-6xl font-extrabold text-slate-300 tracking-tight">404</h1>
+          <h2 className="text-xl font-bold text-slate-800">Page no longer exists</h2>
+          <p className="text-sm text-slate-500 leading-relaxed">
+            The page you are looking for has been removed, had its name changed, or is temporarily unavailable.
+          </p>
+          <div className="pt-4">
+            <a
+              href="/"
+              className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-colors shadow-sm"
+            >
+              Go to Homepage
+            </a>
+          </div>
+        </div>
       </div>
     );
   }
