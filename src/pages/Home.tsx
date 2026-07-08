@@ -249,6 +249,16 @@ const getCategoryImage = (categoryName: string, products: Product[], categoryIma
     'Lighting & Beacons': 'https://images.unsplash.com/photo-1513826308963-f6ecb473cddb?q=80&w=400&auto=format&fit=crop',
     'Industrial Tools': 'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?q=80&w=400&auto=format&fit=crop',
     'Bulk Offers': 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=400&auto=format&fit=crop',
+    'Printing Supplies': 'https://images.unsplash.com/photo-1615840287214-7fe58a8b668f?q=80&w=400&auto=format&fit=crop',
+    'Industrial Sealants & Adhesives': 'https://images.unsplash.com/photo-1595206133361-b1fe343e5e23?q=80&w=400&auto=format&fit=crop',
+    'Industrial Diamond Tools': 'https://images.unsplash.com/photo-1572981779307-38b8cabb2407?q=80&w=400&auto=format&fit=crop',
+    'Lights & Lighting': 'https://images.unsplash.com/photo-1507608869274-d3177c8bb4c7?q=80&w=400&auto=format&fit=crop',
+    'Home Improvement Solutions': 'https://images.unsplash.com/photo-1562259949-e8e7689d7828?q=80&w=400&auto=format&fit=crop',
+    'Security Packaging Solutions': 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?q=80&w=400&auto=format&fit=crop',
+    'Flexible Packaging Raw Materials': 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=400&auto=format&fit=crop',
+    'Flexible packaging raw materials': 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=400&auto=format&fit=crop',
+    'Industrial Adhesive Tapes': 'https://images.unsplash.com/photo-1563245372-f21724e3856d?q=80&w=400&auto=format&fit=crop',
+    'Plastic Sheet Materials': 'https://images.unsplash.com/photo-1618220179428-22790b461013?q=80&w=400&auto=format&fit=crop',
   };
   return fallbacks[categoryName] || 'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?q=80&w=400&auto=format&fit=crop';
 };
@@ -663,6 +673,16 @@ export default function Home() {
                               'Lighting & Beacons': 'https://images.unsplash.com/photo-1513826308963-f6ecb473cddb?q=80&w=400&auto=format&fit=crop',
                               'Industrial Tools': 'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?q=80&w=400&auto=format&fit=crop',
                               'Bulk Offers': 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=400&auto=format&fit=crop',
+                              'Printing Supplies': 'https://images.unsplash.com/photo-1615840287214-7fe58a8b668f?q=80&w=400&auto=format&fit=crop',
+                              'Industrial Sealants & Adhesives': 'https://images.unsplash.com/photo-1595206133361-b1fe343e5e23?q=80&w=400&auto=format&fit=crop',
+                              'Industrial Diamond Tools': 'https://images.unsplash.com/photo-1572981779307-38b8cabb2407?q=80&w=400&auto=format&fit=crop',
+                              'Lights & Lighting': 'https://images.unsplash.com/photo-1507608869274-d3177c8bb4c7?q=80&w=400&auto=format&fit=crop',
+                              'Home Improvement Solutions': 'https://images.unsplash.com/photo-1562259949-e8e7689d7828?q=80&w=400&auto=format&fit=crop',
+                              'Security Packaging Solutions': 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?q=80&w=400&auto=format&fit=crop',
+                              'Flexible Packaging Raw Materials': 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=400&auto=format&fit=crop',
+                              'Flexible packaging raw materials': 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=400&auto=format&fit=crop',
+                              'Industrial Adhesive Tapes': 'https://images.unsplash.com/photo-1563245372-f21724e3856d?q=80&w=400&auto=format&fit=crop',
+                              'Plastic Sheet Materials': 'https://images.unsplash.com/photo-1618220179428-22790b461013?q=80&w=400&auto=format&fit=crop',
                             };
                             target.src = fallbacks[catName] || 'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?q=80&w=400&auto=format&fit=crop';
                           }}
