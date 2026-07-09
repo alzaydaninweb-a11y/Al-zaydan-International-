@@ -154,17 +154,18 @@ export default function AdminSettings() {
   };
 
   const addWhitelistedIp = (ipAddress: string) => {
-    const cleanIp = ipAddress.trim();
+    const cleanIp = ipAddress.replace(/^::ffff:/, '').trim();
     if (!cleanIp) return;
     
-    if (!/^[0-9a-fA-F.:]+$/.test(cleanIp)) {
-      alert('Please enter a valid IP address.');
+    // Support wildcards like 223.185.23.*
+    if (!/^[0-9a-fA-F.:*]+$/.test(cleanIp)) {
+      alert('Please enter a valid IP address or subnet wildcard (e.g. 223.185.23.*).');
       return;
     }
     
     const allowedIps = [...(form.adminAllowedIps || [])];
     if (allowedIps.includes(cleanIp)) {
-      alert('This IP is already whitelisted.');
+      alert('This IP or subnet is already whitelisted.');
       return;
     }
     
@@ -183,19 +184,39 @@ export default function AdminSettings() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Lockout safety prevention check
-    if (form.adminIpRestrictionEnabled) {
-      const allowedIps = form.adminAllowedIps || [];
-      if (currentIp && !allowedIps.includes(currentIp)) {
+    let updatedForm = { ...form };
+    const allowedIps = updatedForm.adminAllowedIps || [];
+
+    // Failsafe: if whitelist is empty, set restriction mode to disabled automatically
+    if (allowedIps.length === 0 && updatedForm.adminIpRestrictionEnabled) {
+      alert('⚠️ Note: You cannot enable IP restrictions with an empty Whitelisted IP List. IP restriction has been set to Disabled to prevent locking yourself out.');
+      updatedForm.adminIpRestrictionEnabled = false;
+      setForm(prev => ({ ...prev, adminIpRestrictionEnabled: false }));
+    }
+
+    // Lockout safety check for current public IP
+    if (updatedForm.adminIpRestrictionEnabled) {
+      const cleanCurrent = currentIp.replace(/^::ffff:/, '').trim();
+      
+      const isCurrentCovered = allowedIps.some(allowed => {
+        const cleanAllowed = allowed.replace(/^::ffff:/, '').trim();
+        if (cleanAllowed.endsWith('*')) {
+          const prefix = cleanAllowed.slice(0, -1);
+          return cleanCurrent.startsWith(prefix);
+        }
+        return cleanCurrent === cleanAllowed;
+      });
+
+      if (currentIp && !isCurrentCovered) {
         const confirmSave = window.confirm(
-          `⚠️ WARNING: Your current IP (${currentIp}) is not added to the Whitelist.\n\n` +
-          `If you save now, you will be immediately locked out of the admin panel!\n\n` +
-          `Do you want to add ${currentIp} to the whitelist automatically and continue?`
+          `⚠️ WARNING: Your current IP (${currentIp}) is not whitelisted.\n\n` +
+          `Saving will lock you out of this dashboard immediately!\n\n` +
+          `Would you like to automatically whitelist your IP (${cleanCurrent}) and proceed?`
         );
         if (confirmSave) {
-          const newAllowed = [...allowedIps, currentIp];
-          form.adminAllowedIps = newAllowed;
-          setForm({ ...form, adminAllowedIps: newAllowed });
+          const newAllowed = [...allowedIps, cleanCurrent];
+          updatedForm.adminAllowedIps = newAllowed;
+          setForm(prev => ({ ...prev, adminAllowedIps: newAllowed }));
         } else {
           return; // cancel save
         }
@@ -204,7 +225,7 @@ export default function AdminSettings() {
 
     setLoading(true);
     try {
-      await updateGeneralSettings(form);
+      await updateGeneralSettings(updatedForm);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -898,8 +919,8 @@ export default function AdminSettings() {
                   type="text"
                   value={newIpInput}
                   onChange={e => setNewIpInput(e.target.value)}
-                  placeholder="e.g. 192.168.1.1"
-                  className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-blue-500"
+                  placeholder="e.g. 223.185.23.55 or 223.185.23.*"
+                  className="flex-1 text-sm border border-gray-250 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-blue-500"
                 />
                 <button
                   type="button"
@@ -909,6 +930,9 @@ export default function AdminSettings() {
                   Add IP
                 </button>
               </div>
+              <p className="text-[11px] text-slate-400 px-1 leading-relaxed">
+                💡 **Office Wi-Fi Tip:** If your office has a dynamic IP address, you can use a wildcard asterisk (e.g. **223.185.23.***) to whitelist the entire subnet, ensuring your staff's access never gets blocked when the router resets.
+              </p>
 
               {/* Whitelisted IP Addresses */}
               <div className="space-y-2">

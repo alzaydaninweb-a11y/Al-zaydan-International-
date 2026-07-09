@@ -110,11 +110,49 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, []);
 
+  // Emergency rescue bypass check (?bypass=az_rescue_admin)
+  const hasRescueBypass = useMemo(() => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get('bypass') === 'az_rescue_admin') {
+        localStorage.setItem('az_ip_bypass', 'true');
+        return true;
+      }
+      return localStorage.getItem('az_ip_bypass') === 'true';
+    } catch (err) {
+      return false;
+    }
+  }, []);
+
   const isIpAuthorized = useMemo(() => {
+    // 1. If restriction is disabled, let them in
     if (!settings?.adminIpRestrictionEnabled) return true;
+
+    // 2. If rescue bypass is active in localStorage/URL, bypass
+    if (hasRescueBypass) return true;
+
+    const cleanClient = currentIp.replace(/^::ffff:/, '').trim();
+
+    // 3. Localhost developer bypass
+    if (cleanClient === '127.0.0.1' || cleanClient === '::1' || cleanClient === 'localhost' || !cleanClient) {
+      return true;
+    }
+
     const allowedIps = settings.adminAllowedIps || [];
-    return allowedIps.includes(currentIp);
-  }, [settings, currentIp]);
+
+    // 4. If whitelist is empty, default to open access to prevent lockout
+    if (allowedIps.length === 0) return true;
+
+    // 5. Compare with whitelisted subnets/IPs
+    return allowedIps.some(allowed => {
+      const cleanAllowed = allowed.replace(/^::ffff:/, '').trim();
+      if (cleanAllowed.endsWith('*')) {
+        const prefix = cleanAllowed.slice(0, -1);
+        return cleanClient.startsWith(prefix);
+      }
+      return cleanClient === cleanAllowed;
+    });
+  }, [settings, currentIp, hasRescueBypass]);
 
   // Watch Firebase auth state
   useEffect(() => {
