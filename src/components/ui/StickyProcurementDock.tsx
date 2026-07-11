@@ -185,10 +185,6 @@ export default function StickyProcurementDock() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (location.pathname === '/cart') {
-    return null;
-  }
-
   const [visible,     setVisible]     = useState(false);
   const [expanded,    setExpanded]    = useState(false);
   const [showRFQ,     setShowRFQ]     = useState(false);
@@ -213,6 +209,10 @@ export default function StickyProcurementDock() {
 
   /* Close RFQ popup on route navigation */
   const handleRFQClose = () => setShowRFQ(false);
+
+  if (location.pathname === '/cart') {
+    return null;
+  }
 
   /* Actions */
   const actions = [
