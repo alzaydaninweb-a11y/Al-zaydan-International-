@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   FileText, PhoneCall, Upload, ChevronUp, ChevronDown,
   X, Zap, Clock, CheckCircle2, Send, Loader2, Package, Mail
@@ -183,6 +183,11 @@ function MiniRFQPopup({ onClose, waNumber, isMobile = false }: MiniRFQProps) {
 export default function StickyProcurementDock() {
   const { settings } = useStore();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  if (location.pathname === '/cart') {
+    return null;
+  }
 
   const [visible,     setVisible]     = useState(false);
   const [expanded,    setExpanded]    = useState(false);
