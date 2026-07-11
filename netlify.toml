@@ -162,6 +162,26 @@
   [headers.values]
     Cache-Control = "public, s-maxage=3600, stale-while-revalidate=86400"
 
+[[headers]]
+  for = "/sitemap-products.xml"
+  [headers.values]
+    Cache-Control = "public, s-maxage=3600, stale-while-revalidate=86400"
+
+[[headers]]
+  for = "/sitemap-categories.xml"
+  [headers.values]
+    Cache-Control = "public, s-maxage=3600, stale-while-revalidate=86400"
+
+[[headers]]
+  for = "/sitemap-pages.xml"
+  [headers.values]
+    Cache-Control = "public, s-maxage=3600, stale-while-revalidate=86400"
+
+[[headers]]
+  for = "/sitemap-blogs.xml"
+  [headers.values]
+    Cache-Control = "public, s-maxage=3600, stale-while-revalidate=86400"
+
 # -- Asset Caching for Performance -------------------------------------------
 [[headers]]
   for = "/assets/*"

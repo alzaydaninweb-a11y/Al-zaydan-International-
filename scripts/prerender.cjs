@@ -204,6 +204,25 @@ function buildPage({ title, description, canonical, ogTitle, ogDesc, ogImage, bo
     );
   }
 
+  // 4c. OG url — MUST point to the canonical URL of THIS page, not the homepage
+  html = html.replace(
+    /<meta property="og:url"[^>]*\/>/,
+    `<meta property="og:url" content="${esc(canonical)}" />`
+  );
+  // Also fix the Twitter title/description to be page-specific
+  if (ogTitle) {
+    html = html.replace(
+      /<meta name="twitter:title"[^>]*\/>/,
+      `<meta name="twitter:title" content="${esc(ogTitle)}" />`
+    );
+  }
+  if (ogDesc) {
+    html = html.replace(
+      /<meta name="twitter:description"[^>]*\/>/,
+      `<meta name="twitter:description" content="${esc(ogDesc)}" />`
+    );
+  }
+
   // 5. Inject page-specific JSON-LD schema (if any)
   if (schemaJson) {
     html = html.replace(
@@ -212,13 +231,22 @@ function buildPage({ title, description, canonical, ogTitle, ogDesc, ogImage, bo
     );
   }
 
-  // 6. Inject static crawlable content immediately before </body>
-  //    (outside #root so React never touches it, but crawlers read it)
+  // 6. Replace the hidden seo-shell div with a visible footer in the template
+  //    (the template now uses a <footer> tag, but older builds may still have the hidden div)
+  html = html.replace(
+    /id="seo-shell"\s+style="[^"]*position:absolute[^"]*"/,
+    'id="seo-footer" style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:2rem 1rem;font-size:0.85rem;color:#64748b;font-family:system-ui,sans-serif;"'
+  );
+  // Remove aria-hidden from the footer (content should be accessible)
+  html = html.replace(/<(footer|div) id="seo-footer"([^>]*) aria-hidden="true"/, '<$1 id="seo-footer"$2');
+
+  // 7. Inject static crawlable product content as a visible section before </body>
+  //    Styled as a real section of the page — NOT hidden from users.
   const crawlBlock = `
-  <!-- PRE-RENDERED SEO CONTENT — visible to crawlers, hidden from users -->
-  <div id="prerender-content" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;" aria-hidden="true">
+  <!-- STATIC PRODUCT DETAILS — visible to users and crawlers -->
+  <section id="prerender-content" style="background:#fff;border-top:1px solid #e2e8f0;padding:2rem 1rem;max-width:1200px;margin:0 auto;font-family:system-ui,sans-serif;font-size:0.9rem;color:#334155;">
 ${bodyHtml}
-  </div>`;
+  </section>`;
 
   html = html.replace('</body>', crawlBlock + '\n</body>');
 
