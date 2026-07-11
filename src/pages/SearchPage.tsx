@@ -451,27 +451,27 @@ export default function SearchPage() {
       </div>
 
       {/* Horizontal Dropdowns bar (Desktop only) */}
-      <div className="hidden md:block bg-white border-b border-slate-200 py-3.5 px-4 sticky top-[108px] z-20 shadow-sm">
-        <div className="w-full max-w-7xl mx-auto space-y-3">
+      <div className="hidden md:block bg-white border-b border-slate-200 py-2.5 px-4 sticky top-[108px] z-20 shadow-sm">
+        <div className="w-full space-y-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               
               {/* Category Dropdown */}
               <div className="relative" ref={categoryRef}>
                 <button
                   onClick={() => setActiveDropdown(curr => curr === 'category' ? null : 'category')}
-                  className={`flex items-center gap-2 px-3 py-1.5 border rounded-lg text-sm font-semibold transition-all bg-white hover:bg-slate-50 ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1 border rounded-md text-xs font-semibold transition-all bg-white hover:bg-slate-50 ${
                     selCategory
-                      ? 'border-slate-950 text-slate-900 font-bold'
-                      : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                      ? 'border-slate-800 text-slate-900 font-bold'
+                      : 'border-slate-200 text-slate-500 hover:border-slate-300'
                   }`}
                 >
                   <span>Category: {selCategory || 'All'}</span>
-                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${activeDropdown === 'category' ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${activeDropdown === 'category' ? 'rotate-180' : ''}`} />
                 </button>
 
                 {activeDropdown === 'category' && (
-                  <div className="absolute left-0 mt-2 w-[320px] max-h-[400px] overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-30 p-4 animate-in fade-in slide-in-from-top-2 duration-150 custom-scrollbar">
+                  <div className="absolute left-0 mt-1.5 w-[300px] max-h-[350px] overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-xl z-30 p-3 animate-in fade-in slide-in-from-top-2 duration-150 custom-scrollbar">
                     <div className="space-y-1 pb-1">
                       <button
                         onClick={() => {
@@ -479,11 +479,11 @@ export default function SearchPage() {
                           setActiveDropdown(null);
                           navigate('/search' + (searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''));
                         }}
-                        className={`w-full flex items-center gap-2 text-[13.5px] py-1.5 transition-colors text-left
+                        className={`w-full flex items-center gap-2 text-[12px] py-1 transition-colors text-left
                           ${!selCategory ? 'font-bold text-blue-600' : 'font-medium text-slate-600 hover:text-slate-900'}
                         `}
                       >
-                        <div className={`w-1.5 h-1.5 rounded-full transition-colors ${!selCategory ? 'bg-blue-600' : 'bg-transparent'}`} />
+                        <div className={`w-1 h-1 rounded-full transition-colors ${!selCategory ? 'bg-blue-600' : 'bg-transparent'}`} />
                         All Categories
                       </button>
 
@@ -514,31 +514,31 @@ export default function SearchPage() {
                 <div className="relative" ref={brandRef}>
                   <button
                     onClick={() => setActiveDropdown(curr => curr === 'brand' ? null : 'brand')}
-                    className={`flex items-center gap-2 px-3 py-1.5 border rounded-lg text-sm font-semibold transition-all bg-white hover:bg-slate-50 ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 border rounded-md text-xs font-semibold transition-all bg-white hover:bg-slate-50 ${
                       selBrands.length > 0
-                        ? 'border-slate-950 text-slate-900 font-bold'
-                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                        ? 'border-slate-800 text-slate-900 font-bold'
+                        : 'border-slate-200 text-slate-500 hover:border-slate-300'
                     }`}
                   >
                     <span>Brand {selBrands.length > 0 ? `(${selBrands.length})` : ': All'}</span>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${activeDropdown === 'brand' ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${activeDropdown === 'brand' ? 'rotate-180' : ''}`} />
                   </button>
 
                   {activeDropdown === 'brand' && (
-                    <div className="absolute left-0 mt-2 w-[260px] max-h-[300px] overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-30 p-4 animate-in fade-in slide-in-from-top-2 duration-150 custom-scrollbar">
-                      <ul className="space-y-2">
+                    <div className="absolute left-0 mt-1.5 w-[240px] max-h-[250px] overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-xl z-30 p-3 animate-in fade-in slide-in-from-top-2 duration-150 custom-scrollbar">
+                      <ul className="space-y-1.5">
                         {availableBrands.map(brand => (
                           <li key={brand}>
                             <button
                               onClick={() => toggleBrand(brand)}
-                              className="w-full flex items-center gap-2.5 text-[13px] text-slate-700 hover:text-slate-900 transition-colors py-0.5"
+                              className="w-full flex items-center gap-2 text-[12px] text-slate-700 hover:text-slate-900 transition-colors py-0.5"
                             >
-                              <div className={`w-4 h-4 shrink-0 rounded border flex items-center justify-center transition-all ${
+                              <div className={`w-3.5 h-3.5 shrink-0 rounded border flex items-center justify-center transition-all ${
                                 selBrands.includes(brand)
                                   ? 'bg-slate-900 border-slate-900'
                                   : 'border-slate-300 bg-white'
                               }`}>
-                                {selBrands.includes(brand) && <Check className="w-2.5 h-2.5 text-white" />}
+                                {selBrands.includes(brand) && <Check className="w-2 h-2 text-white" />}
                               </div>
                               <span className={selBrands.includes(brand) ? 'font-bold text-slate-900' : 'font-medium'}>
                                 {brand}
@@ -558,9 +558,9 @@ export default function SearchPage() {
             {activeFilterCount > 0 && (
               <button
                 onClick={clearAll}
-                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-red-500 font-bold transition-colors"
+                className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-red-500 font-bold transition-colors"
               >
-                <RotateCcw className="w-3.5 h-3.5" /> Clear Filters
+                <RotateCcw className="w-3 h-3" /> Clear Filters
               </button>
             )}
           </div>
