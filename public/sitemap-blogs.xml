@@ -1,6 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Al Zaydan International FZE — Blogs Sitemap -->
-<!-- Real-time blog sitemap served by Netlify Function -->
+<!-- Al Zaydan International FZE — Blogs Sitemap — 3 posts -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- Blogs are served dynamically by Netlify Function -->
+
+  <url>
+    <loc>https://www.alzaydaninternational.com/blog/why-choosing-the-right-traffic-safety-products-matters-for-your-business</loc>
+    <lastmod>2026-06-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.alzaydaninternational.com/blog/middle-east-war-2026-how-global-conflict-is-increasing-construction-material-prices</loc>
+    <lastmod>2026-05-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.alzaydaninternational.com/blog/current-steel-market-outlook-2026-prices-demand-trends-future-forecast</loc>
+    <lastmod>2026-05-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
 </urlset>
