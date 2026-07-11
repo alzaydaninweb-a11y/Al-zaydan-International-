@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home as HomeIcon, Grid, Search, MessageSquare, User, CheckCircle, X, ArrowRight } from 'lucide-react';
+import { Home as HomeIcon, Grid, Search, MessageSquare, User, CheckCircle, X, ArrowRight, ClipboardList } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import Navbar from './layout/Navbar';
 import Footer from './layout/Footer';
@@ -10,7 +10,16 @@ import MarketingPopup from './ui/MarketingPopup';
 export default function Layout() {
   const location = useLocation();
   const currentPath = location.pathname;
-  const { toastItem, clearToast } = useCart();
+  const { toastItem, clearToast, cartCount } = useCart();
+  const [bounce, setBounce] = useState(false);
+
+  useEffect(() => {
+    if (toastItem) {
+      setBounce(true);
+      const timer = setTimeout(() => setBounce(false), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [toastItem]);
 
   return (
     <div className="flex flex-col min-h-screen bg-white text-gray-900 font-sans overflow-x-hidden">
@@ -89,6 +98,24 @@ export default function Layout() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Floating Quote list button (B2B Bouncing Shortcut) */}
+      {cartCount > 0 && currentPath !== '/cart' && (
+        <Link
+          to="/cart"
+          title="View Quote List"
+          className={`fixed bottom-[95px] lg:bottom-8 right-6 z-50 p-4 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 border hover:scale-110 active:scale-95 group ${
+            bounce
+              ? 'bg-emerald-600 text-white border-emerald-400 animate-bounce scale-110 shadow-emerald-500/30'
+              : 'bg-[#0052d9] text-white border-blue-400 hover:bg-blue-700 shadow-blue-500/20'
+          }`}
+        >
+          <ClipboardList className="w-6.5 h-6.5" />
+          <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow-md transition-all group-hover:scale-110">
+            {cartCount}
+          </span>
+        </Link>
       )}
 
       {/* Global Marketing Popup */}

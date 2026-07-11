@@ -15,7 +15,7 @@ import InternalLinkingEngine from '../components/seo/InternalLinkingEngine';
 export default function ProductPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { products, categoryDetails, categories, productsLoaded } = useStore();
+  const { products, categoryDetails, categories, productsLoaded, settings } = useStore();
   const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [isAdded, setIsAdded] = useState(false);
@@ -142,8 +142,15 @@ export default function ProductPage() {
 
   const handleBuyNow = () => {
     if (product) {
-      addToCart(product, quantity);
-      navigate('/checkout');
+      const text = `Hello Al Zaydan International, I am interested in: *${product.name}*\n` +
+                   `- Quantity: ${quantity}\n` +
+                   `- URL: ${window.location.href}\n\n` +
+                   `Kindly share a quote.`;
+      
+      const targetPhone = settings?.whatsappRouting?.product || settings?.orderWhatsAppNumber || settings?.phoneNumber || '';
+      const cleanPhone = targetPhone.replace(/[^0-9]/g, '');
+      const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+      window.open(waUrl, '_blank');
     }
   };
 

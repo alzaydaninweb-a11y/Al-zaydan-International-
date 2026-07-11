@@ -3,16 +3,53 @@ import { Link } from 'react-router-dom';
 import { Trash2, ArrowRight, ShoppingBag, Shield, Truck, Tag, ChevronRight, Package } from 'lucide-react';
 import WhatsAppIcon from '../components/icons/WhatsAppIcon';
 import { useCart } from '../context/CartContext';
+import { useStore } from '../context/StoreContext';
 import { generateSlug } from '../lib/blogService';
 
 export default function CartPage() {
   const { cartItems, updateQuantity, removeFromCart, subtotal } = useCart();
+  const { settings } = useStore();
 
   // Split items: priced items (fixed/range) vs hidden-price (enquiry) items
   const pricedItems = cartItems.filter(item => item.priceType !== 'hidden' && item.price > 0);
   const enquiryItems = cartItems.filter(item => item.priceType === 'hidden' || item.price === 0);
   const pricedSubtotal = pricedItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const total = pricedSubtotal;
+
+  const handleRequestQuote = () => {
+    const inquiryId = `RFQ-${Math.floor(10000 + Math.random() * 89999)}`;
+    let message = `*QUOTE INQUIRY REQUEST*\n`;
+    message += `------------------------------------------\n`;
+    message += `*Inquiry ID:* ${inquiryId}\n\n`;
+
+    if (pricedItems.length > 0) {
+      message += `*CONFIRMED PRODUCTS*\n`;
+      message += `------------------------------------------\n`;
+      pricedItems.forEach(item => {
+        const lineTotal = (item.price * item.quantity).toFixed(2);
+        message += `- *${item.name}*\n`;
+        message += `  AED ${item.price.toFixed(2)} x ${item.quantity} = *AED ${lineTotal}*\n`;
+      });
+      message += `\n*SUBTOTAL: AED ${pricedSubtotal.toFixed(2)}*\n`;
+      message += `------------------------------------------\n`;
+    }
+
+    if (enquiryItems.length > 0) {
+      message += `\n*PRODUCTS NEEDING A PRICE QUOTE*\n`;
+      message += `------------------------------------------\n`;
+      enquiryItems.forEach(item => {
+        message += `- *${item.name}*  Qty: ${item.quantity}\n`;
+      });
+      message += `\n(Kindly confirm pricing for the above items)\n`;
+      message += `------------------------------------------\n`;
+    }
+
+    const encodedMessage = encodeURIComponent(message);
+    const targetPhone = settings?.whatsappRouting?.product || settings?.orderWhatsAppNumber || settings?.phoneNumber || '';
+    const cleanPhone = targetPhone.replace(/[^0-9]/g, '');
+    const waUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+    window.open(waUrl, '_blank');
+  };
 
   return (
     <div className="bg-[#f5f6fa] min-h-screen">
@@ -231,13 +268,13 @@ export default function CartPage() {
                   </div>
 
                   {/* CTA Button */}
-                  <Link
-                    to="/checkout"
+                  <button
+                    onClick={handleRequestQuote}
                     className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-900/20 group text-[15px] tracking-wide"
                   >
                     Request Quote via WhatsApp
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </Link>
+                  </button>
 
                   <p className="text-center text-[11px] text-slate-400 font-medium flex items-center justify-center gap-1.5">
                     <WhatsAppIcon className="w-3 h-3" />
