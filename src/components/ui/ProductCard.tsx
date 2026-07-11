@@ -269,7 +269,7 @@ export default function ProductCard({ product, compact = false }: Props) {
         {/* ── CTA Row ── */}
         <div className="flex gap-1.5 mt-1" onClick={e => e.preventDefault()}>
 
-          {/* Primary: Add to Cart */}
+          {/* Primary: Add to Quote */}
           <button
             onClick={handleAdd}
             disabled={product.inStock === false}
@@ -284,7 +284,7 @@ export default function ProductCard({ product, compact = false }: Props) {
             {added ? (
               <><Zap className="w-3 h-3" /> Added!</>
             ) : (
-              <><ShoppingCart className="w-3 h-3" /> {compact ? 'Add' : 'Add to Cart'}</>
+              <><FileText className="w-3.5 h-3.5" /> {compact ? 'Quote' : 'Add to Quote'}</>
             )}
           </button>
 

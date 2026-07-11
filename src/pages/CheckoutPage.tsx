@@ -67,9 +67,9 @@ export default function CheckoutPage() {
       const enquiryItems = cartItems.filter(i => i.priceType === 'hidden' || i.price === 0);
       const pricedTotal  = pricedItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
-      let message = `*ORDER REQUEST*\n`;
+      let message = `*QUOTE INQUIRY REQUEST*\n`;
       message += `------------------------------------------\n`;
-      message += `*Order ID:* ${orderId}\n\n`;
+      message += `*Inquiry ID:* ${orderId}\n\n`;
 
       message += `*CUSTOMER DETAILS*\n`;
       message += `------------------------------------------\n`;
@@ -108,7 +108,7 @@ export default function CheckoutPage() {
         name: `${address.firstName} ${address.lastName}`,
         email: address.email,
         phone: address.phone,
-        title: `New Order Alert: ${orderId}`,
+        title: `New Quote Inquiry Alert: ${orderId}`,
         message: message.trim()
       }).catch(err => console.error("Email alert failed, but order continues:", err));
 
@@ -134,7 +134,7 @@ export default function CheckoutPage() {
   if (cartItems.length === 0) {
     return (
       <div className="bg-slate-50 min-h-screen py-16 text-center">
-        <h2 className="text-xl font-bold text-slate-900 mb-4">Your cart is empty</h2>
+        <h2 className="text-xl font-bold text-slate-900 mb-4">Your quote list is empty</h2>
         <Link to="/" className="inline-block bg-amber-400 text-slate-900 px-6 py-3 rounded-full font-bold hover:bg-amber-500">
           Return to Shop
         </Link>
@@ -145,7 +145,7 @@ export default function CheckoutPage() {
   return (
     <div className="bg-slate-50 min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
-        <h1 className="text-2xl font-bold text-slate-900 mb-8">Complete Order via WhatsApp</h1>
+        <h1 className="text-2xl font-bold text-slate-900 mb-8">Request Quote via WhatsApp</h1>
 
         <div className="flex flex-col lg:flex-row gap-8">
           <div className="flex-1 space-y-6">
@@ -154,7 +154,7 @@ export default function CheckoutPage() {
               {/* Delivery Address */}
               <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                 <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
-                  <h2 className="font-bold text-slate-900">Delivery Details</h2>
+                  <h2 className="font-bold text-slate-900">Inquiry Details</h2>
                 </div>
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2 flex gap-4">
@@ -202,22 +202,21 @@ export default function CheckoutPage() {
                   </div>
                 </div>
               </div>
-
-              {/* Order Finalization Info */}
+              {/* Quote Finalization Info */}
               <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                 <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
                   <h2 className="font-bold text-slate-900 flex items-center gap-2">
-                    <WhatsAppIcon className="w-5 h-5 text-green-500" /> WhatsApp Ordering
+                    <WhatsAppIcon className="w-5 h-5 text-green-500" /> WhatsApp Quotations
                   </h2>
                 </div>
                 <div className="p-6">
                   <p className="text-sm text-slate-600 leading-relaxed mb-4">
-                    Instead of paying online immediately, we finalize all orders and payments directly via WhatsApp. This allows us to confirm exact shipping costs, bulk discounts, and product availability directly with you.
+                    Instead of checkout payments online, we finalize all quotes and commercial invoices directly via WhatsApp. This allows us to confirm exact shipping costs, bulk discounts, and custom specifications directly with you.
                   </p>
                   <ul className="text-sm text-slate-700 space-y-2">
-                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-green-500 rounded-full" /> Click "Send Order to WhatsApp"</li>
-                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-green-500 rounded-full" /> Our sales representative will receive your cart</li>
-                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-green-500 rounded-full" /> Finalize the payment securely with our team</li>
+                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-green-500 rounded-full" /> Click "Submit Quote to WhatsApp"</li>
+                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-green-500 rounded-full" /> Our sales representative will receive your quote list</li>
+                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-green-500 rounded-full" /> Receive your quote securely from our team</li>
                   </ul>
                 </div>
               </div>
@@ -227,7 +226,7 @@ export default function CheckoutPage() {
           <div className="lg:w-96 shrink-0">
             <div className="bg-white p-6 rounded-xl border border-slate-200 sticky top-32">
               <h2 className="text-lg font-bold text-slate-900 mb-6 flex items-center">
-                Order Summary
+                Quote Summary
                 <span className="ml-2 bg-blue-100 text-blue-800 text-xs font-bold py-1 px-2.5 rounded-full">{cartCount} Items</span>
               </h2>
               
@@ -277,12 +276,12 @@ export default function CheckoutPage() {
                 className="w-full bg-[#25D366] text-white h-12 rounded font-bold text-[15px] flex items-center justify-center gap-2 hover:bg-[#128C7E] shadow-sm transition-colors disabled:opacity-70 tracking-wide"
               >
                 <WhatsAppIcon className="w-5 h-5" />
-                {isProcessing ? 'Redirecting...' : `Send Order to WhatsApp`}
+                {isProcessing ? 'Redirecting...' : `Submit Quote to WhatsApp`}
               </button>
               
               <div className="mt-4 flex items-center justify-center gap-2 text-xs font-semibold text-slate-500">
                 <ShoppingBag className="w-4 h-4" />
-                Your order details will be securely sent to our team.
+                Your inquiry details will be securely sent to our team.
               </div>
             </div>
           </div>

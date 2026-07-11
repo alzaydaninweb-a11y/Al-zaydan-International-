@@ -276,12 +276,12 @@ export default function BlogPostPage() {
                       </p>
 
                       <div className="mt-auto pt-2">
-                        {/* Add to Cart Button */}
+                        {/* Add to Quote Button */}
                         <button 
                           onClick={(e) => handleAddToCart(e, product)}
                           className={`w-full font-bold py-3 rounded-full text-[13px] tracking-wide transition-all border ${addedQueue.includes(product.id) ? 'bg-emerald-50 text-emerald-600 border-emerald-200 shadow-md' : 'bg-transparent text-slate-900 border-gray-300 group-hover:bg-slate-50'}`}
                         >
-                          {addedQueue.includes(product.id) ? 'Item Added' : `Add to Cart - AED ${product.price.toFixed(0)}`}
+                          {addedQueue.includes(product.id) ? 'Added to Quote ✓' : `Add to Quote - AED ${product.price.toFixed(0)}`}
                         </button>
                       </div>
                     </div>

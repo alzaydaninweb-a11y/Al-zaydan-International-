@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { TrendingUp, ArrowRight, Star, ShoppingCart, Check } from 'lucide-react';
+import { TrendingUp, ArrowRight, Star, FileText, Check } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
@@ -164,7 +164,7 @@ export default function DealsSection() {
                         )}
                       </div>
 
-                      {/* Add to Cart */}
+                      {/* Add to Quote */}
                       <button
                         onClick={(e) => handleAddToCart(e, product)}
                         className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold transition-all ${
@@ -175,7 +175,7 @@ export default function DealsSection() {
                       >
                         {isAdded
                           ? <><Check className="w-3.5 h-3.5" /> Added</>
-                          : <><ShoppingCart className="w-3.5 h-3.5" /> Add to Cart</>
+                          : <><FileText className="w-3.5 h-3.5" /> Add to Quote</>
                         }
                       </button>
                     </div>
@@ -253,7 +253,7 @@ export default function DealsSection() {
                           : 'bg-transparent text-slate-900 border-gray-300 group-hover:bg-slate-50'
                       }`}
                     >
-                      {isAdded ? 'Item Added ✓' : `Add to Cart · AED ${product.price.toFixed(0)}`}
+                      {isAdded ? 'Added to Quote ✓' : `Add to Quote · AED ${product.price.toFixed(0)}`}
                     </button>
                   </div>
                 </div>

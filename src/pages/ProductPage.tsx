@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, Link, useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
-import { Star, ShieldCheck, Truck, Heart, Share2, Info, ChevronRight, ChevronDown, Check, ShoppingCart, Minus, Plus, PhoneCall, Loader2 } from 'lucide-react';
+import { Star, ShieldCheck, Truck, Heart, Share2, Info, ChevronRight, ChevronDown, Check, ShoppingCart, Minus, Plus, PhoneCall, Loader2, FileText, ClipboardList } from 'lucide-react';
 import WhatsAppIcon from '../components/icons/WhatsAppIcon';
 import { useCart } from '../context/CartContext';
 import ProductListingGrid from '../components/home/ProductListingGrid';
@@ -320,7 +320,7 @@ export default function ProductPage() {
               {product.moq && (
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 border border-slate-200">
-                    <ShoppingCart className="w-5 h-5 text-slate-600" />
+                    <ClipboardList className="w-5 h-5 text-slate-600" />
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Min. Order (MOQ)</span>
@@ -373,9 +373,9 @@ export default function ProductPage() {
                   `}
                 >
                   {isAdded ? (
-                    <><Check className="w-4 h-4 stroke-[3]" /> Added to List</>
+                    <><Check className="w-4 h-4 stroke-[3]" /> Added to Quote List</>
                   ) : (
-                    <><ShoppingCart className="w-4 h-4" /> Add to Order List</>
+                    <><FileText className="w-4 h-4" /> Add to Quote</>
                   )}
                 </button>
               </div>

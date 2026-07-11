@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowRight, Star, ShoppingCart, Check, List } from 'lucide-react';
+import { ArrowRight, Star, Check, FileText } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
@@ -40,12 +40,9 @@ function RecommendedCard({
   }, [hasMultiple, paused, allImages.length]);
 
   // Button label logic
-  const isNoPriceProduct = product.priceType === 'hidden' || product.price === 0;
   const buttonLabel = isAdded
     ? <><Check className="w-3.5 h-3.5 stroke-[3]" /> Added</>
-    : isNoPriceProduct
-      ? <><List className="w-3.5 h-3.5" /> Add to List</>
-      : <><ShoppingCart className="w-3.5 h-3.5" /> Add to Cart</>;
+    : <><FileText className="w-3.5 h-3.5" /> Add to Quote</>;
 
   return (
     <Link

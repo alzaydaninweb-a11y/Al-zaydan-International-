@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { ArrowRight, Volume2, VolumeX, Play, ShoppingCart } from 'lucide-react';
+import { ArrowRight, Volume2, VolumeX, Play, FileText } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { useCart } from '../../context/CartContext';
 
@@ -205,7 +205,7 @@ function VideoCard({ title, youtubeUrl, productId }: {
                 {added ? (
                   <>✓ Added</>
                 ) : (
-                  <><ShoppingCart className="w-3 h-3" /> Add</>
+                  <><FileText className="w-3 h-3" /> Quote</>
                 )}
               </button>
             </div>

@@ -72,7 +72,7 @@ export default function Layout() {
               <CheckCircle className="w-5 h-5 text-emerald-500" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-white text-sm font-bold whitespace-nowrap">Product added</span>
+              <span className="text-white text-sm font-bold whitespace-nowrap">Added to Quote</span>
               <span className="text-slate-400 text-xs truncate max-w-[130px]">{toastItem.product.name}</span>
             </div>
           </div>
@@ -82,7 +82,7 @@ export default function Layout() {
               onClick={clearToast}
               className="text-blue-400 hover:text-blue-300 text-xs font-bold whitespace-nowrap flex items-center gap-1 transition-colors"
             >
-              View Cart <ArrowRight className="w-3 h-3" />
+              View Quote List <ArrowRight className="w-3 h-3" />
             </Link>
             <button onClick={clearToast} className="text-slate-500 hover:text-white transition-colors">
               <X className="w-4 h-4" />

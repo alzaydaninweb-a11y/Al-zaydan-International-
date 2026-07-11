@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Search, ShoppingCart, ChevronDown, Menu, X, Globe, User, ChevronRight
+  Search, ClipboardList, ChevronDown, Menu, X, Globe, User, ChevronRight
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
@@ -278,9 +278,9 @@ export default function Navbar() {
               </div>
             </div>
 
-            {/* Cart with badge */}
-            <Link to="/cart" className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors">
-              <ShoppingCart className="w-5 h-5" />
+            {/* Quote list with badge */}
+            <Link to="/cart" title="Quote List" className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors">
+              <ClipboardList className="w-5.5 h-5.5" />
               <span className="absolute top-0 right-0 bg-[#0052d9] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                 {cartCount}
               </span>
@@ -370,8 +370,8 @@ export default function Navbar() {
               <Link to="/contact" className="p-2 text-gray-600 hover:text-blue-600 transition-colors">
                 <User className="w-5.5 h-5.5" />
               </Link>
-              <Link to="/cart" className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors">
-                <ShoppingCart className="w-5.5 h-5.5" />
+              <Link to="/cart" title="Quote List" className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors">
+                <ClipboardList className="w-5.5 h-5.5" />
                 <span className="absolute top-0.5 right-0.5 bg-[#0052d9] text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                   {cartCount}
                 </span>
