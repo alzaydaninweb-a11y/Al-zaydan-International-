@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Al Zaydan International FZE — Blogs Sitemap -->
+<!-- Real-time blog sitemap served by Netlify Function -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- Blog posts indexed dynamically via Netlify Function -->
+  <!-- Blogs are served dynamically by Netlify Function -->
 </urlset>
