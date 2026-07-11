@@ -44,13 +44,13 @@ function patchHtmlFile(filePath, canonicalUrl) {
   // 2. Un-hide prerender-content (remove clip/overflow hidden cloaking style)
   if (html.includes('id="prerender-content"') && html.includes('clip:rect(0,0,0,0)')) {
     html = html.replace(
-      /(<(?:div|section) id="prerender-content") style="[^"]*clip:rect\(0,0,0,0\)[^"]*"(\s+aria-hidden="true")?/g,
-      '$1 style="background:#fff;border-top:1px solid #e2e8f0;padding:2rem 1rem;max-width:1200px;margin:0 auto;font-family:system-ui,sans-serif;font-size:0.9rem;color:#334155;"'
+      /<div id="prerender-content" style="[^"]*clip:rect\(0,0,0,0\)[^"]*"(\s+aria-hidden="true")?>/g,
+      '<noscript>\n    <section id="prerender-content" style="background:#fff;border-top:1px solid #e2e8f0;padding:2rem 1rem;max-width:1200px;margin:0 auto;font-family:system-ui,sans-serif;font-size:0.9rem;color:#334155;">'
     );
-    // Close tag: div → section
+    // Close tag: div → section + noscript
     html = html.replace(
       /<\/div>\s*\n<\/body>/,
-      '</section>\n</body>'
+      '</section>\n  </noscript>\n</body>'
     );
     patchedPrerender++;
     changed = true;
@@ -59,13 +59,13 @@ function patchHtmlFile(filePath, canonicalUrl) {
   // 3. Un-hide seo-shell (remove cloaking, make it a visible footer)
   if (html.includes('id="seo-shell"') && html.includes('clip:rect(0,0,0,0)')) {
     html = html.replace(
-      /(<(?:div|footer)) id="seo-shell" style="[^"]*clip:rect\(0,0,0,0\)[^"]*"(\s+aria-hidden="true")?/g,
-      '<footer id="seo-footer" style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:2rem 1rem;font-size:0.85rem;color:#64748b;font-family:system-ui,sans-serif;"'
+      /<div id="seo-shell" style="[^"]*clip:rect\(0,0,0,0\)[^"]*"(\s+aria-hidden="true")?>/g,
+      '<noscript>\n  <footer id="seo-footer" style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:2rem 1rem;font-size:0.85rem;color:#64748b;font-family:system-ui,sans-serif;">'
     );
     // Replace closing tag for the seo-shell
     html = html.replace(
-      /(<\/(?:div|footer)>)\s*\n\s*<!-- ═══ END SEO STATIC CONTENT SHELL ═══ -->/,
-      '</footer>\n  <!-- END SEO FOOTER -->'
+      /<\/div>\s*\n\s*<!-- ═══ END SEO STATIC CONTENT SHELL ═══ -->/,
+      '</footer>\n  </noscript>\n  <!-- END SEO FOOTER -->'
     );
     patchedSeoShell++;
     changed = true;

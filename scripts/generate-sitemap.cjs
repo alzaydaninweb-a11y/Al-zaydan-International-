@@ -33,66 +33,6 @@ const PROJECT_ID = process.env.VITE_FIREBASE_PROJECT_ID || 'al-zaydan-internatio
 const API_KEY = process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY;
 const TODAY = new Date().toISOString().split('T')[0];
 
-const STATIC_URLS = [
-  { path: '/', changefreq: 'daily', priority: '1.0' },
-  { path: '/about', changefreq: 'monthly', priority: '0.8' },
-  { path: '/solutions', changefreq: 'monthly', priority: '0.8' },
-  { path: '/contact', changefreq: 'monthly', priority: '0.8' },
-  { path: '/rfq', changefreq: 'monthly', priority: '0.8' },
-  { path: '/categories', changefreq: 'weekly', priority: '0.8' },
-  { path: '/blog', changefreq: 'weekly', priority: '0.7' },
-  { path: '/search', changefreq: 'weekly', priority: '0.6' },
-  { path: '/legal', changefreq: 'yearly', priority: '0.3' },
-];
-
-function urlEntry({ loc, lastmod, changefreq, priority }) {
-  return `
-  <url>
-    <loc>${loc}</loc>
-    <lastmod>${lastmod}</lastmod>
-    <changefreq>${changefreq}</changefreq>
-    <priority>${priority}</priority>
-  </url>`;
-}
-
-async function fetchBlogSlugs() {
-  const endpoint = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
-  const url = API_KEY ? `${endpoint}?key=${API_KEY}` : endpoint;
-
-  const body = JSON.stringify({
-    structuredQuery: {
-      from: [{ collectionId: 'blogs' }],
-      where: {
-        fieldFilter: {
-          field: { fieldPath: 'published' },
-          op: 'EQUAL',
-          value: { booleanValue: true },
-        },
-      },
-      select: {
-        fields: [
-          { fieldPath: 'slug' },
-          { fieldPath: 'updatedAt' },
-          { fieldPath: 'publishedAt' },
-        ],
-      },
-      // No orderBy — sort in memory below to avoid composite index requirement
-    },
-  });
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body,
-  });
-
-  if (!res.ok) {
-    throw new Error(`Firestore responded ${res.status}: ${await res.text()}`);
-  }
-
-  const data = await res.json();
-  const entries = data
-
 const DIST = path.join(__dirname, '..', 'dist');
 const PUBLIC = path.join(__dirname, '..', 'public');
 

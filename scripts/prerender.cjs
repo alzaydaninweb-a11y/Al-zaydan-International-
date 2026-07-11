@@ -240,13 +240,14 @@ function buildPage({ title, description, canonical, ogTitle, ogDesc, ogImage, bo
   // Remove aria-hidden from the footer (content should be accessible)
   html = html.replace(/<(footer|div) id="seo-footer"([^>]*) aria-hidden="true"/, '<$1 id="seo-footer"$2');
 
-  // 7. Inject static crawlable product content as a visible section before </body>
-  //    Styled as a real section of the page — NOT hidden from users.
+  // 7. Inject static crawlable product content as a fallback before </body>
+  //    Wrapped in <noscript> to avoid duplicate visual content for JS-enabled users.
   const crawlBlock = `
-  <!-- STATIC PRODUCT DETAILS — visible to users and crawlers -->
-  <section id="prerender-content" style="background:#fff;border-top:1px solid #e2e8f0;padding:2rem 1rem;max-width:1200px;margin:0 auto;font-family:system-ui,sans-serif;font-size:0.9rem;color:#334155;">
+  <noscript>
+    <section id="prerender-content" style="background:#fff;border-top:1px solid #e2e8f0;padding:2rem 1rem;max-width:1200px;margin:0 auto;font-family:system-ui,sans-serif;font-size:0.9rem;color:#334155;">
 ${bodyHtml}
-  </section>`;
+    </section>
+  </noscript>`;
 
   html = html.replace('</body>', crawlBlock + '\n</body>');
 
