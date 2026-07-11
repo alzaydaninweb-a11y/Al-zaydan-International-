@@ -134,9 +134,11 @@ export default function SearchPage() {
   const categoryQuery  = matchedCategoryName || (searchParams.get('category') ?? '');
   const searchQuery    = searchParams.get('q')          ?? '';
 
-  const [selCategory, setSelCategory]   = useState(categoryQuery);
-  const [selBrands, setSelBrands]       = useState<string[]>([]);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [selCategory, setSelCategory]         = useState(categoryQuery);
+  const [selBrands, setSelBrands]             = useState<string[]>([]);
+  const [selAvailability, setSelAvailability] = useState<string>('all');
+  const [selCertifications, setSelCertifications] = useState<string[]>([]);
+  const [isMobileOpen, setIsMobileOpen]       = useState(false);
 
   useEffect(() => { setSelCategory(categoryQuery); }, [categoryQuery]);
 
@@ -190,10 +192,26 @@ export default function SearchPage() {
       result = result.filter(p => selBrands.includes(p.brand));
     }
 
-    return result;
-  }, [ALL_PRODUCTS, searchQuery, selCategory, selBrands, getAllDescendantCategories]);
+    if (selAvailability === 'in-stock') {
+      result = result.filter(p => p.inStock !== false);
+    } else if (selAvailability === 'custom') {
+      result = result.filter(p => p.inStock === false);
+    }
 
-  const activeFilterCount = (selCategory ? 1 : 0) + selBrands.length;
+    if (selCertifications.length > 0) {
+      result = result.filter(p => 
+        p.trustBadges && selCertifications.some(cert => p.trustBadges?.includes(cert))
+      );
+    }
+
+    return result;
+  }, [ALL_PRODUCTS, searchQuery, selCategory, selBrands, selAvailability, selCertifications, getAllDescendantCategories]);
+
+  const activeFilterCount = 
+    (selCategory ? 1 : 0) + 
+    selBrands.length + 
+    (selAvailability !== 'all' ? 1 : 0) + 
+    selCertifications.length;
 
   const categorySlug = useMemo(() => {
     if (!selCategory) return '';
@@ -254,10 +272,16 @@ export default function SearchPage() {
   const clearAll = useCallback(() => {
     setSelCategory('');
     setSelBrands([]);
+    setSelAvailability('all');
+    setSelCertifications([]);
     navigate('/search' + (searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''));
   }, [searchQuery, navigate]);
 
   const toggleBrand = (brand: string) => setSelBrands(prev => prev.includes(brand) ? prev.filter(b => b !== brand) : [...prev, brand]);
+
+  const toggleCert = (cert: string) => {
+    setSelCertifications(prev => prev.includes(cert) ? prev.filter(c => c !== cert) : [...prev, cert]);
+  };
 
   useEffect(() => {
     document.body.style.overflow = isMobileOpen ? 'hidden' : '';
@@ -276,16 +300,20 @@ export default function SearchPage() {
   }, [selCategory, categoryDetails]);
 
   // ── Dropdown Control ────────────────────────────────────────────────────────
-  const [activeDropdown, setActiveDropdown] = useState<'category' | 'brand' | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<'category' | 'brand' | 'availability' | 'certifications' | null>(null);
   const categoryRef = React.useRef<HTMLDivElement>(null);
   const brandRef = React.useRef<HTMLDivElement>(null);
+  const availabilityRef = React.useRef<HTMLDivElement>(null);
+  const certificationsRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
       if (
         (categoryRef.current && !categoryRef.current.contains(target)) &&
-        (brandRef.current && !brandRef.current.contains(target))
+        (brandRef.current && !brandRef.current.contains(target)) &&
+        (availabilityRef.current && !availabilityRef.current.contains(target)) &&
+        (certificationsRef.current && !certificationsRef.current.contains(target))
       ) {
         setActiveDropdown(null);
       }
@@ -365,7 +393,7 @@ export default function SearchPage() {
                     >
                       <div className={`w-4 h-4 shrink-0 rounded border flex items-center justify-center transition-all ${
                         selBrands.includes(brand)
-                          ? 'bg-blue-600 border-blue-600'
+                          ? 'bg-slate-900 border-slate-900'
                           : 'border-slate-300 bg-white'
                       }`}>
                         {selBrands.includes(brand) && <Check className="w-2.5 h-2.5 text-white" />}
@@ -379,6 +407,57 @@ export default function SearchPage() {
               </ul>
             </FilterSection>
           )}
+
+          <FilterSection title="Availability" count={selAvailability !== 'all' ? 1 : 0}>
+            <div className="space-y-2 pb-2">
+              {[
+                { id: 'all', label: 'All Products' },
+                { id: 'in-stock', label: 'In Stock / Ready to Ship' },
+                { id: 'custom', label: 'By Order / On Demand' },
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setSelAvailability(opt.id)}
+                  className="w-full flex items-center gap-2.5 text-[13px] text-slate-700 hover:text-slate-900 transition-colors py-0.5 text-left"
+                >
+                  <div className={`w-4 h-4 shrink-0 rounded-full border flex items-center justify-center transition-all ${
+                    selAvailability === opt.id
+                      ? 'border-slate-900'
+                      : 'border-slate-300'
+                  }`}>
+                    {selAvailability === opt.id && <div className="w-2 h-2 rounded-full bg-slate-900" />}
+                  </div>
+                  <span className={selAvailability === opt.id ? 'font-bold text-slate-900' : 'font-medium'}>
+                    {opt.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </FilterSection>
+
+          <FilterSection title="B2B Certifications" count={selCertifications.length}>
+            <ul className="space-y-1.5">
+              {['Verified Supplier', 'ISO Certified', 'Export Ready', 'Fast Dispatch', 'GCC Supply'].map(cert => (
+                <li key={cert}>
+                  <button
+                    onClick={() => toggleCert(cert)}
+                    className="w-full flex items-center gap-2.5 text-[13px] text-slate-700 hover:text-slate-900 transition-colors py-0.5 text-left"
+                  >
+                    <div className={`w-4 h-4 shrink-0 rounded border flex items-center justify-center transition-all ${
+                      selCertifications.includes(cert)
+                        ? 'bg-slate-900 border-slate-900'
+                        : 'border-slate-300 bg-white'
+                    }`}>
+                      {selCertifications.includes(cert) && <Check className="w-2 h-2 text-white" />}
+                    </div>
+                    <span className={selCertifications.includes(cert) ? 'font-bold text-slate-900' : 'font-medium'}>
+                      {cert}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </FilterSection>
         </div>
 
         <div className="p-4 border-t border-slate-100 bg-white sticky bottom-0 z-10 md:hidden">
@@ -408,6 +487,22 @@ export default function SearchPage() {
           <span key={b} className="flex items-center gap-1.5 bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 py-1 rounded-md border border-slate-200 shadow-sm">
             Brand: {b}
             <button onClick={() => toggleBrand(b)} className="text-slate-400 hover:text-red-500 transition-colors">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </span>
+        ))}
+        {selAvailability !== 'all' && (
+          <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 py-1 rounded-md border border-slate-200 shadow-sm">
+            Status: {selAvailability === 'in-stock' ? 'In Stock' : 'By Order'}
+            <button onClick={() => setSelAvailability('all')} className="text-slate-400 hover:text-red-500 transition-colors">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </span>
+        )}
+        {selCertifications.map(c => (
+          <span key={c} className="flex items-center gap-1.5 bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 py-1 rounded-md border border-slate-200 shadow-sm">
+            Cert: {c}
+            <button onClick={() => toggleCert(c)} className="text-slate-400 hover:text-red-500 transition-colors">
               <X className="w-3.5 h-3.5" />
             </button>
           </span>
@@ -551,6 +646,90 @@ export default function SearchPage() {
                   )}
                 </div>
               )}
+
+              {/* Availability Dropdown */}
+              <div className="relative" ref={availabilityRef}>
+                <button
+                  onClick={() => setActiveDropdown(curr => curr === 'availability' ? null : 'availability')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 border rounded-md text-xs font-semibold transition-all bg-white hover:bg-slate-50 ${
+                    selAvailability !== 'all'
+                      ? 'border-slate-800 text-slate-900 font-bold'
+                      : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                  }`}
+                >
+                  <span>
+                    Status: {selAvailability === 'all' ? 'All' : selAvailability === 'in-stock' ? 'In Stock' : 'By Order'}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${activeDropdown === 'availability' ? 'rotate-180' : ''}`} />
+                </button>
+
+                {activeDropdown === 'availability' && (
+                  <div className="absolute left-0 mt-1.5 w-[200px] bg-white border border-slate-200 rounded-lg shadow-xl z-30 p-2.5 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="space-y-1">
+                      {[
+                        { id: 'all', label: 'All Products' },
+                        { id: 'in-stock', label: 'In Stock / Ready to Ship' },
+                        { id: 'custom', label: 'By Order / On Demand' },
+                      ].map(opt => (
+                        <button
+                          key={opt.id}
+                          onClick={() => {
+                            setSelAvailability(opt.id);
+                            setActiveDropdown(null);
+                          }}
+                          className={`w-full flex items-center justify-between text-[12px] px-2 py-1.5 rounded transition-colors text-left
+                            ${selAvailability === opt.id ? 'bg-slate-100 font-bold text-slate-900' : 'text-slate-600 hover:bg-slate-50'}
+                          `}
+                        >
+                          <span>{opt.label}</span>
+                          {selAvailability === opt.id && <Check className="w-3.5 h-3.5 text-slate-800" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* B2B Certifications Dropdown */}
+              <div className="relative" ref={certificationsRef}>
+                <button
+                  onClick={() => setActiveDropdown(curr => curr === 'certifications' ? null : 'certifications')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 border rounded-md text-xs font-semibold transition-all bg-white hover:bg-slate-50 ${
+                    selCertifications.length > 0
+                      ? 'border-slate-800 text-slate-900 font-bold'
+                      : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                  }`}
+                >
+                  <span>Certifications {selCertifications.length > 0 ? `(${selCertifications.length})` : ': All'}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${activeDropdown === 'certifications' ? 'rotate-180' : ''}`} />
+                </button>
+
+                {activeDropdown === 'certifications' && (
+                  <div className="absolute left-0 mt-1.5 w-[220px] max-h-[250px] overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-xl z-30 p-3 animate-in fade-in slide-in-from-top-2 duration-150 custom-scrollbar">
+                    <ul className="space-y-1.5">
+                      {['Verified Supplier', 'ISO Certified', 'Export Ready', 'Fast Dispatch', 'GCC Supply'].map(cert => (
+                        <li key={cert}>
+                          <button
+                            onClick={() => toggleCert(cert)}
+                            className="w-full flex items-center gap-2 text-[12px] text-slate-700 hover:text-slate-900 transition-colors py-0.5 text-left"
+                          >
+                            <div className={`w-3.5 h-3.5 shrink-0 rounded border flex items-center justify-center transition-all ${
+                              selCertifications.includes(cert)
+                                ? 'bg-slate-900 border-slate-900'
+                                : 'border-slate-300 bg-white'
+                            }`}>
+                              {selCertifications.includes(cert) && <Check className="w-2 h-2 text-white" />}
+                            </div>
+                            <span className={selCertifications.includes(cert) ? 'font-bold text-slate-900' : 'font-medium'}>
+                              {cert}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
 
             </div>
 
