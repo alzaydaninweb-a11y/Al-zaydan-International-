@@ -22,26 +22,36 @@ export default function CartPage() {
     message += `------------------------------------------\n`;
     message += `*Inquiry ID:* ${inquiryId}\n\n`;
 
-    if (pricedItems.length > 0) {
-      message += `*CONFIRMED PRODUCTS*\n`;
+    if (total === 0) {
+      message += `*ITEMS LIST:*\n`;
       message += `------------------------------------------\n`;
-      pricedItems.forEach(item => {
-        const lineTotal = (item.price * item.quantity).toFixed(2);
-        message += `- *${item.name}*\n`;
-        message += `  AED ${item.price.toFixed(2)} x ${item.quantity} = *AED ${lineTotal}*\n`;
+      cartItems.forEach(item => {
+        message += `- *${item.name}* (Qty: ${item.quantity})\n`;
       });
-      message += `\n*SUBTOTAL: AED ${pricedSubtotal.toFixed(2)}*\n`;
       message += `------------------------------------------\n`;
-    }
+      message += `Kindly share a quote.`;
+    } else {
+      if (pricedItems.length > 0) {
+        message += `*CONFIRMED PRODUCTS*\n`;
+        message += `------------------------------------------\n`;
+        pricedItems.forEach(item => {
+          const lineTotal = (item.price * item.quantity).toFixed(2);
+          message += `- *${item.name}*\n`;
+          message += `  AED ${item.price.toFixed(2)} x ${item.quantity} = *AED ${lineTotal}*\n`;
+        });
+        message += `\n*SUBTOTAL: AED ${pricedSubtotal.toFixed(2)}*\n`;
+        message += `------------------------------------------\n`;
+      }
 
-    if (enquiryItems.length > 0) {
-      message += `\n*PRODUCTS NEEDING A PRICE QUOTE*\n`;
-      message += `------------------------------------------\n`;
-      enquiryItems.forEach(item => {
-        message += `- *${item.name}*  Qty: ${item.quantity}\n`;
-      });
-      message += `\n(Kindly confirm pricing for the above items)\n`;
-      message += `------------------------------------------\n`;
+      if (enquiryItems.length > 0) {
+        message += `\n*PRODUCTS NEEDING A PRICE QUOTE*\n`;
+        message += `------------------------------------------\n`;
+        enquiryItems.forEach(item => {
+          message += `- *${item.name}*  Qty: ${item.quantity}\n`;
+        });
+        message += `\n(Kindly confirm pricing for the above items)\n`;
+        message += `------------------------------------------\n`;
+      }
     }
 
     const encodedMessage = encodeURIComponent(message);
@@ -246,17 +256,17 @@ export default function CartPage() {
                           Quote via WhatsApp
                         </div>
                         <p className="text-slate-600 font-normal">
-                          All selected {cartItems.reduce((acc, item) => acc + item.quantity, 0)} item(s) will be quoted with custom trade prices and shipping rates by our sales team.
+                          All selected items will be quoted with custom trade prices and shipping rates by our sales team.
                         </p>
                       </div>
 
                       {/* CTA Button */}
                       <button
                         onClick={handleRequestQuote}
-                        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-900/20 group text-[15px] tracking-wide"
+                        className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-500/20 group text-[15px] tracking-wide"
                       >
+                        <WhatsAppIcon className="w-5 h-5 text-white" />
                         Request Quote via WhatsApp
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                       </button>
                     </div>
                   ) : (
@@ -294,10 +304,10 @@ export default function CartPage() {
                       {/* CTA Button */}
                       <button
                         onClick={handleRequestQuote}
-                        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-900/20 group text-[15px] tracking-wide"
+                        className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-500/20 group text-[15px] tracking-wide"
                       >
+                        <WhatsAppIcon className="w-5 h-5 text-white" />
                         Request Quote via WhatsApp
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                       </button>
                     </>
                   )}
