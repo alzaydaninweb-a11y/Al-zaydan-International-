@@ -237,44 +237,70 @@ export default function CartPage() {
                 </div>
 
                 <div className="p-6 space-y-5">
-
-                  {/* Price Breakdown */}
-                  <div className="space-y-3 pt-1">
-                    <div className="flex justify-between items-center text-[13px] font-medium text-slate-600">
-                      <span>Subtotal ({pricedItems.reduce((a, i) => a + i.quantity, 0)} priced item{pricedItems.reduce((a, i) => a + i.quantity, 0) !== 1 ? 's' : ''})</span>
-                      <span className="font-semibold text-slate-900">AED {pricedSubtotal.toFixed(2)}</span>
-                    </div>
-                    {enquiryItems.length > 0 && (
-                      <div className="flex justify-between items-center text-[13px] font-medium text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
-                        <span>{enquiryItems.reduce((a, i) => a + i.quantity, 0)} item{enquiryItems.reduce((a, i) => a + i.quantity, 0) !== 1 ? 's' : ''} (price via WhatsApp)</span>
-                        <span className="font-bold">Quote via WhatsApp</span>
+                  {total === 0 ? (
+                    /* Zero Total B2B Quote Mode */
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 border border-blue-100 text-blue-800 rounded-xl p-4 text-xs font-semibold leading-relaxed space-y-2">
+                        <div className="font-extrabold text-[13px] text-blue-900 flex items-center gap-1.5">
+                          <Package className="w-4 h-4 text-blue-700" />
+                          Quote via WhatsApp
+                        </div>
+                        <p className="text-slate-600 font-normal">
+                          All selected {cartItems.reduce((acc, item) => acc + item.quantity, 0)} item(s) will be quoted with custom trade prices and shipping rates by our sales team.
+                        </p>
                       </div>
-                    )}
-                    <div className="flex justify-between items-center text-[13px] font-medium text-slate-600">
-                      <span>Shipping</span>
-                      <span className="font-bold text-slate-900">Calculated over WhatsApp</span>
-                    </div>
-                  </div>
 
-                  {/* Total */}
-                  <div className="border-t border-slate-100 pt-4 flex justify-between items-center">
-                    <span className="font-bold text-slate-700 text-[15px]">Estimated Total</span>
-                    <div className="text-right">
-                      <div className="font-extrabold text-slate-900 text-2xl tracking-tight">
-                        AED {total.toFixed(2)}
+                      {/* CTA Button */}
+                      <button
+                        onClick={handleRequestQuote}
+                        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-900/20 group text-[15px] tracking-wide"
+                      >
+                        Request Quote via WhatsApp
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </button>
+                    </div>
+                  ) : (
+                    /* Normal priced items summary */
+                    <>
+                      {/* Price Breakdown */}
+                      <div className="space-y-3 pt-1">
+                        <div className="flex justify-between items-center text-[13px] font-medium text-slate-600">
+                          <span>Subtotal ({pricedItems.reduce((a, i) => a + i.quantity, 0)} priced item{pricedItems.reduce((a, i) => a + i.quantity, 0) !== 1 ? 's' : ''})</span>
+                          <span className="font-semibold text-slate-900">AED {pricedSubtotal.toFixed(2)}</span>
+                        </div>
+                        {enquiryItems.length > 0 && (
+                          <div className="flex justify-between items-center text-[13px] font-medium text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+                            <span>{enquiryItems.reduce((a, i) => a + i.quantity, 0)} item{enquiryItems.reduce((a, i) => a + i.quantity, 0) !== 1 ? 's' : ''} (price via WhatsApp)</span>
+                            <span className="font-bold">Quote via WhatsApp</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center text-[13px] font-medium text-slate-600">
+                          <span>Shipping</span>
+                          <span className="font-bold text-slate-900">Calculated over WhatsApp</span>
+                        </div>
                       </div>
-                      <div className="text-[11px] text-slate-400 font-medium">VAT included</div>
-                    </div>
-                  </div>
 
-                  {/* CTA Button */}
-                  <button
-                    onClick={handleRequestQuote}
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-900/20 group text-[15px] tracking-wide"
-                  >
-                    Request Quote via WhatsApp
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </button>
+                      {/* Total */}
+                      <div className="border-t border-slate-100 pt-4 flex justify-between items-center">
+                        <span className="font-bold text-slate-700 text-[15px]">Estimated Total</span>
+                        <div className="text-right">
+                          <div className="font-extrabold text-slate-900 text-2xl tracking-tight">
+                            AED {total.toFixed(2)}
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-medium">VAT included</div>
+                        </div>
+                      </div>
+
+                      {/* CTA Button */}
+                      <button
+                        onClick={handleRequestQuote}
+                        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-900/20 group text-[15px] tracking-wide"
+                      >
+                        Request Quote via WhatsApp
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </button>
+                    </>
+                  )}
 
                   <p className="text-center text-[11px] text-slate-400 font-medium flex items-center justify-center gap-1.5">
                     <WhatsAppIcon className="w-3 h-3" />

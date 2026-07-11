@@ -105,10 +105,10 @@ export default function Layout() {
         <Link
           to="/cart"
           title="View Quote List"
-          className={`fixed bottom-[95px] lg:bottom-8 right-6 z-50 p-4 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 border hover:scale-110 active:scale-95 group ${
+          className={`fixed bottom-[95px] lg:bottom-8 left-6 z-50 p-4 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 border hover:scale-110 active:scale-95 group ${
             bounce
               ? 'bg-emerald-600 text-white border-emerald-400 animate-bounce scale-110 shadow-emerald-500/30'
-              : 'bg-[#0052d9] text-white border-blue-400 hover:bg-blue-700 shadow-blue-500/20'
+              : 'bg-[#0052d9] text-white border-blue-400 hover:bg-blue-700 animate-float shadow-blue-500/20'
           }`}
         >
           <ClipboardList className="w-6.5 h-6.5" />
