@@ -163,7 +163,8 @@ export default function ProductPage() {
   }
 
   if (!product && productsLoaded) {
-    return <Navigate to="/" replace />;
+    const fallbackQuery = (slug || '').replace(/-/g, ' ').trim();
+    return <Navigate to={`/search?q=${encodeURIComponent(fallbackQuery)}`} replace />;
   }
 
   if (slug === product.id) {
