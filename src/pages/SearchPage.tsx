@@ -275,7 +275,26 @@ export default function SearchPage() {
     return path;
   }, [selCategory, categoryDetails]);
 
-  // ── Sidebar ─────────────────────────────────────────────────────────────────
+  // ── Dropdown Control ────────────────────────────────────────────────────────
+  const [activeDropdown, setActiveDropdown] = useState<'category' | 'brand' | null>(null);
+  const categoryRef = React.useRef<HTMLDivElement>(null);
+  const brandRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      if (
+        (categoryRef.current && !categoryRef.current.contains(target)) &&
+        (brandRef.current && !brandRef.current.contains(target))
+      ) {
+        setActiveDropdown(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // ── Sidebar (Mobile Only) ───────────────────────────────────────────────────
   const Sidebar = () => {
     const topLevelCategories = ALL_CATEGORIES.filter(c => !(categoryDetails?.[c]?.parentId));
     
@@ -376,20 +395,20 @@ export default function SearchPage() {
 
   const ActivePills = () => (
     activeFilterCount > 0 ? (
-      <div className="flex flex-wrap items-center gap-2 mt-3">
+      <div className="flex flex-wrap items-center gap-2">
         {selCategory && (
           <span className="flex items-center gap-1 bg-blue-50 text-blue-700 text-[11px] font-bold px-2.5 py-1 rounded-full border border-blue-100 shadow-sm">
-            {selCategory}
+            Category: {selCategory}
             <button onClick={() => navigate('/search' + (searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''))} className="hover:text-red-600 ml-0.5 transition-colors">
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </span>
         )}
         {selBrands.map(b => (
           <span key={b} className="flex items-center gap-1 bg-slate-100 text-slate-700 text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm border border-slate-200">
-            {b}
+            Brand: {b}
             <button onClick={() => toggleBrand(b)} className="hover:text-red-600 ml-0.5 transition-colors">
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </span>
         ))}
@@ -401,10 +420,12 @@ export default function SearchPage() {
   );
 
   const pageLabel = selCategory || searchQuery || 'All Products';
+  const topLevelCategories = ALL_CATEGORIES.filter(c => !(categoryDetails?.[c]?.parentId));
 
   return (
     <div className="bg-slate-50 min-h-[calc(100vh-200px)]">
 
+      {/* Header / Breadcrumb Bar */}
       <div className="bg-white border-b border-slate-200 py-3 px-4 shadow-sm">
         <div className="w-full">
           <div className="flex items-center justify-between gap-3">
@@ -414,35 +435,144 @@ export default function SearchPage() {
                 <span className="mx-2 text-slate-300">/</span>
                 <span className="text-slate-900 font-bold truncate max-w-[200px] sm:max-w-sm">{pageLabel}</span>
               </div>
-              <div className="hidden md:block">
-                <ActivePills />
-              </div>
             </div>
 
             <button
               onClick={() => setIsMobileOpen(true)}
               className="md:hidden flex items-center gap-1.5 border border-slate-300 rounded-lg px-3 py-2 text-[13px] font-bold text-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors shrink-0"
             >
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4" />
-                <span className="font-extrabold text-[13px]">Filters</span>
-                {activeFilterCount > 0 && (
-                  <span className="bg-blue-600 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </div>
+              <SlidersHorizontal className="w-4 h-4" />
+              <span className="font-extrabold text-[13px]">Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="bg-blue-600 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
             </button>
           </div>
+        </div>
+      </div>
 
-          <div className="md:hidden mt-2">
-            <ActivePills />
+      {/* Horizontal Dropdowns bar (Desktop only) */}
+      <div className="hidden md:block bg-white border-b border-slate-200 py-4 px-4 sticky top-[108px] z-20 shadow-sm">
+        <div className="w-full max-w-7xl mx-auto flex items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            
+            {/* Category Dropdown */}
+            <div className="relative" ref={categoryRef}>
+              <button
+                onClick={() => setActiveDropdown(curr => curr === 'category' ? null : 'category')}
+                className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-semibold transition-all ${
+                  activeDropdown === 'category' || selCategory
+                    ? 'border-blue-600 bg-blue-50/20 text-blue-600'
+                    : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400'
+                }`}
+              >
+                <span>Category: {selCategory || 'All'}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${activeDropdown === 'category' ? 'rotate-180' : ''}`} />
+              </button>
+
+              {activeDropdown === 'category' && (
+                <div className="absolute left-0 mt-2 w-[320px] max-h-[400px] overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-30 p-4 animate-in fade-in slide-in-from-top-2 duration-150 custom-scrollbar">
+                  <div className="space-y-1 pb-1">
+                    <button
+                      onClick={() => {
+                        setSelBrands([]);
+                        setActiveDropdown(null);
+                        navigate('/search' + (searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''));
+                      }}
+                      className={`w-full flex items-center gap-2 text-[13.5px] py-1.5 transition-colors text-left
+                        ${!selCategory ? 'font-bold text-blue-600' : 'font-medium text-slate-600 hover:text-slate-900'}
+                      `}
+                    >
+                      <div className={`w-1.5 h-1.5 rounded-full transition-colors ${!selCategory ? 'bg-blue-600' : 'bg-transparent'}`} />
+                      All Categories
+                    </button>
+
+                    {topLevelCategories.map(cat => (
+                      <CategoryNode 
+                        key={cat} 
+                        cat={cat} 
+                        depth={0} 
+                        activePath={activePath} 
+                        selCategory={selCategory} 
+                        allCategories={ALL_CATEGORIES} 
+                        categoryDetails={categoryDetails} 
+                        navigate={(path: string) => {
+                          setActiveDropdown(null);
+                          navigate(path);
+                        }}
+                        setSelBrands={setSelBrands}
+                        searchQuery={searchQuery}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Brand Dropdown */}
+            {availableBrands.length > 0 && (
+              <div className="relative" ref={brandRef}>
+                <button
+                  onClick={() => setActiveDropdown(curr => curr === 'brand' ? null : 'brand')}
+                  className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-semibold transition-all ${
+                    activeDropdown === 'brand' || selBrands.length > 0
+                      ? 'border-blue-600 bg-blue-50/20 text-blue-600'
+                      : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400'
+                  }`}
+                >
+                  <span>Brand {selBrands.length > 0 ? `(${selBrands.length})` : ': All'}</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${activeDropdown === 'brand' ? 'rotate-180' : ''}`} />
+                </button>
+
+                {activeDropdown === 'brand' && (
+                  <div className="absolute left-0 mt-2 w-[260px] max-h-[300px] overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-30 p-4 animate-in fade-in slide-in-from-top-2 duration-150 custom-scrollbar">
+                    <ul className="space-y-2">
+                      {availableBrands.map(brand => (
+                        <li key={brand}>
+                          <button
+                            onClick={() => toggleBrand(brand)}
+                            className="w-full flex items-center gap-2.5 text-[13px] text-slate-700 hover:text-slate-900 transition-colors py-0.5"
+                          >
+                            <div className={`w-4 h-4 shrink-0 rounded border flex items-center justify-center transition-all ${
+                              selBrands.includes(brand)
+                                ? 'bg-blue-600 border-blue-600'
+                                : 'border-slate-300 bg-white'
+                            }`}>
+                              {selBrands.includes(brand) && <Check className="w-2.5 h-2.5 text-white" />}
+                            </div>
+                            <span className={selBrands.includes(brand) ? 'font-bold text-slate-900' : 'font-medium'}>
+                              {brand}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Clear All Link */}
+            {activeFilterCount > 0 && (
+              <button
+                onClick={clearAll}
+                className="flex items-center gap-1 text-[12px] text-slate-400 hover:text-red-500 font-bold transition-colors ml-2"
+              >
+                <RotateCcw className="w-3.5 h-3.5" /> Clear Filters
+              </button>
+            )}
+
           </div>
+
+          <ActivePills />
         </div>
       </div>
 
       <div className="w-full px-4 py-5 flex gap-6 items-start">
 
+        {/* Mobile Filter Backdrop */}
         {isMobileOpen && (
           <div
             className="fixed inset-0 bg-slate-900/60 z-40 md:hidden backdrop-blur-sm"
@@ -450,6 +580,7 @@ export default function SearchPage() {
           />
         )}
 
+        {/* Mobile Filter Drawer */}
         <div className={`
           fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl flex flex-col
           transition-transform duration-300 ease-in-out
@@ -467,17 +598,20 @@ export default function SearchPage() {
           </div>
         </div>
 
-        <aside className="hidden md:flex flex-col w-[260px] lg:w-[280px] shrink-0 bg-white rounded-xl border border-slate-200 shadow-sm p-5 h-[calc(100vh-190px)] sticky top-[170px] overflow-hidden self-start">
-          <style>{`
-            .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-            .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-            .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-            .custom-scrollbar:hover::-webkit-scrollbar-thumb { background: #94a3b8; }
-          `}</style>
-          <Sidebar />
-        </aside>
+        {/* CSS for custom scrolls */}
+        <style>{`
+          .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+          .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+          .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+          .custom-scrollbar:hover::-webkit-scrollbar-thumb { background: #94a3b8; }
+        `}</style>
 
+        {/* Product Grid Area */}
         <div className="flex-1 min-w-0">
+          <div className="md:hidden mb-4">
+            <ActivePills />
+          </div>
+
           {filteredProducts.length === 0 ? (
             <div className="text-center py-20 bg-white border border-slate-100 rounded-xl">
               <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -502,3 +636,4 @@ export default function SearchPage() {
     </div>
   );
 }
+
