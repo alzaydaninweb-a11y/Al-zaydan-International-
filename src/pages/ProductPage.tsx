@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, Link, useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
-import { Star, ShieldCheck, Truck, Heart, Share2, Info, ChevronRight, ChevronDown, Check, ShoppingCart, Minus, Plus, PhoneCall, Loader2, FileText, ClipboardList } from 'lucide-react';
+import { Star, ShieldCheck, Truck, Heart, Share2, Info, ChevronRight, ChevronDown, Check, ShoppingCart, Minus, Plus, PhoneCall, Loader2, FileText, ClipboardList, Mail, ArrowLeft, Send } from 'lucide-react';
 import WhatsAppIcon from '../components/icons/WhatsAppIcon';
 import { useCart } from '../context/CartContext';
 import ProductListingGrid from '../components/home/ProductListingGrid';
@@ -11,6 +11,7 @@ import { useSEO } from '../lib/useSEO';
 import { generateOrganizationSchema, generateBreadcrumbSchema, generateProductSchema, generateFaqSchema } from '../lib/schemaGenerator';
 import { generateProductSEO } from '../lib/seoGenerator';
 import InternalLinkingEngine from '../components/seo/InternalLinkingEngine';
+import { sendEmail } from '../lib/emailService';
 
 export default function ProductPage() {
   const { slug } = useParams();
@@ -21,6 +22,53 @@ export default function ProductPage() {
   const [isAdded, setIsAdded] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [openFaqIdx, setOpenFaqIdx] = useState<number | null>(null);
+
+  /* ── Inline Email Inquiry State ── */
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [emailName, setEmailName] = useState('');
+  const [emailAddress, setEmailAddress] = useState('');
+  const [emailPhone, setEmailPhone] = useState('');
+  const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
+  const [emailSubmitted, setEmailSubmitted] = useState(false);
+
+  const handleSendEmailInquiry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailName || !emailAddress || !product) return;
+    setIsSubmittingEmail(true);
+
+    const messageBody = `
+B2B Product Inquiry Received
+
+Product Details:
+- Name: ${product.name}
+- Product Code: ${product.id}
+- Brand: ${product.brand || 'N/A'}
+- Category: ${product.category}
+- Price: ${product.priceType === 'hidden' ? 'Price on Request' : 'AED ' + product.price}
+- MOQ: ${product.moq || 'N/A'}
+- URL: ${window.location.href}
+
+Customer Information:
+- Contact Name / Company: ${emailName}
+- Email Address: ${emailAddress}
+- Phone Number: ${emailPhone || 'Not provided'}
+`;
+
+    try {
+      await sendEmail({
+        name: emailName,
+        email: emailAddress,
+        phone: emailPhone,
+        title: `B2B Product Inquiry: ${product.name}`,
+        message: messageBody,
+      });
+      setEmailSubmitted(true);
+    } catch (err) {
+      console.error('Failed to send email inquiry', err);
+    } finally {
+      setIsSubmittingEmail(false);
+    }
+  };
 
   const product = useMemo(() => {
     if (!slug || !products.length) return null;
@@ -321,51 +369,148 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* Three B2B Action Buttons (Quantity Selector Removed) */}
-            <div className="flex flex-col gap-3">
-              {/* Button 1: Add to Quote */}
-              <button
-                onClick={handleAddToCart}
-                disabled={!product.inStock}
-                className={`
-                  w-full h-13 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-md
-                  ${isAdded
-                    ? 'bg-emerald-600 text-white shadow-emerald-500/20'
-                    : 'bg-[#0052d9] text-white hover:bg-blue-700 shadow-blue-500/20 active:scale-[0.98] disabled:opacity-50'
-                  }
-                `}
-              >
-                {isAdded ? (
-                  <><Check className="w-4 h-4 stroke-[3]" /> Added to Quote List</>
+            {/* Action Buttons & Inline Email Inquiry Form */}
+            {showEmailForm ? (
+              <div className="bg-white border-2 border-blue-500 rounded-2xl p-5 shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                  <button
+                    onClick={() => {
+                      setShowEmailForm(false);
+                      setEmailSubmitted(false);
+                    }}
+                    className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-blue-600 transition-colors"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back to Actions
+                  </button>
+                  <span className="text-xs font-extrabold text-blue-600 uppercase tracking-wider">Direct Email Inquiry</span>
+                </div>
+
+                {emailSubmitted ? (
+                  <div className="text-center py-6 space-y-3">
+                    <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                      <Check className="w-6 h-6 stroke-[3]" />
+                    </div>
+                    <h4 className="font-extrabold text-slate-900 text-base">Inquiry Sent Successfully!</h4>
+                    <p className="text-xs text-slate-600 leading-relaxed max-w-xs mx-auto">
+                      Thank you! Our procurement team will review your inquiry and email you a tailored B2B quote shortly.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setShowEmailForm(false);
+                        setEmailSubmitted(false);
+                        setEmailName('');
+                        setEmailAddress('');
+                        setEmailPhone('');
+                      }}
+                      className="mt-2 text-xs font-extrabold text-blue-600 hover:underline"
+                    >
+                      Done / Close Form
+                    </button>
+                  </div>
                 ) : (
-                  <><FileText className="w-4 h-4" /> Add to Quote</>
+                  <form onSubmit={handleSendEmailInquiry} className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider mb-1">
+                        Your Name / Company *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Acme Industrial LLC"
+                        value={emailName}
+                        onChange={e => setEmailName(e.target.value)}
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider mb-1">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="e.g. procurement@acme.com"
+                        value={emailAddress}
+                        onChange={e => setEmailAddress(e.target.value)}
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider mb-1">
+                        Contact Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="e.g. +971 50 123 4567"
+                        value={emailPhone}
+                        onChange={e => setEmailPhone(e.target.value)}
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmittingEmail}
+                      className="w-full h-12 mt-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isSubmittingEmail ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Sending Inquiry...</>
+                      ) : (
+                        <><Send className="w-4 h-4" /> Send Request to Email</>
+                      )}
+                    </button>
+                  </form>
                 )}
-              </button>
-
-              {/* Button 2: Inquire via WhatsApp */}
-              <button
-                onClick={handleBuyNow}
-                disabled={!product.inStock}
-                className="w-full h-13 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center bg-[#25D366] text-white shadow-md shadow-emerald-500/20 hover:bg-[#128C7E] active:scale-[0.98] disabled:opacity-50 gap-2"
-              >
-                <WhatsAppIcon className="w-4.5 h-4.5" />
-                Inquire via WhatsApp
-              </button>
-
-              {/* Button 3: Inquire via Email */}
-              <a
-                href={`mailto:info@alzaydanintl.com?subject=${encodeURIComponent(`B2B Inquiry for Product: ${product.name}`)}&body=${encodeURIComponent(`Hi Al Zaydan Procurement Team,\n\nI would like to inquire about the product: ${product.name} (Code: ${product.id}).\n\nPlease send me detailed specifications, wholesale pricing, and MOQ delivery terms.\n\nThank you.`)}`}
-                className="w-full h-13 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center bg-white text-slate-800 border-2 border-slate-300 hover:border-slate-800 hover:bg-slate-50 shadow-xs active:scale-[0.98] gap-2"
-              >
-                <Mail className="w-4 h-4 text-slate-600" />
-                Inquire via Email
-              </a>
-
-              <div className="flex items-center justify-center gap-6 mt-2">
-                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500"><ShieldCheck className="w-4 h-4 text-emerald-500" /> Verified Supplier</span>
-                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500"><Star className="w-4 h-4 text-amber-500" /> Commercial Quality</span>
               </div>
-            </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {/* Button 1: Add to Quote */}
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!product.inStock}
+                  className={`
+                    w-full h-13 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-md
+                    ${isAdded
+                      ? 'bg-emerald-600 text-white shadow-emerald-500/20'
+                      : 'bg-[#0052d9] text-white hover:bg-blue-700 shadow-blue-500/20 active:scale-[0.98] disabled:opacity-50'
+                    }
+                  `}
+                >
+                  {isAdded ? (
+                    <><Check className="w-4 h-4 stroke-[3]" /> Added to Quote List</>
+                  ) : (
+                    <><FileText className="w-4 h-4" /> Add to Quote</>
+                  )}
+                </button>
+
+                {/* Button 2: Inquire via WhatsApp */}
+                <button
+                  onClick={handleBuyNow}
+                  disabled={!product.inStock}
+                  className="w-full h-13 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center bg-[#25D366] text-white shadow-md shadow-emerald-500/20 hover:bg-[#128C7E] active:scale-[0.98] disabled:opacity-50 gap-2"
+                >
+                  <WhatsAppIcon className="w-4.5 h-4.5" />
+                  Inquire via WhatsApp
+                </button>
+
+                {/* Button 3: Inquire via Email */}
+                <button
+                  onClick={() => setShowEmailForm(true)}
+                  className="w-full h-13 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center bg-white text-slate-800 border-2 border-slate-300 hover:border-slate-800 hover:bg-slate-50 shadow-xs active:scale-[0.98] gap-2"
+                >
+                  <Mail className="w-4 h-4 text-slate-600" />
+                  Inquire via Email
+                </button>
+
+                <div className="flex items-center justify-center gap-6 mt-2">
+                  <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500"><ShieldCheck className="w-4 h-4 text-emerald-500" /> Verified Supplier</span>
+                  <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500"><Star className="w-4 h-4 text-amber-500" /> Commercial Quality</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
