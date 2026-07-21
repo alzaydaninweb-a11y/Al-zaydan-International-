@@ -330,38 +330,29 @@ Customer Information:
               )}
             </div>
 
-            {/* B2B IndiaMART / Alibaba Style Pricing & Spec Card */}
-            <div className="bg-gradient-to-br from-blue-50/70 via-slate-50 to-indigo-50/50 border border-slate-200/90 rounded-2xl p-5 md:p-6 mb-6 shadow-xs">
+            {/* Minimal & Professional B2B Pricing Section */}
+            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-5 mb-6">
               <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold tracking-wider uppercase text-blue-600 bg-blue-100/70 px-2.5 py-0.5 rounded-full border border-blue-200/60">
-                    B2B Wholesale Price
-                  </span>
+                <PriceDisplay product={product} size="xl" />
+
+                <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-600 pt-3 border-t border-slate-200/80">
                   {product.moq && (
-                    <span className="text-xs font-black text-slate-700 bg-white border border-slate-200 px-2.5 py-0.5 rounded-md shadow-2xs">
-                      MOQ: {product.moq}
+                    <span className="font-bold text-slate-800">
+                      MOQ: <span className="font-extrabold text-slate-900">{product.moq}</span>
                     </span>
                   )}
-                </div>
 
-                <div className="flex flex-wrap items-baseline gap-3">
-                  <PriceDisplay product={product} size="xl" />
-                </div>
-
-                <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-600 pt-3 border-t border-slate-200/70">
-                  <span className={`flex items-center gap-1.5 font-bold ${product.inStock ? 'text-emerald-700' : 'text-red-600'}`}>
-                    <ShieldCheck className="w-4 h-4" />
-                    {product.inStock ? 'In Stock & Ready' : 'Out of Stock'}
+                  <span className={`flex items-center gap-1 font-semibold ${product.inStock ? 'text-emerald-700' : 'text-red-600'}`}>
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    {product.inStock ? 'In Stock' : 'Out of Stock'}
                   </span>
 
-                  <span className="flex items-center gap-1.5 text-slate-600">
-                    <Truck className="w-4 h-4 text-slate-400" />
+                  <span className="text-slate-500">
                     {product.shippingRegion || 'Global Freight Options'}
                   </span>
 
                   {product.leadTime && (
-                    <span className="flex items-center gap-1.5 text-slate-600">
-                      <Check className="w-4 h-4 text-emerald-500" />
+                    <span className="text-slate-500">
                       Lead: {product.leadTime}
                     </span>
                   )}
