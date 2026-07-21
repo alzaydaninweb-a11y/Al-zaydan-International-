@@ -220,6 +220,18 @@ export default function AdminCustomerSupport() {
         </div>
       </div>
 
+      {/* WhatsApp Routing Manager Card */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-5 border-b border-gray-100 bg-slate-50 flex items-center justify-between">
+          <div>
+            <h2 className="text-[15px] font-bold text-slate-800">WhatsApp Routing Manager</h2>
+            <p className="text-[13px] text-slate-500 mt-0.5">Map specific website actions to different WhatsApp numbers.</p>
+          </div>
+          <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
+            <PhoneCall className="w-3 h-3" /> Routing Active
+          </div>
+        </div>
+
         <div className="p-6">
           <div className="bg-blue-50/50 rounded-xl p-5 border border-blue-100/60 flex items-start gap-3 mb-6">
             <div className="mt-0.5 shrink-0 text-blue-500">

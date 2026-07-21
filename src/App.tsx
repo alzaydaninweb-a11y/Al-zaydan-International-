@@ -28,7 +28,13 @@ import { StoreProvider, useStore } from './context/StoreContext';
 import ScriptInjector    from './components/ScriptInjector';
 
 // ── Admin panel — lazy loaded (large, only needed by admins) ──────────────────
-const AdminApp = lazy(() => import('./admin/AdminApp'));
+const AdminApp = lazy(() =>
+  import('./admin/AdminApp').catch((err) => {
+    console.warn('Failed to load AdminApp module, auto-refreshing page...', err);
+    window.location.reload();
+    return new Promise(() => {});
+  })
+);
 
 // ── Admin loading fallback ────────────────────────────────────────────────────
 const AdminFallback = () => (
