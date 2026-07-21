@@ -282,123 +282,87 @@ export default function ProductPage() {
               )}
             </div>
 
-            {/* Price / Quote Block */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 md:p-6 mb-8 shadow-sm">
-              {product.priceType === 'hidden' ? (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center shrink-0">
-                    <WhatsAppIcon className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-slate-900 text-lg mb-1">Price on Request</h3>
-                    <p className="text-sm text-slate-600 font-medium leading-relaxed max-w-md">
-                      Pricing varies based on volume and specifications. Discuss via WhatsApp for a tailored B2B quote.
-                    </p>
-                  </div>
+            {/* B2B IndiaMART / Alibaba Style Pricing & Spec Card */}
+            <div className="bg-gradient-to-br from-blue-50/70 via-slate-50 to-indigo-50/50 border border-slate-200/90 rounded-2xl p-5 md:p-6 mb-6 shadow-xs">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold tracking-wider uppercase text-blue-600 bg-blue-100/70 px-2.5 py-0.5 rounded-full border border-blue-200/60">
+                    B2B Wholesale Price
+                  </span>
+                  {product.moq && (
+                    <span className="text-xs font-black text-slate-700 bg-white border border-slate-200 px-2.5 py-0.5 rounded-md shadow-2xs">
+                      MOQ: {product.moq}
+                    </span>
+                  )}
                 </div>
-              ) : (
-                <PriceDisplay product={product} size="xl" />
-              )}
-            </div>
 
-            {/* Key Info Grid */}
-            <div className="grid grid-cols-2 gap-4 mb-8">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
-                  <ShieldCheck className="w-5 h-5 text-blue-600" />
+                <div className="flex flex-wrap items-baseline gap-3">
+                  <PriceDisplay product={product} size="xl" />
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Availability</span>
-                  <span className={`text-sm font-extrabold ${product.inStock ? 'text-emerald-600' : 'text-red-500'}`}>
+
+                <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-600 pt-3 border-t border-slate-200/70">
+                  <span className={`flex items-center gap-1.5 font-bold ${product.inStock ? 'text-emerald-700' : 'text-red-600'}`}>
+                    <ShieldCheck className="w-4 h-4" />
                     {product.inStock ? 'In Stock & Ready' : 'Out of Stock'}
                   </span>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 border border-slate-200">
-                  <Truck className="w-5 h-5 text-slate-600" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Shipping</span>
-                  <span className="text-sm font-extrabold text-slate-900">{product.shippingRegion || 'Global Freight Options'}</span>
-                </div>
-              </div>
 
-              {product.moq && (
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 border border-slate-200">
-                    <ClipboardList className="w-5 h-5 text-slate-600" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Min. Order (MOQ)</span>
-                    <span className="text-sm font-extrabold text-slate-900">{product.moq}</span>
-                  </div>
+                  <span className="flex items-center gap-1.5 text-slate-600">
+                    <Truck className="w-4 h-4 text-slate-400" />
+                    {product.shippingRegion || 'Global Freight Options'}
+                  </span>
+
+                  {product.leadTime && (
+                    <span className="flex items-center gap-1.5 text-slate-600">
+                      <Check className="w-4 h-4 text-emerald-500" />
+                      Lead: {product.leadTime}
+                    </span>
+                  )}
                 </div>
-              )}
-              
-              {product.leadTime && (
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 border border-slate-200">
-                    <Check className="w-5 h-5 text-slate-600" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Lead Time</span>
-                    <span className="text-sm font-extrabold text-slate-900">{product.leadTime}</span>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center bg-white border border-slate-200 rounded-xl h-14 px-1.5 shadow-sm shrink-0">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-50 transition-all text-slate-400 hover:text-blue-600"
-                  >
-                    <Minus className="w-4 h-4 stroke-[3]" />
-                  </button>
-                  <span className="w-10 text-center font-black text-slate-900 text-base">{quantity}</span>
-                  <button
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-50 transition-all text-slate-400 hover:text-blue-600"
-                  >
-                    <Plus className="w-4 h-4 stroke-[3]" />
-                  </button>
-                </div>
-                
-                <button
-                  onClick={handleAddToCart}
-                  disabled={!product.inStock}
-                  className={`
-                    flex-1 h-14 rounded-xl font-bold text-[11px] sm:text-[13px] uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2
-                    ${isAdded
-                      ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100'
-                      : 'bg-[#0052d9] text-white shadow-lg shadow-blue-100 hover:bg-blue-700 hover:shadow-blue-200 active:scale-[0.98] disabled:opacity-50'
-                    }
-                  `}
-                >
-                  {isAdded ? (
-                    <><Check className="w-4 h-4 stroke-[3]" /> Added to Quote List</>
-                  ) : (
-                    <><FileText className="w-4 h-4" /> Add to Quote</>
-                  )}
-                </button>
-              </div>
+            {/* Three B2B Action Buttons (Quantity Selector Removed) */}
+            <div className="flex flex-col gap-3">
+              {/* Button 1: Add to Quote */}
+              <button
+                onClick={handleAddToCart}
+                disabled={!product.inStock}
+                className={`
+                  w-full h-13 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-md
+                  ${isAdded
+                    ? 'bg-emerald-600 text-white shadow-emerald-500/20'
+                    : 'bg-[#0052d9] text-white hover:bg-blue-700 shadow-blue-500/20 active:scale-[0.98] disabled:opacity-50'
+                  }
+                `}
+              >
+                {isAdded ? (
+                  <><Check className="w-4 h-4 stroke-[3]" /> Added to Quote List</>
+                ) : (
+                  <><FileText className="w-4 h-4" /> Add to Quote</>
+                )}
+              </button>
 
+              {/* Button 2: Inquire via WhatsApp */}
               <button
                 onClick={handleBuyNow}
                 disabled={!product.inStock}
-                className="w-full h-14 rounded-xl font-bold text-[11px] sm:text-[13px] uppercase tracking-widest transition-all duration-300 flex items-center justify-center bg-[#25D366] text-white shadow-lg shadow-green-100 hover:bg-[#128C7E] active:scale-[0.98] disabled:opacity-50 gap-2.5"
+                className="w-full h-13 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center bg-[#25D366] text-white shadow-md shadow-emerald-500/20 hover:bg-[#128C7E] active:scale-[0.98] disabled:opacity-50 gap-2"
               >
-                <WhatsAppIcon className="w-5 h-5" />
-                {product.priceType === 'hidden' ? 'Discuss Quote via WhatsApp' : 'Order instantly via WhatsApp'}
+                <WhatsAppIcon className="w-4.5 h-4.5" />
+                Inquire via WhatsApp
               </button>
-              
-              <div className="flex items-center justify-center gap-6 mt-4">
-                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500"><ShieldCheck className="w-4 h-4 text-emerald-500" /> Secure B2B Portal</span>
+
+              {/* Button 3: Inquire via Email */}
+              <a
+                href={`mailto:info@alzaydanintl.com?subject=${encodeURIComponent(`B2B Inquiry for Product: ${product.name}`)}&body=${encodeURIComponent(`Hi Al Zaydan Procurement Team,\n\nI would like to inquire about the product: ${product.name} (Code: ${product.id}).\n\nPlease send me detailed specifications, wholesale pricing, and MOQ delivery terms.\n\nThank you.`)}`}
+                className="w-full h-13 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center bg-white text-slate-800 border-2 border-slate-300 hover:border-slate-800 hover:bg-slate-50 shadow-xs active:scale-[0.98] gap-2"
+              >
+                <Mail className="w-4 h-4 text-slate-600" />
+                Inquire via Email
+              </a>
+
+              <div className="flex items-center justify-center gap-6 mt-2">
+                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500"><ShieldCheck className="w-4 h-4 text-emerald-500" /> Verified Supplier</span>
                 <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500"><Star className="w-4 h-4 text-amber-500" /> Commercial Quality</span>
               </div>
             </div>
