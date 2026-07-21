@@ -47,7 +47,8 @@ export interface BlogPost {
 const COL = 'blogs';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-export function generateSlug(title: string): string {
+export function generateSlug(title?: string): string {
+  if (!title || typeof title !== 'string') return '';
   return title
     .toLowerCase()
     .trim()

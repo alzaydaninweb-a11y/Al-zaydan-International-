@@ -147,7 +147,7 @@ export default function ProductCard({ product, compact = false }: Props) {
 
   return (
     <Link
-      to={`/product/${(product as any).slug || generateSlug(product.name)}`}
+      to={`/product/${(product as any).slug || generateSlug(product.name) || product.id}`}
       className="group flex flex-col h-full bg-white border border-slate-200 hover:border-blue-400 hover:shadow-lg rounded-xl overflow-hidden transition-all duration-200"
     >
       {/* ── Image ── */}
