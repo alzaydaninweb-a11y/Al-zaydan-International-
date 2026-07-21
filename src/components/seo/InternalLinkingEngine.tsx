@@ -15,7 +15,7 @@ export default function InternalLinkingEngine({ text, currentCategory, categorie
     // Filter out the current category, we don't want to link to ourselves
     // Sort by length descending so we match longer category names first
     const validCategories = categories
-      .filter(c => c.toLowerCase() !== currentCategory.toLowerCase())
+      .filter(c => (c || '').toLowerCase() !== (currentCategory || '').toLowerCase())
       .sort((a, b) => b.length - a.length);
 
     let currentText = text;

@@ -31,7 +31,7 @@ export default function CategoryRail() {
 
         <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-3">
           {categories.slice(0, 16).map((cat, i) => {
-            const catObj = MEGA_CATEGORIES.find(c => c.label.toLowerCase() === cat.toLowerCase());
+            const catObj = MEGA_CATEGORIES.find(c => (c.label || '').toLowerCase() === (cat || '').toLowerCase());
             const emoji = catObj ? catObj.icon : '📦';
             const imageUrl = categoryImages[cat];
 

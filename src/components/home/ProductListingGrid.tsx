@@ -26,7 +26,7 @@ export default function ProductListingGrid({
     let filtered = products;
     if (featuredOnly) filtered = filtered.filter(p => p.featured);
     if (category && category !== 'All Products') {
-      filtered = filtered.filter(p => p.category?.toLowerCase() === category.toLowerCase());
+      filtered = filtered.filter(p => (p.category || '').toLowerCase() === (category || '').toLowerCase());
     }
     displayProducts = limit ? filtered.slice(0, limit) : filtered;
   }

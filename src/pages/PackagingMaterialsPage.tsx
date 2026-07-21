@@ -50,11 +50,10 @@ export default function PackagingMaterialsPage() {
     schema: PACKAGING_SCHEMA,
   });
 
-  const relatedProducts = products.filter(p =>
-    p.category?.toLowerCase().includes('packag') ||
-    p.category?.toLowerCase().includes('adhesive') ||
-    p.category?.toLowerCase().includes('tape')
-  );
+  const relatedProducts = products.filter(p => {
+    const cat = (p.category || '').toLowerCase();
+    return cat.includes('packag') || cat.includes('adhesive') || cat.includes('tape');
+  });
 
   return (
     <div className="bg-white">

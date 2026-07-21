@@ -116,7 +116,7 @@ function RecommendedCard({
         </div>
 
         <p className="text-[12px] text-slate-600 mb-4 line-clamp-2 leading-snug">
-          Professional-grade industrial {product.category?.toLowerCase()} perfect for safe and secure environments.
+          Professional-grade industrial {(product.category || '').toLowerCase()} perfect for safe and secure environments.
         </p>
 
         <div className="mt-auto pt-2">

@@ -53,7 +53,7 @@ export function getRecentSearches(): string[] {
 }
 export function saveRecentSearch(query: string) {
   try {
-    const existing = getRecentSearches().filter(q => q.toLowerCase() !== query.toLowerCase());
+    const existing = getRecentSearches().filter(q => (q || '').toLowerCase() !== (query || '').toLowerCase());
     localStorage.setItem(RECENT_KEY, JSON.stringify([query, ...existing].slice(0, 5)));
   } catch {}
 }
@@ -91,30 +91,30 @@ export default function SmartSearchDropdown({
 }: Props) {
   const navigate = useNavigate();
   const { categoryDetails } = useStore();
-  const trimmed = query.trim().toLowerCase();
+  const trimmed = (query || '').trim().toLowerCase();
 
   /* ── Filtered products ── */
   const matchedProducts = trimmed.length >= 1
     ? products.filter(p =>
-        p.name.toLowerCase().includes(trimmed) ||
-        p.category?.toLowerCase().includes(trimmed) ||
-        p.sku?.toLowerCase().includes(trimmed) ||
-        p.brand?.toLowerCase().includes(trimmed)
+        (p.name || '').toLowerCase().includes(trimmed) ||
+        (p.category || '').toLowerCase().includes(trimmed) ||
+        ((p as any).sku || '').toLowerCase().includes(trimmed) ||
+        (p.brand || '').toLowerCase().includes(trimmed)
       ).slice(0, 5)
     : [];
 
   /* ── Filtered categories ── */
   const matchedCategories = trimmed.length >= 1
-    ? categories.filter(c => c.toLowerCase().includes(trimmed)).slice(0, 4)
+    ? categories.filter(c => (c || '').toLowerCase().includes(trimmed)).slice(0, 4)
     : [];
 
   /* ── Filtered popular / suggested ── */
   const matchedPopular = trimmed.length >= 1
-    ? POPULAR_SEARCHES.filter(s => s.toLowerCase().includes(trimmed)).slice(0, 4)
+    ? POPULAR_SEARCHES.filter(s => (s || '').toLowerCase().includes(trimmed)).slice(0, 4)
     : POPULAR_SEARCHES.slice(0, 6);
 
   const matchedSuggested = trimmed.length >= 1
-    ? SUGGESTED_KEYWORDS.filter(s => s.toLowerCase().includes(trimmed)).slice(0, 3)
+    ? SUGGESTED_KEYWORDS.filter(s => (s || '').toLowerCase().includes(trimmed)).slice(0, 3)
     : [];
 
   /* ── Build flat focusable items list for keyboard nav ── */

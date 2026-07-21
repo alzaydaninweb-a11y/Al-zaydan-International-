@@ -173,11 +173,11 @@ export default function SearchPage() {
     let result = ALL_PRODUCTS;
 
     if (searchQuery) {
-      const q = searchQuery.toLowerCase();
+      const q = (searchQuery || '').toLowerCase();
       result = result.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q) ||
-        p.brand.toLowerCase().includes(q)
+        (p.name || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q) ||
+        (p.brand || '').toLowerCase().includes(q)
       );
     }
     

@@ -55,9 +55,10 @@ export default function AdminBlogs() {
     setToggling(null);
   };
 
+  const sTerm = (search || '').toLowerCase();
   const filtered = blogs.filter(b =>
-    b.title.toLowerCase().includes(search.toLowerCase()) ||
-    b.category.toLowerCase().includes(search.toLowerCase())
+    (b.title || '').toLowerCase().includes(sTerm) ||
+    (b.category || '').toLowerCase().includes(sTerm)
   );
 
   const published = blogs.filter(b => b.published).length;

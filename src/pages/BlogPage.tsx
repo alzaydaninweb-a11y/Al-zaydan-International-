@@ -38,7 +38,8 @@ export default function BlogPage() {
   const categories = ['All', ...Array.from(new Set(blogs.map(b => b.category)))];
 
   const filtered = blogs.filter(b => {
-    const matchSearch   = b.title.toLowerCase().includes(search.toLowerCase()) || b.excerpt.toLowerCase().includes(search.toLowerCase());
+    const sTerm = (search || '').toLowerCase();
+    const matchSearch = (b.title || '').toLowerCase().includes(sTerm) || (b.excerpt || '').toLowerCase().includes(sTerm);
     const matchCategory = activeCategory === 'All' || b.category === activeCategory;
     return matchSearch && matchCategory;
   });
