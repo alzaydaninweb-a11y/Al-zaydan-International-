@@ -50,12 +50,12 @@ const AdminFallback = () => (
 
 // ── Error Boundary — catches any crash and resets to homepage ─────────────────
 // Prevents the blank white screen caused by unhandled render errors.
-interface ErrorBoundaryState { hasError: boolean; }
+interface ErrorBoundaryState { hasError: boolean; error: Error | null; }
 class AppErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
-  state = { hasError: false };
+  state: ErrorBoundaryState = { hasError: false, error: null };
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
   }
 
   componentDidCatch(err: Error, info: React.ErrorInfo) {
@@ -63,8 +63,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryS
   }
 
   handleReset = () => {
-    this.setState({ hasError: false });
-    // Hard navigate to home to break any bad state
+    this.setState({ hasError: false, error: null });
     window.location.href = '/';
   };
 
@@ -80,9 +79,12 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryS
           <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', margin: 0 }}>
             Something went wrong
           </h2>
-          <p style={{ color: '#64748b', fontSize: 14, margin: 0, textAlign: 'center' }}>
-            A component crashed. Click below to go back to the homepage.
+          <p style={{ color: '#ef4444', fontSize: 14, margin: 0, textAlign: 'center', fontFamily: 'monospace', background: '#fee2e2', padding: 12, borderRadius: 8, maxWidth: 600 }}>
+            {this.state.error?.toString() || 'Unknown error'}
           </p>
+          <pre style={{ color: '#475569', fontSize: 11, textAlign: 'left', background: '#e2e8f0', padding: 12, borderRadius: 8, maxWidth: 700, maxHeight: 200, overflow: 'auto' }}>
+            {this.state.error?.stack || ''}
+          </pre>
           <button
             onClick={this.handleReset}
             style={{
