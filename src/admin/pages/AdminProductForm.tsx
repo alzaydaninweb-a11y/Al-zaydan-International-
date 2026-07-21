@@ -526,7 +526,7 @@ export default function AdminProductForm() {
           const idToken = await auth.currentUser?.getIdToken();
           if (idToken) {
             console.log('Syncing new product to Google Sheet...');
-            await fetch('/api/add-product-to-sheet', {
+            await fetch('/.netlify/functions/add-product-to-sheet', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
