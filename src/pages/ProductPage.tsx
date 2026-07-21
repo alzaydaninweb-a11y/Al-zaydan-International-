@@ -54,6 +54,8 @@ Customer Information:
 - Phone Number: ${emailPhone || 'Not provided'}
 `;
 
+    const recipientEmails = [settings?.inquiryEmail, settings?.secondaryInquiryEmail].filter(Boolean).join(', ');
+
     try {
       await sendEmail({
         name: emailName,
@@ -61,6 +63,7 @@ Customer Information:
         phone: emailPhone,
         title: `B2B Product Inquiry: ${product.name}`,
         message: messageBody,
+        to_email: recipientEmails || undefined,
       });
       setEmailSubmitted(true);
     } catch (err) {

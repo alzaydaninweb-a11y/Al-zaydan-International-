@@ -12,6 +12,7 @@ export interface EmailPayload {
   phone?: string;
   title: string;     // e.g., "New Order Received", "New RFQ", "Contact Us Inquiry"
   message: string;   // The formatted body (order details, RFQ details, etc.)
+  to_email?: string; // Configured target recipient email address(es) from admin settings
 }
 
 export const sendEmail = async (payload: EmailPayload): Promise<{ success: boolean; error?: string }> => {
@@ -31,6 +32,7 @@ export const sendEmail = async (payload: EmailPayload): Promise<{ success: boole
         phone: payload.phone || 'N/A',
         title: payload.title,
         message: payload.message,
+        to_email: payload.to_email || 'info@alzaydaninternational.com, sales@alzaydaninternational.com',
       },
       PUBLIC_KEY
     );

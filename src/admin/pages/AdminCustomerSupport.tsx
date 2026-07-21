@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
-import { Save, Plus, Trash2, HeadphonesIcon, HelpCircle, PhoneCall } from 'lucide-react';
+import { Save, Plus, Trash2, HeadphonesIcon, HelpCircle, PhoneCall, Mail } from 'lucide-react';
 
 const ROUTING_CONTEXTS = [
   { id: 'contact', label: 'Contact Page (General Inquiries)' },
@@ -19,6 +19,10 @@ export default function AdminCustomerSupport() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Email Inquiry Notification State
+  const [inquiryEmail, setInquiryEmail] = useState(settings?.inquiryEmail || 'alzaydaninweb@gmail.com');
+  const [secondaryInquiryEmail, setSecondaryInquiryEmail] = useState(settings?.secondaryInquiryEmail || 'info@alzaydaninternational.com');
 
   // Local state for routing map
   // Convert Record<string, string> to array for easy UI manipulation
@@ -106,8 +110,14 @@ export default function AdminCustomerSupport() {
         callMap[route.context] = route.number;
       }
 
-      await updateGeneralSettings({ ...settings, whatsappRouting: newMap, callRouting: callMap });
-      setSuccess('Customer Support and Routing settings successfully updated!');
+      await updateGeneralSettings({
+        ...settings,
+        whatsappRouting: newMap,
+        callRouting: callMap,
+        inquiryEmail: inquiryEmail.trim(),
+        secondaryInquiryEmail: secondaryInquiryEmail.trim(),
+      });
+      setSuccess('Customer Support and Email Routing settings successfully updated!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
       console.error(err);
@@ -118,11 +128,11 @@ export default function AdminCustomerSupport() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto pb-20">
-      <div className="flex items-center justify-between mb-8">
+    <div className="max-w-4xl mx-auto pb-20 space-y-6">
+      <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
           <HeadphonesIcon className="w-6 h-6 text-blue-600" />
-          Customer Support & Routing Settings
+          Customer Support & Email Routing Settings
         </h1>
         <button
           onClick={handleSave}
@@ -134,30 +144,81 @@ export default function AdminCustomerSupport() {
       </div>
 
       {success && (
-        <div className="bg-green-50 text-green-700 p-4 rounded-xl mb-6 flex items-center gap-2 border border-green-100">
+        <div className="bg-green-50 text-green-700 p-4 rounded-xl mb-2 flex items-center gap-2 border border-green-100">
           <div className="w-2 h-2 bg-green-500 rounded-full" />
           <span className="font-medium text-sm">{success}</span>
         </div>
       )}
 
       {errorMsg && (
-        <div className="bg-red-50 text-red-700 p-4 rounded-xl mb-6 flex items-center gap-2 border border-red-100">
+        <div className="bg-red-50 text-red-700 p-4 rounded-xl mb-2 flex items-center gap-2 border border-red-100">
           <div className="w-2 h-2 bg-red-500 rounded-full" />
           <span className="font-medium text-sm">{errorMsg}</span>
         </div>
       )}
 
-      {/* WhatsApp Routing Manager Card */}
+      {/* Email Inquiry Notification Manager Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-5 border-b border-gray-100 bg-slate-50 flex items-center justify-between">
           <div>
-            <h2 className="text-[15px] font-bold text-slate-800">WhatsApp Routing Manager</h2>
-            <p className="text-[13px] text-slate-500 mt-0.5">Map specific website actions to different WhatsApp numbers.</p>
+            <h2 className="text-[15px] font-bold text-slate-800 flex items-center gap-2">
+              <Mail className="w-4 h-4 text-blue-600" />
+              Email Inquiry Notification Manager
+            </h2>
+            <p className="text-[13px] text-slate-500 mt-0.5">
+              Configure which email accounts receive all website customer product inquiries and RFQ submissions.
+            </p>
           </div>
-          <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
-            <PhoneCall className="w-3 h-3" /> Routing Active
+          <div className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
+            <Mail className="w-3 h-3" /> Mail Dispatch Active
           </div>
         </div>
+
+        <div className="p-6 space-y-4">
+          <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100/60 flex items-start gap-3">
+            <div className="mt-0.5 shrink-0 text-blue-500">
+              <HelpCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm mb-1">How Email Routing Works</h3>
+              <p className="text-[13px] text-slate-600 leading-relaxed">
+                When a customer clicks <strong>"Inquire via Email"</strong> on any product page, an instant notification with full product specifications, customer contact details, and page link is sent directly to the email addresses configured below.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div>
+              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
+                Primary Inquiry Notification Email *
+              </label>
+              <input
+                type="email"
+                required
+                placeholder="e.g. alzaydaninweb@gmail.com"
+                value={inquiryEmail}
+                onChange={e => setInquiryEmail(e.target.value)}
+                className="w-full text-sm border border-gray-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white font-medium"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">Main mailbox receiving all RFQs and product inquiries.</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
+                Secondary / Sales Notification Email
+              </label>
+              <input
+                type="email"
+                placeholder="e.g. sales@alzaydaninternational.com"
+                value={secondaryInquiryEmail}
+                onChange={e => setSecondaryInquiryEmail(e.target.value)}
+                className="w-full text-sm border border-gray-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white font-medium"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">Secondary sales mailbox (receives duplicate copy).</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
         <div className="p-6">
           <div className="bg-blue-50/50 rounded-xl p-5 border border-blue-100/60 flex items-start gap-3 mb-6">
