@@ -439,7 +439,7 @@ export default function ProductPage() {
                         <td className="py-3 px-4 text-slate-900 bg-white">{product.category}</td>
                       </tr>
                     )}
-                    {product.specifications && product.specifications.length > 0 ? (
+                    {Array.isArray(product.specifications) && product.specifications.length > 0 ? (
                       product.specifications.map((spec, idx) => (
                         <tr key={idx} className={idx === product.specifications!.length - 1 ? '' : 'border-b border-slate-100'}>
                           <th className="py-3 px-4 font-semibold text-slate-600 bg-slate-50/50 w-1/3">{spec.key}</th>
@@ -455,10 +455,10 @@ export default function ProductPage() {
         </div>
 
         {/* Semantic SEO Content: Features, Benefits, Applications */}
-        {(product.features?.length > 0 || product.benefits?.length > 0 || product.applications?.length > 0) && (
+        {(Array.isArray(product.features) && product.features.length > 0 || Array.isArray(product.benefits) && product.benefits.length > 0 || Array.isArray(product.applications) && product.applications.length > 0) && (
           <div className="mt-10 border-t border-slate-200 pt-10">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {product.features && product.features.length > 0 && (
+              {Array.isArray(product.features) && product.features.length > 0 && (
                 <div className="bg-blue-50/50 rounded-2xl p-6 border border-blue-100">
                   <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                     <Star className="w-5 h-5 text-blue-600 fill-blue-100" /> Key Features
@@ -474,7 +474,7 @@ export default function ProductPage() {
                 </div>
               )}
               
-              {product.benefits && product.benefits.length > 0 && (
+              {Array.isArray(product.benefits) && product.benefits.length > 0 && (
                 <div className="bg-emerald-50/50 rounded-2xl p-6 border border-emerald-100">
                   <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                     <ShieldCheck className="w-5 h-5 text-emerald-600 fill-emerald-100" /> Core Benefits
@@ -490,7 +490,7 @@ export default function ProductPage() {
                 </div>
               )}
 
-              {product.applications && product.applications.length > 0 && (
+              {Array.isArray(product.applications) && product.applications.length > 0 && (
                 <div className="bg-slate-50/50 rounded-2xl p-6 border border-slate-200">
                   <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                     <Truck className="w-5 h-5 text-slate-600 fill-slate-200" /> Industry Applications
@@ -509,7 +509,7 @@ export default function ProductPage() {
         )}
 
         {/* FAQs */}
-        {product.faqs && product.faqs.length > 0 && (
+        {Array.isArray(product.faqs) && product.faqs.length > 0 && (
           <div className="mt-10 border-t border-slate-200 pt-10">
             <h2 className="text-2xl font-bold text-slate-900 mb-6 text-center">Frequently Asked Questions</h2>
             <div className="max-w-3xl mx-auto space-y-4">

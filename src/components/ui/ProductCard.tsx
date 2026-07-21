@@ -73,7 +73,11 @@ export default function ProductCard({ product, compact = false }: Props) {
   const moqDisplay = product.moq;
   const leadTimeDisplay = product.leadTime;
   const regionDisplay = product.shippingRegion;
-  const trustBadgesDisplay = product.trustBadges || [];
+  const trustBadgesDisplay = Array.isArray(product.trustBadges)
+    ? product.trustBadges
+    : (typeof product.trustBadges === 'string' && product.trustBadges
+        ? (product.trustBadges as string).split(',').map(s => s.trim()).filter(Boolean)
+        : []);
 
   /* WhatsApp */
   const defaultNumber = settings?.orderWhatsAppNumber
