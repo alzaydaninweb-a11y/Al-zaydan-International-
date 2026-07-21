@@ -53,13 +53,17 @@ function MiniRFQPopup({ onClose, waNumber, isMobile = false }: MiniRFQProps) {
     }
 
     if (type === 'email') {
-      // ── 1. Auto-send email via EmailJS ───────────────
+      const activeEmails = Array.isArray(settings?.inquiryEmails) && settings.inquiryEmails.length > 0
+        ? settings.inquiryEmails.filter(Boolean)
+        : [settings?.inquiryEmail || 'alzaydaninweb@gmail.com'];
+
       await sendEmail({
         name:    company,
         email:   email,
         phone:   contactPhone,
         title:   'Equipment List Upload — Quick RFQ',
         message: `Quick RFQ submitted via Upload Equipment List popup.\n\nCompany: ${company}\nPhone: ${contactPhone}\nEmail: ${email}\nAttached File: ${imageUrl || 'Not uploaded'}`,
+        to_email: activeEmails.join(', '),
       });
     } else {
       // ── 2. Open WhatsApp ──────────────────────────────

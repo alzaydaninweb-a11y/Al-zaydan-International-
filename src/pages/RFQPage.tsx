@@ -104,12 +104,17 @@ Attached Image URL:
 ${imageUrl || 'No image attached'}
     `;
 
+    const activeEmails = Array.isArray(settings?.inquiryEmails) && settings.inquiryEmails.length > 0
+      ? settings.inquiryEmails.filter(Boolean)
+      : [settings?.inquiryEmail || 'alzaydaninweb@gmail.com'];
+
     const result = await sendEmail({
       name: form.company || 'RFQ Submitter',
       email: form.email,
       phone: form.phone,
       title: 'New Procurement RFQ',
-      message: msg.trim()
+      message: msg.trim(),
+      to_email: activeEmails.join(', '),
     });
 
     setSubmitting(false);

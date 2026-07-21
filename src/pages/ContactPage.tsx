@@ -38,12 +38,17 @@ Message:
 ${form.message}
     `;
 
+    const activeEmails = Array.isArray(settings?.inquiryEmails) && settings.inquiryEmails.length > 0
+      ? settings.inquiryEmails.filter(Boolean)
+      : [settings?.inquiryEmail || 'alzaydaninweb@gmail.com'];
+
     const result = await sendEmail({
       name: form.name,
       email: form.email,
       phone: form.phone,
       title: 'New Contact Us Inquiry',
       message: formattedMessage.trim(),
+      to_email: activeEmails.join(', '),
     });
 
     setSending(false);
