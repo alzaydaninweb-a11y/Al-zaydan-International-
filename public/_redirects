@@ -1,1 +1,7 @@
-/*    /index.html   200
+/api/sync-sheet-product       /.netlify/functions/sync-sheet-product       200!
+/api/add-product-to-sheet     /.netlify/functions/add-product-to-sheet     200!
+/api/generate-product-content /.netlify/functions/generate-product-content 200!
+/api/upload-to-r2             /.netlify/functions/upload-to-r2             200!
+/api/get-ip                   /.netlify/functions/get-ip                   200!
+
+/*                            /index.html                                  200
