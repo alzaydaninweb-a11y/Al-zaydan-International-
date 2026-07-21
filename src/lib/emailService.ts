@@ -1,7 +1,6 @@
 import emailjs from '@emailjs/browser';
 
 // These should ideally be in your .env file
-// For example: VITE_EMAILJS_SERVICE_ID=your_service_id
 const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
 const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '';
 const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
@@ -12,7 +11,7 @@ export interface EmailPayload {
   phone?: string;
   title: string;     // e.g., "New Order Received", "New RFQ", "Contact Us Inquiry"
   message: string;   // The formatted body (order details, RFQ details, etc.)
-  to_email?: string; // Configured target recipient email address(es) from admin settings
+  to_email?: string; // Target email address(es) from admin panel (single or comma-separated)
 }
 
 export const sendEmail = async (payload: EmailPayload): Promise<{ success: boolean; error?: string }> => {
@@ -32,7 +31,7 @@ export const sendEmail = async (payload: EmailPayload): Promise<{ success: boole
         phone: payload.phone || 'N/A',
         title: payload.title,
         message: payload.message,
-        to_email: payload.to_email || 'info@alzaydaninternational.com, sales@alzaydaninternational.com',
+        to_email: payload.to_email || 'alzaydaninweb@gmail.com',
       },
       PUBLIC_KEY
     );

@@ -20,9 +20,33 @@ export default function AdminCustomerSupport() {
   const [success, setSuccess] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Email Inquiry Notification State
-  const [inquiryEmail, setInquiryEmail] = useState(settings?.inquiryEmail || 'alzaydaninweb@gmail.com');
-  const [secondaryInquiryEmail, setSecondaryInquiryEmail] = useState(settings?.secondaryInquiryEmail || 'info@alzaydaninternational.com');
+  // Dynamic Email Inquiry Notification State (starts with ONLY 1 primary email by default)
+  const [inquiryEmails, setInquiryEmails] = useState<string[]>(() => {
+    if (Array.isArray(settings?.inquiryEmails) && settings.inquiryEmails.length > 0) {
+      return settings.inquiryEmails;
+    }
+    if (settings?.inquiryEmail) {
+      return [settings.inquiryEmail];
+    }
+    return ['alzaydaninweb@gmail.com'];
+  });
+
+  const handleAddEmail = () => {
+    setInquiryEmails(prev => [...prev, '']);
+  };
+
+  const handleRemoveEmail = (index: number) => {
+    if (inquiryEmails.length <= 1) return;
+    setInquiryEmails(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleChangeEmail = (index: number, value: string) => {
+    setInquiryEmails(prev => {
+      const updated = [...prev];
+      updated[index] = value;
+      return updated;
+    });
+  };
 
   // Local state for routing map
   // Convert Record<string, string> to array for easy UI manipulation
@@ -110,12 +134,17 @@ export default function AdminCustomerSupport() {
         callMap[route.context] = route.number;
       }
 
+      const cleanEmails = inquiryEmails.map(e => e.trim()).filter(Boolean);
+      if (cleanEmails.length === 0) {
+        throw new Error('Please enter at least one valid notification email address.');
+      }
+
       await updateGeneralSettings({
         ...settings,
         whatsappRouting: newMap,
         callRouting: callMap,
-        inquiryEmail: inquiryEmail.trim(),
-        secondaryInquiryEmail: secondaryInquiryEmail.trim(),
+        inquiryEmails: cleanEmails,
+        inquiryEmail: cleanEmails[0] || '',
       });
       setSuccess('Customer Support and Email Routing settings successfully updated!');
       setTimeout(() => setSuccess(''), 3000);
@@ -166,7 +195,7 @@ export default function AdminCustomerSupport() {
               Email Inquiry Notification Manager
             </h2>
             <p className="text-[13px] text-slate-500 mt-0.5">
-              Configure which email accounts receive all website customer product inquiries and RFQ submissions.
+              Configure which email accounts receive website customer product inquiries. Only listed emails will receive notifications.
             </p>
           </div>
           <div className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
@@ -180,42 +209,55 @@ export default function AdminCustomerSupport() {
               <HelpCircle className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-800 text-sm mb-1">How Email Routing Works</h3>
+              <h3 className="font-bold text-slate-800 text-sm mb-1">Single or Multiple Email Routing</h3>
               <p className="text-[13px] text-slate-600 leading-relaxed">
-                When a customer clicks <strong>"Inquire via Email"</strong> on any product page, an instant notification with full product specifications, customer contact details, and page link is sent directly to the email addresses configured below.
+                By default, inquiries go to your <strong>Primary Email</strong> (1 recipient). If you ever need inquiries sent to a 2nd or 3rd email address, click <strong>"+ Add Additional Email"</strong> below. If only 1 email is listed, ONLY that single email will receive customer inquiries.
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-            <div>
-              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
-                Primary Inquiry Notification Email *
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-black text-slate-700 uppercase tracking-wider">
+                Recipient Email Addresses ({inquiryEmails.length})
               </label>
-              <input
-                type="email"
-                required
-                placeholder="e.g. alzaydaninweb@gmail.com"
-                value={inquiryEmail}
-                onChange={e => setInquiryEmail(e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white font-medium"
-              />
-              <p className="text-[11px] text-slate-400 mt-1">Main mailbox receiving all RFQs and product inquiries.</p>
+              <button
+                type="button"
+                onClick={handleAddEmail}
+                className="text-xs font-extrabold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Additional Email
+              </button>
             </div>
 
-            <div>
-              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
-                Secondary / Sales Notification Email
-              </label>
-              <input
-                type="email"
-                placeholder="e.g. sales@alzaydaninternational.com"
-                value={secondaryInquiryEmail}
-                onChange={e => setSecondaryInquiryEmail(e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white font-medium"
-              />
-              <p className="text-[11px] text-slate-400 mt-1">Secondary sales mailbox (receives duplicate copy).</p>
-            </div>
+            {inquiryEmails.map((email, idx) => (
+              <div key={idx} className="flex items-center gap-3">
+                <div className="flex-1">
+                  <input
+                    type="email"
+                    required={idx === 0}
+                    placeholder={idx === 0 ? "Primary Email (e.g. alzaydaninweb@gmail.com)" : `Additional Email #${idx + 1}`}
+                    value={email}
+                    onChange={e => handleChangeEmail(idx, e.target.value)}
+                    className="w-full text-sm border border-gray-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white font-medium"
+                  />
+                </div>
+                {idx === 0 ? (
+                  <span className="text-[10px] font-extrabold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0">
+                    Primary
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveEmail(idx)}
+                    className="text-slate-400 hover:text-red-500 p-2 rounded-lg transition-colors shrink-0"
+                    title="Remove Email"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>

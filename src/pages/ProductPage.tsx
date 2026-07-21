@@ -54,7 +54,11 @@ Customer Information:
 - Phone Number: ${emailPhone || 'Not provided'}
 `;
 
-    const recipientEmails = [settings?.inquiryEmail, settings?.secondaryInquiryEmail].filter(Boolean).join(', ');
+    const activeEmails = Array.isArray(settings?.inquiryEmails) && settings.inquiryEmails.length > 0
+      ? settings.inquiryEmails.filter(Boolean)
+      : [settings?.inquiryEmail || 'alzaydaninweb@gmail.com'];
+
+    const recipientEmails = activeEmails.join(', ');
 
     try {
       await sendEmail({
@@ -63,7 +67,7 @@ Customer Information:
         phone: emailPhone,
         title: `B2B Product Inquiry: ${product.name}`,
         message: messageBody,
-        to_email: recipientEmails || undefined,
+        to_email: recipientEmails,
       });
       setEmailSubmitted(true);
     } catch (err) {
