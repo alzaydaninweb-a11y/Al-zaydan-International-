@@ -777,7 +777,9 @@ export default function Home() {
           category: p.category,
           inStock: p.inStock,
           badge: 'Bestseller' as const,
-          specs: p.specifications?.slice(0, 3).map(s => s.value),
+          specs: Array.isArray(p.specifications)
+            ? p.specifications.slice(0, 3).map(s => typeof s === 'string' ? s : (s?.value || s?.key || ''))
+            : [],
           priceType: p.priceType,
           priceMin: p.priceMin,
           priceMax: p.priceMax,
