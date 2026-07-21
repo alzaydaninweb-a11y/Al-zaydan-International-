@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../../context/StoreContext';
-import { PlusCircle, Search, Pencil, Trash2, Star, Loader2, AlertCircle, X } from 'lucide-react';
+import { PlusCircle, Search, Pencil, Trash2, Star, Loader2, AlertCircle, X, Download } from 'lucide-react';
 
 export default function AdminProducts() {
   const { products, deleteProduct } = useStore();
@@ -12,6 +12,141 @@ export default function AdminProducts() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const categories = ['All', ...Array.from(new Set(products.map(p => p.category)))];
+
+  const exportToExcelXML = () => {
+    // 1. Group products by category
+    const productsByCategory: Record<string, typeof products> = {};
+    products.forEach(p => {
+      const cat = p.category ? p.category.trim() : 'Uncategorized';
+      if (!productsByCategory[cat]) {
+        productsByCategory[cat] = [];
+      }
+      productsByCategory[cat].push(p);
+    });
+
+    // 2. Sort categories alphabetically (Uncategorized at the end)
+    const sortedCategories = Object.keys(productsByCategory).sort((a, b) => {
+      if (a === 'Uncategorized') return 1;
+      if (b === 'Uncategorized') return -1;
+      return a.localeCompare(b);
+    });
+
+    // 3. XML Helper functions
+    const escapeXML = (val: any) => {
+      if (val === null || val === undefined) return '';
+      const str = String(val);
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    };
+
+    const seenSheetNames = new Set<string>();
+    const getUniqueSheetName = (name: string) => {
+      // Excel/Sheets sheet names cannot exceed 31 chars and cannot contain: \ / ? * : [ ]
+      let cleanName = name.replace(/[\\\/\?\*\:\[\]]/g, '');
+      if (!cleanName) {
+        cleanName = 'General';
+      }
+      let uniqueName = cleanName.substring(0, 31);
+      let counter = 1;
+      while (seenSheetNames.has(uniqueName.toLowerCase())) {
+        const suffix = ` (${counter})`;
+        uniqueName = cleanName.substring(0, 31 - suffix.length) + suffix;
+        counter++;
+      }
+      seenSheetNames.add(uniqueName.toLowerCase());
+      return uniqueName;
+    };
+
+    // 4. Build Excel XML
+    const xmlHeader = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+  <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
+    <Author>Al Zaydan International</Author>
+    <Created>${new Date().toISOString()}</Created>
+  </DocumentProperties>
+  <Styles>
+    <Style ss:ID="Default" ss:Name="Normal">
+      <Alignment ss:Vertical="Bottom"/>
+      <Borders/>
+      <Font ss:FontName="Calibri" x:CharSet="1" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>
+      <Interior/>
+      <NumberFormat/>
+      <Protection/>
+    </Style>
+    <Style ss:ID="Header">
+      <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
+      <Interior ss:Color="#1E3A8A" ss:Pattern="Solid"/>
+    </Style>
+  </Styles>`;
+
+    const worksheetsXml = sortedCategories.map(cat => {
+      const sheetName = getUniqueSheetName(cat);
+      const catProducts = productsByCategory[cat];
+
+      const rowsXml = catProducts.map(p => {
+        const productUrl = p.slug ? `https://www.alzaydaninternational.com/product/${p.slug}` : '';
+        return `      <Row>
+        <Cell><Data ss:Type="String">${escapeXML(p.id)}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeXML(p.name)}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeXML(p.brand || '')}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeXML(p.category)}</Data></Cell>
+        <Cell><Data ss:Type="Number">${p.price}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeXML(p.priceType || 'fixed')}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeXML(p.inStock ? 'In Stock' : 'Out of Stock')}</Data></Cell>
+        <Cell><Data ss:Type="String">${escapeXML(p.featured ? 'Yes' : 'No')}</Data></Cell>
+        ${productUrl ? `<Cell ss:HRef="${escapeXML(productUrl)}"><Data ss:Type="String">View Product Page</Data></Cell>` : '<Cell><Data ss:Type="String"></Data></Cell>'}
+      </Row>`;
+      }).join('\n');
+
+      return `  <Worksheet ss:Name="${escapeXML(sheetName)}">
+    <Table>
+      <Column ss:Width="150"/>
+      <Column ss:Width="250"/>
+      <Column ss:Width="100"/>
+      <Column ss:Width="150"/>
+      <Column ss:Width="80"/>
+      <Column ss:Width="80"/>
+      <Column ss:Width="100"/>
+      <Column ss:Width="80"/>
+      <Column ss:Width="200"/>
+      <Row ss:StyleID="Header">
+        <Cell><Data ss:Type="String">Product Code</Data></Cell>
+        <Cell><Data ss:Type="String">Name</Data></Cell>
+        <Cell><Data ss:Type="String">Brand</Data></Cell>
+        <Cell><Data ss:Type="String">Category</Data></Cell>
+        <Cell><Data ss:Type="String">Price (AED)</Data></Cell>
+        <Cell><Data ss:Type="String">Price Type</Data></Cell>
+        <Cell><Data ss:Type="String">Stock Status</Data></Cell>
+        <Cell><Data ss:Type="String">Featured</Data></Cell>
+        <Cell><Data ss:Type="String">Product Page Link</Data></Cell>
+      </Row>
+${rowsXml}
+    </Table>
+  </Worksheet>`;
+    }).join('\n');
+
+    const xmlFooter = `</Workbook>`;
+    const fullXml = xmlHeader + '\n' + worksheetsXml + '\n' + xmlFooter;
+
+    const blob = new Blob([fullXml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `al_zaydan_products_${new Date().toISOString().split('T')[0]}.xls`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const filtered = products.filter(p => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -51,10 +186,18 @@ export default function AdminProducts() {
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Products</h1>
           <p className="text-slate-500 text-sm mt-0.5">{products.length} total products in Firestore</p>
         </div>
-        <Link to="/admin/products/new"
-          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2.5 rounded-lg transition-colors">
-          <PlusCircle className="w-4 h-4" /> Add New Product
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={exportToExcelXML}
+            className="inline-flex items-center gap-2 bg-white hover:bg-gray-50 text-slate-700 border border-gray-300 text-sm font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer shadow-sm"
+          >
+            <Download className="w-4.5 h-4.5 text-slate-500" /> Export Google Sheet (.xls)
+          </button>
+          <Link to="/admin/products/new"
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2.5 rounded-lg transition-colors">
+            <PlusCircle className="w-4 h-4" /> Add New Product
+          </Link>
+        </div>
       </div>
 
       {/* Delete Error Banner */}

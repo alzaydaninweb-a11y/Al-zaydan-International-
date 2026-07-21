@@ -501,10 +501,11 @@ export default function AdminProductForm() {
     };
 
     try {
+      let newDocRef = null;
       if (isEdit && id) {
         await updateProduct(id, productData);
       } else {
-        await addProduct(productData);
+        newDocRef = await addProduct(productData);
       }
 
       // Save Alt/Title values to images_seo
@@ -518,6 +519,39 @@ export default function AdminProductForm() {
           }
         })
       );
+
+      // Sync to Google Sheet if it is a new product creation
+      if (newDocRef) {
+        try {
+          const idToken = await auth.currentUser?.getIdToken();
+          if (idToken) {
+            console.log('Syncing new product to Google Sheet...');
+            await fetch('/api/add-product-to-sheet', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`
+              },
+              body: JSON.stringify({
+                id: newDocRef.id,
+                name: productData.name,
+                brand: productData.brand,
+                category: productData.category,
+                price: productData.price,
+                priceType: productData.priceType,
+                inStock: productData.inStock,
+                featured: productData.featured,
+                slug: productData.slug,
+                moq: productData.moq || '',
+                badge: productData.badge || 'None',
+                trustBadges: productData.trustBadges || []
+              })
+            });
+          }
+        } catch (syncErr) {
+          console.error('Failed to sync new product to Google Sheet:', syncErr);
+        }
+      }
 
       navigate('/admin/products');
     } catch (err: unknown) {

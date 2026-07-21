@@ -468,7 +468,7 @@ startListeners();
 // ─── Context ──────────────────────────────────────────────────────────────────
 
 interface StoreContextType extends StoreState {
-  addProduct: (p: Omit<Product, 'id'>) => Promise<void>;
+  addProduct: (p: Omit<Product, 'id'>) => Promise<any>;
   updateProduct: (id: string, data: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   addCategory: (name: string, parentId?: string | null) => Promise<void>;
@@ -517,8 +517,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // ─── CRUD ───────────────────────────────────────────────────────────────────
 
   const addProduct = async (data: Omit<Product, 'id'>) => {
-    await addDoc(collection(db, 'products'), data);
+    const docRef = await addDoc(collection(db, 'products'), data);
     updateSitemapMetadata(db);
+    return docRef;
   };
  
   const updateProduct = async (id: string, data: Partial<Product>) => {
