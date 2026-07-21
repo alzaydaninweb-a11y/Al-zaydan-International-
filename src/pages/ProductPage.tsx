@@ -465,33 +465,33 @@ Customer Information:
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                {/* Button 1: Add to Quote */}
-                <button
-                  onClick={handleAddToCart}
-                  disabled={!product.inStock}
-                  className={`
-                    w-full h-13 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-md
-                    ${isAdded
-                      ? 'bg-emerald-600 text-white shadow-emerald-500/20'
-                      : 'bg-[#0052d9] text-white hover:bg-blue-700 shadow-blue-500/20 active:scale-[0.98] disabled:opacity-50'
-                    }
-                  `}
-                >
-                  {isAdded ? (
-                    <><Check className="w-4 h-4 stroke-[3]" /> Added to Quote List</>
-                  ) : (
-                    <><FileText className="w-4 h-4" /> Add to Quote</>
-                  )}
-                </button>
-
-                {/* Button 2: Inquire via WhatsApp */}
+                {/* Button 1: Make an Enquiry (WhatsApp) */}
                 <button
                   onClick={handleBuyNow}
                   disabled={!product.inStock}
                   className="w-full h-13 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center bg-[#25D366] text-white shadow-md shadow-emerald-500/20 hover:bg-[#128C7E] active:scale-[0.98] disabled:opacity-50 gap-2"
                 >
                   <WhatsAppIcon className="w-4.5 h-4.5" />
-                  Inquire via WhatsApp
+                  Make an Enquiry (WhatsApp)
+                </button>
+
+                {/* Button 2: Add to Quote List */}
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!product.inStock}
+                  className={`
+                    w-full h-13 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-md
+                    ${isAdded
+                      ? 'bg-blue-800 text-white shadow-blue-500/20'
+                      : 'bg-[#0052d9] text-white hover:bg-blue-700 shadow-blue-500/20 active:scale-[0.98] disabled:opacity-50'
+                    }
+                  `}
+                >
+                  {isAdded ? (
+                    <><Check className="w-4 h-4 stroke-[3]" /> Added to Quote List ✓</>
+                  ) : (
+                    <><FileText className="w-4 h-4" /> Add to Quote List</>
+                  )}
                 </button>
 
                 {/* Button 3: Inquire via Email */}

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import type { Product } from '../../context/StoreContext';
 import { generateSlug } from '../../lib/blogService';
+import WhatsAppIcon from '../icons/WhatsAppIcon';
 
 /* ── Sliding image card ──────────────────────────────────────────────────── */
 function RecommendedCard({
@@ -119,16 +120,31 @@ function RecommendedCard({
           Professional-grade industrial {(product.category || '').toLowerCase()} perfect for safe and secure environments.
         </p>
 
-        <div className="mt-auto pt-2">
+        <div className="mt-auto pt-2 space-y-1.5" onClick={e => e.preventDefault()}>
+          <a
+            href={`https://wa.me/971551551329?text=${encodeURIComponent(`Hi, I'm interested in: ${product.name}. Please send pricing & MOQ.`)}`}
+            target="_blank"
+            rel="noreferrer"
+            onClick={e => e.stopPropagation()}
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-full text-xs font-bold bg-[#25D366] hover:bg-[#128C7E] text-white transition-all shadow-sm"
+          >
+            <WhatsAppIcon className="w-3.5 h-3.5 text-white" />
+            Make an Enquiry
+          </a>
+
           <button
             onClick={e => onAddToCart(e, product)}
-            className={`w-full font-bold py-3 rounded-full text-[13px] tracking-wide transition-all border flex items-center justify-center gap-1.5 ${
+            className={`w-full font-bold py-2.5 rounded-full text-xs tracking-wide transition-all border flex items-center justify-center gap-1.5 ${
               isAdded
-                ? 'bg-emerald-50 text-emerald-600 border-emerald-200 shadow-md'
-                : 'bg-transparent text-slate-900 border-gray-300 group-hover:bg-slate-50'
+                ? 'bg-blue-700 text-white border-blue-700 shadow-md'
+                : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 shadow-sm'
             }`}
           >
-            {buttonLabel}
+            {isAdded ? (
+              <><Check className="w-3.5 h-3.5" /> Added to Quote List ✓</>
+            ) : (
+              <><FileText className="w-3.5 h-3.5" /> Add to Quote List</>
+            )}
           </button>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import type { Product } from '../../context/StoreContext';
 import { generateSlug } from '../../lib/blogService';
+import WhatsAppIcon from '../icons/WhatsAppIcon';
 
 // ── Auto-slide config ─────────────────────────────────────────────────────────
 const SLIDE_EVERY       = 2500;  // ms between auto-slides
@@ -164,20 +165,33 @@ export default function DealsSection() {
                         )}
                       </div>
 
-                      {/* Add to Quote */}
-                      <button
-                        onClick={(e) => handleAddToCart(e, product)}
-                        className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold transition-all ${
-                          isAdded
-                            ? 'bg-emerald-500 text-white'
-                            : 'bg-blue-600 text-white active:bg-blue-700'
-                        }`}
-                      >
-                        {isAdded
-                          ? <><Check className="w-3.5 h-3.5" /> Added</>
-                          : <><FileText className="w-3.5 h-3.5" /> Add to Quote</>
-                        }
-                      </button>
+                      {/* 2 Permanent Buttons */}
+                      <div className="flex flex-col gap-1.5 mt-2" onClick={e => e.preventDefault()}>
+                        <a
+                          href={`https://wa.me/971551551329?text=${encodeURIComponent(`Hi, I'm interested in: ${product.name}. Please send pricing & MOQ.`)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold bg-[#25D366] hover:bg-[#128C7E] text-white transition-all shadow-sm"
+                        >
+                          <WhatsAppIcon className="w-3.5 h-3.5 text-white" />
+                          Make an Enquiry
+                        </a>
+
+                        <button
+                          onClick={(e) => handleAddToCart(e, product)}
+                          className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold transition-all ${
+                            isAdded
+                              ? 'bg-blue-700 text-white'
+                              : 'bg-blue-600 hover:bg-blue-700 text-white active:bg-blue-800'
+                          }`}
+                        >
+                          {isAdded
+                            ? <><Check className="w-3.5 h-3.5" /> Added to Quote List ✓</>
+                            : <><FileText className="w-3.5 h-3.5" /> Add to Quote List</>
+                          }
+                        </button>
+                      </div>
                     </div>
                   </Link>
                 );

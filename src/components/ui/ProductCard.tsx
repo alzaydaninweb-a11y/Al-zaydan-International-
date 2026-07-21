@@ -8,6 +8,7 @@ import {
 import { useCart } from '../../context/CartContext';
 import { useStore } from '../../context/StoreContext';
 import { generateSlug } from '../../lib/blogService';
+import WhatsAppIcon from '../icons/WhatsAppIcon';
 
 /* ─── Type (unchanged — no schema change) ──────────────────────────────────── */
 export interface MarketplaceProduct {
@@ -270,43 +271,40 @@ export default function ProductCard({ product, compact = false }: Props) {
           )}
         </div>
 
-        {/* ── CTA Row ── */}
-        <div className="flex gap-1.5 mt-1" onClick={e => e.preventDefault()}>
+        {/* ── CTA Row: 2 Always Visible Buttons ── */}
+        <div className="flex flex-col gap-1.5 mt-2.5" onClick={e => e.preventDefault()}>
 
-          {/* Primary: Add to Quote */}
-          <button
-            onClick={handleAdd}
-            disabled={product.inStock === false}
-            className={`flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[11px] font-bold transition-all ${
-              added
-                ? 'bg-green-600 text-white'
-                : product.inStock === false
-                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                : 'bg-[#0052d9] hover:bg-blue-700 text-white'
-            }`}
-          >
-            {added ? (
-              <><Zap className="w-3 h-3" /> Added!</>
-            ) : (
-              <><FileText className="w-3.5 h-3.5" /> {compact ? 'Quote' : 'Add to Quote'}</>
-            )}
-          </button>
-
-        </div>
-
-        {/* ── Hover-reveal: Bulk inquiry link ── */}
-        <div className="overflow-hidden max-h-0 group-hover:max-h-8 transition-all duration-200">
+          {/* Button 1: Make an Enquiry (Green) */}
           <a
             href={waUrl}
             target="_blank"
             rel="noreferrer"
             onClick={e => e.stopPropagation()}
-            className="flex items-center justify-center gap-1 w-full py-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 h-8 rounded-lg text-[11px] font-bold bg-[#25D366] hover:bg-[#128C7E] text-white transition-all shadow-sm shrink-0"
           >
-            <Truck className="w-2.5 h-2.5" />
-            Bulk Order Inquiry
-            <ChevronRight className="w-2.5 h-2.5" />
+            <WhatsAppIcon className="w-3.5 h-3.5 text-white" />
+            Make an Enquiry
           </a>
+
+          {/* Button 2: Add to Quote List (Blue) */}
+          <button
+            onClick={handleAdd}
+            disabled={product.inStock === false}
+            className={`w-full flex items-center justify-center gap-1.5 h-8 rounded-lg text-[11px] font-bold transition-all shrink-0 ${
+              added
+                ? 'bg-emerald-700 text-white'
+                : product.inStock === false
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
+            }`}
+          >
+            {added ? (
+              <><Zap className="w-3.5 h-3.5 text-white" /> Added to Quote List ✓</>
+            ) : (
+              <><FileText className="w-3.5 h-3.5 text-white" /> Add to Quote List</>
+            )}
+          </button>
+
         </div>
 
       </div>
