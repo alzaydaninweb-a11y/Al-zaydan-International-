@@ -149,8 +149,9 @@ ${rowsXml}
   };
 
   const filtered = products.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.brand.toLowerCase().includes(search.toLowerCase());
+    const sTerm = (search || '').toLowerCase();
+    const matchSearch = (p.name || '').toLowerCase().includes(sTerm) ||
+      (p.brand || '').toLowerCase().includes(sTerm);
     const matchCat = filterCategory === 'All' || p.category === filterCategory;
     return matchSearch && matchCat;
   });

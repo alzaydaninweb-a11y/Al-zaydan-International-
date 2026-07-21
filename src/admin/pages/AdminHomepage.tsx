@@ -126,9 +126,10 @@ export default function AdminHomepage() {
   const featuredList  = products.filter(p => p.featured);
   const topSellingList = products.filter(p => p.topSelling);
 
+  const sTerm = (search || '').toLowerCase();
   const filtered = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.brand.toLowerCase().includes(search.toLowerCase())
+    (p.name || '').toLowerCase().includes(sTerm) ||
+    (p.brand || '').toLowerCase().includes(sTerm)
   );
 
   const handleToggleFeatured = async (id: string) => {

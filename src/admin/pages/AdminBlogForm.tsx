@@ -686,7 +686,7 @@ export default function AdminBlogForm() {
 
                 <div className="border border-gray-200 rounded-b-xl overflow-y-auto max-h-60 p-2 space-y-1 bg-slate-50/50">
                   {products
-                    .filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.brand?.toLowerCase().includes(productSearch.toLowerCase()))
+                    .filter(p => (p.name || '').toLowerCase().includes(productSearch.toLowerCase()) || (p.brand || '').toLowerCase().includes(productSearch.toLowerCase()))
                     .map(p => (
                     <label key={p.id} className="flex items-center gap-2 p-1.5 hover:bg-white rounded-lg cursor-pointer transition-colors">
                       <input
@@ -703,7 +703,7 @@ export default function AdminBlogForm() {
                       <span className="text-xs font-medium text-slate-700 truncate flex-1">{p.name}</span>
                     </label>
                   ))}
-                  {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
+                  {products.filter(p => (p.name || '').toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
                     <p className="text-xs text-slate-400 p-2 text-center py-4">No products found</p>
                   )}
                 </div>
