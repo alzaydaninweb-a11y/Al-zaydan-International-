@@ -131,10 +131,13 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     // 2. If rescue bypass is active in localStorage/URL, bypass
     if (hasRescueBypass) return true;
 
-    const cleanClient = currentIp.replace(/^::ffff:/, '').trim();
-
     // 3. Localhost developer bypass
-    if (cleanClient === '127.0.0.1' || cleanClient === '::1' || cleanClient === 'localhost' || !cleanClient) {
+    const isLocalHost = typeof window !== 'undefined' && (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname === '0.0.0.0'
+    );
+    if (isLocalHost || cleanClient === '127.0.0.1' || cleanClient === '::1' || cleanClient === 'localhost' || !cleanClient) {
       return true;
     }
 

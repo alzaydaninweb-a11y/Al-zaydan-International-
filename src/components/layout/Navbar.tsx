@@ -189,8 +189,8 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200 font-sans">
 
-      {/* ─── DESKTOP HEADER ─── */}
-      <div className="hidden lg:block max-w-[1400px] mx-auto px-6 py-4">
+      {/* ─── DESKTOP HEADER (SINGLE UNIFIED BAR) ─── */}
+      <div className="hidden lg:block max-w-[1400px] mx-auto px-6 py-3.5">
         <div className="flex items-center justify-between gap-6">
 
           {/* Logo */}
@@ -208,60 +208,63 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Search bar */}
-          <div className="flex-1 max-w-2xl relative" ref={searchRef}>
-            <form onSubmit={handleSearch} className="flex h-10 border border-gray-300 rounded-md overflow-hidden hover:border-gray-400 focus-within:border-blue-500 transition-all">
-              <input
-                type="text"
-                data-smartsearch="true"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                onFocus={() => setShowDropdown(true)}
-                onKeyDown={handleKeyDown}
-                placeholder="Search products, materials, SKU codes..."
-                className="flex-1 px-4 text-sm text-gray-900 outline-none placeholder-gray-400"
-                autoComplete="off"
-              />
-
-              {/* Clear button */}
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => { setSearchQuery(''); setShowDropdown(false); }}
-                  className="px-2 text-gray-300 hover:text-gray-500 transition-colors"
+          {/* Center: Navigation Menu */}
+          <nav className="flex items-center gap-1 xl:gap-1.5">
+            {desktopNavLinks.map(item => (
+              <div key={item.label} className="relative group shrink-0">
+                <Link
+                  to={item.to}
+                  className={`flex items-center gap-1 px-3 py-2 text-[13.5px] font-semibold whitespace-nowrap rounded-lg transition-colors ${
+                    item.highlight 
+                      ? 'text-[#0052d9] font-bold bg-blue-50/80 hover:bg-blue-100/80' 
+                      : isActive(item.to, item.label)
+                        ? 'text-[#0052d9] font-bold bg-blue-50/50'
+                        : 'text-gray-700 hover:text-[#0052d9] hover:bg-gray-50'
+                  }`}
                 >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+                  <span>{item.label}</span>
+                  {item.dropdown && (
+                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 transition-transform group-hover:rotate-180 duration-200" />
+                  )}
+                </Link>
 
-
-              {/* Blue Search Button */}
-              <button type="submit" className="px-5 bg-[#0052d9] hover:bg-blue-700 text-white flex items-center justify-center transition-colors shrink-0">
-                <Search className="w-4.5 h-4.5" />
-              </button>
-            </form>
-
-            {/* Smart Dropdown */}
-            {showDropdown && (
-              <SmartSearchDropdown
-                query={debouncedQuery}
-                products={products}
-                categories={categories}
-                focusedIndex={focusedIndex}
-                onSelectText={commitSearch}
-                onSelectProduct={handleSelectProduct}
-                onClose={() => setShowDropdown(false)}
-                onRecentRemove={handleRecentRemove}
-                recentSearches={recentSearches}
-              />
-            )}
-          </div>
+                {item.dropdown && (
+                  <div className="absolute top-full left-0 mt-1 w-[240px] bg-white border border-gray-200 rounded-xl shadow-xl py-2 z-50 hidden group-hover:block">
+                    <div className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 mb-1">
+                      Explore Categories
+                    </div>
+                    {categories.slice(0, 12).map(cat => {
+                      const details = Object.values(categoryDetails || {}).find(c => c.name === cat);
+                      const catSlug = details?.slug || generateSlug(cat);
+                      return (
+                        <Link
+                          key={cat}
+                          to={`/category/${catSlug}`}
+                          className="flex items-center justify-between px-4 py-2 text-[13px] text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                        >
+                          <span className="truncate max-w-[180px]">{cat}</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
+                        </Link>
+                      );
+                    })}
+                    <Link
+                      to="/categories"
+                      className="flex items-center justify-between px-4 py-2 text-[12px] text-blue-600 font-bold hover:bg-blue-50 transition-colors border-t border-gray-100 mt-1"
+                    >
+                      <span>View All Categories</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+            ))}
+          </nav>
 
           {/* Right Links */}
-          <div className="flex items-center gap-6 text-gray-600 shrink-0 text-[13px] font-medium">
+          <div className="flex items-center gap-5 text-gray-600 shrink-0 text-[13px] font-medium">
             <div className="relative group cursor-pointer flex items-center gap-1.5 hover:text-blue-600 py-2">
               <Globe className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
-              <span>{language}</span>
+              <span className="font-semibold">{language}</span>
               <ChevronDown className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 transition-colors" />
               
               {/* Language Dropdown */}
@@ -279,7 +282,7 @@ export default function Navbar() {
             </div>
 
             {/* Quote list with badge */}
-            <Link to="/cart" title="Quote List" className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors">
+            <Link to="/cart" title="Quote List" className="relative p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors">
               <ClipboardList className="w-5.5 h-5.5" />
               <span className="absolute top-0 right-0 bg-[#0052d9] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                 {cartCount}
@@ -289,161 +292,57 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* ─── DESKTOP NAV STRIP (below search row) ─── */}
-      <div className="hidden lg:block border-t border-gray-100 bg-gray-50">
-        <div className="max-w-[1400px] mx-auto px-6">
-          <nav className="flex items-center justify-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {desktopNavLinks.map(item => (
-              <div key={item.label} className="relative group shrink-0">
-                <Link
-                  to={item.to}
-                  className={`flex items-center gap-1 px-4 py-2.5 text-[12.5px] font-semibold whitespace-nowrap transition-colors border-b-2 group-hover:border-blue-600 ${
-                    item.highlight 
-                      ? 'text-[#0052d9] hover:text-blue-700 border-transparent' 
-                      : isActive(item.to, item.label)
-                        ? 'text-[#0052d9] border-[#0052d9]'
-                        : 'text-gray-600 hover:text-blue-600 border-transparent'
-                  }`}
-                >
-                  {item.label}
-                  {item.dropdown && <ChevronDown className="w-3 h-3 text-gray-400 group-hover:text-blue-500" />}
-                </Link>
-                {item.dropdown && (
-                  <div className="absolute top-full left-0 mt-0 w-[220px] bg-white border border-gray-200 rounded-lg shadow-xl py-1.5 z-50 hidden group-hover:block">
-                    {categories.slice(0, 12).map(cat => {
-                      const details = Object.values(categoryDetails || {}).find(c => c.name === cat);
-                      const catSlug = details?.slug || generateSlug(cat);
-                      return (
-                        <Link
-                          key={cat}
-                          to={`/category/${catSlug}`}
-                          className="flex items-center justify-between px-4 py-2 text-[12.5px] text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                        >
-                          <span>{cat}</span>
-                          <ChevronRight className="w-3 h-3 text-gray-300" />
-                        </Link>
-                      );
-                    })}
-                    <Link
-                      to="/categories"
-                      className="flex items-center justify-between px-4 py-2 text-[12px] text-blue-600 font-bold hover:bg-blue-50 transition-colors border-t border-gray-100 mt-1"
-                    >
-                      <span>View All Categories</span>
-                      <ChevronRight className="w-3 h-3" />
-                    </Link>
-                  </div>
-                )}
-              </div>
-            ))}
-          </nav>
-        </div>
-      </div>
-
-      {/* ─── MOBILE HEADER ─── */}
+      {/* ─── MOBILE HEADER (SINGLE UNIFIED BAR) ─── */}
       <div className="lg:hidden max-w-screen-xl mx-auto px-4 py-3">
-        <div className="flex flex-col gap-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-1.5 -ml-1.5 hover:bg-gray-100 rounded-md transition-colors"
+              aria-label="Open menu"
+            >
+              <Menu className="w-6 h-6 text-gray-700" />
+            </button>
 
-          {/* Row 1: Hamburger, Logo, User, Cart */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="p-1.5 -ml-1.5 hover:bg-gray-100 rounded-md transition-colors"
-              >
-                <Menu className="w-6 h-6 text-gray-700" />
-              </button>
-
-              <Link to="/" className="flex items-center gap-2 group">
-                <img
-                  src="/android-chrome-512x512.png"
-                  alt="Al Zaydan International"
-                  className="h-7 w-auto object-contain shrink-0"
-                />
-                <div className="flex flex-col">
-                  <span className="text-lg font-extrabold tracking-tight text-slate-900 uppercase leading-none group-hover:text-blue-600 transition-colors">Al Zaydan</span>
-                  <span className="text-[8px] font-bold tracking-[0.2em] text-blue-600 uppercase mt-0.5">International</span>
-                </div>
-              </Link>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Link to="/contact" className="p-2 text-gray-600 hover:text-blue-600 transition-colors">
-                <User className="w-5.5 h-5.5" />
-              </Link>
-              <Link to="/cart" title="Quote List" className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors">
-                <ClipboardList className="w-5.5 h-5.5" />
-                <span className="absolute top-0.5 right-0.5 bg-[#0052d9] text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                  {cartCount}
-                </span>
-              </Link>
-            </div>
+            <Link to="/" className="flex items-center gap-2 group">
+              <img
+                src="/android-chrome-512x512.png"
+                alt="Al Zaydan International"
+                className="h-7 w-auto object-contain shrink-0"
+              />
+              <div className="flex flex-col">
+                <span className="text-lg font-extrabold tracking-tight text-slate-900 uppercase leading-none group-hover:text-blue-600 transition-colors">Al Zaydan</span>
+                <span className="text-[8px] font-bold tracking-[0.2em] text-blue-600 uppercase mt-0.5">International</span>
+              </div>
+            </Link>
           </div>
 
-          {/* Row 2: Search */}
-          <div className="relative w-full" ref={mobileSearchRef}>
-            <form onSubmit={handleSearch} className="flex h-9 border border-gray-300 rounded-md overflow-hidden">
-              <input
-                type="text"
-                data-smartsearch="true"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                onFocus={() => setShowDropdown(true)}
-                onKeyDown={handleKeyDown}
-                placeholder="Search products, materials, SKU codes..."
-                className="flex-1 px-3 text-sm outline-none placeholder-gray-400"
-                autoComplete="off"
-              />
+          <div className="flex items-center gap-2">
+            <div className="relative group cursor-pointer flex items-center gap-1 text-gray-600 p-1.5">
+              <Globe className="w-4 h-4 text-gray-500" />
+              <span className="text-[11px] font-bold">{language}</span>
+              {/* Language Dropdown */}
+              <div className="absolute top-full right-0 mt-1 w-[120px] bg-white border border-gray-200 rounded-lg shadow-xl py-1 z-50 hidden group-hover:block text-gray-700">
+                {LANGUAGES.map(lang => (
+                  <button
+                    key={lang.code}
+                    onClick={() => handleLanguageChange(lang)}
+                    className={`w-full text-left px-3 py-1.5 text-[11px] hover:bg-blue-50 hover:text-blue-600 transition-colors ${language === lang.label ? 'text-blue-600 font-semibold bg-blue-50/50' : ''}`}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-              {searchQuery && (
-                <button type="button" onClick={() => { setSearchQuery(''); setShowDropdown(false); }}
-                  className="px-2 text-gray-300 hover:text-gray-500">
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-
-
-              <button type="submit" className="px-4 bg-[#0052d9] hover:bg-blue-700 text-white flex items-center justify-center transition-colors">
-                <Search className="w-4 h-4" />
-              </button>
-            </form>
-
-            {/* Mobile Smart Dropdown */}
-            {showDropdown && (
-              <SmartSearchDropdown
-                query={debouncedQuery}
-                products={products}
-                categories={categories}
-                focusedIndex={focusedIndex}
-                onSelectText={commitSearch}
-                onSelectProduct={handleSelectProduct}
-                onClose={() => setShowDropdown(false)}
-                onRecentRemove={handleRecentRemove}
-                recentSearches={recentSearches}
-              />
-            )}
+            <Link to="/cart" title="Quote List" className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors">
+              <ClipboardList className="w-5.5 h-5.5" />
+              <span className="absolute top-0.5 right-0.5 bg-[#0052d9] text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                {cartCount}
+              </span>
+            </Link>
           </div>
         </div>
-      </div>
-
-      {/* ─── MOBILE NAV STRIP (below search row) ─── */}
-      <div className="lg:hidden border-t border-gray-100 bg-gray-50 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        <nav className="flex items-center px-2 min-w-max">
-          {mobileNavLinks.map(item => (
-            <Link
-              key={item.label}
-              to={item.to}
-              className={`px-3 py-2 text-[11.5px] font-semibold whitespace-nowrap transition-colors ${
-                item.highlight 
-                  ? 'text-[#0052d9]' 
-                  : isActive(item.to, item.label)
-                    ? 'text-[#0052d9] border-b-2 border-[#0052d9]'
-                    : 'text-gray-600 hover:text-blue-600'
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
       </div>
 
       {/* ─── MOBILE DRAWER ─── */}

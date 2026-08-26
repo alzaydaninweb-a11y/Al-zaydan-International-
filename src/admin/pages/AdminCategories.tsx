@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
-import { PlusCircle, Pencil, Trash2, Check, X, Tag, Loader2, Image as ImageIcon, Upload, Folder, FolderOpen, CornerDownRight, ChevronRight, Settings, LayoutGrid } from 'lucide-react';
+import { 
+  PlusCircle, Trash2, Check, X, Tag, Loader2, Image as ImageIcon, Upload, 
+  Folder, FolderOpen, ChevronRight, Settings, LayoutGrid, GripVertical, 
+  ChevronUp, ChevronDown, CheckCircle2, ArrowUpDown
+} from 'lucide-react';
 import { uploadToR2 } from '../../lib/cloudflareR2';
 import { generateSlug } from '../../lib/blogService';
 
 export default function AdminCategories() {
-  const { categories, categoryImages, categoryDetails, products, addCategory, updateCategory, deleteCategory, updateCategoryImage, updateCategoryDetails } = useStore();
+  const { 
+    categories, categoryImages, categoryDetails, products, 
+    addCategory, updateCategory, deleteCategory, reorderCategories,
+    updateCategoryImage, updateCategoryDetails 
+  } = useStore();
   
   // Navigation State
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -27,6 +35,13 @@ export default function AdminCategories() {
   const [editNoFollow, setEditNoFollow] = useState(false);
   const [confirmDeleteCategory, setConfirmDeleteCategory] = useState<string | null>(null);
   
+  // Drag and Drop & Reordering State
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [dropPosition, setDropPosition] = useState<'top' | 'bottom' | null>(null);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [orderFeedback, setOrderFeedback] = useState<string | null>(null);
+
   // Async State
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -42,6 +57,102 @@ export default function AdminCategories() {
     try { await fn(); } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Operation failed.');
     } finally { setBusy(false); }
+  };
+
+  const visibleCategories = categories.filter(c => (categoryDetails[c]?.parentId || null) === activeCategory);
+
+  // Reorder helper: changes order of visible categories and updates full categories list
+  const handleReorder = async (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || toIndex >= visibleCategories.length) return;
+
+    const newVisible = [...visibleCategories];
+    const [moved] = newVisible.splice(fromIndex, 1);
+    newVisible.splice(toIndex, 0, moved);
+
+    // Map newVisible sequence back into full categories array preserving positions of other items
+    let vIdx = 0;
+    const newFullCategories = categories.map(cat => {
+      if (visibleCategories.includes(cat)) {
+        const replacement = newVisible[vIdx];
+        vIdx++;
+        return replacement;
+      }
+      return cat;
+    });
+
+    try {
+      setIsSavingOrder(true);
+      await reorderCategories(newFullCategories);
+      setOrderFeedback('Homepage order updated!');
+      setTimeout(() => setOrderFeedback(null), 2500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save new category order.');
+    } finally {
+      setIsSavingOrder(false);
+    }
+  };
+
+  // Drag and Drop Event Handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedIndex === null || draggedIndex === index) {
+      setDragOverIndex(null);
+      setDropPosition(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const pos = e.clientY < midY ? 'top' : 'bottom';
+    setDragOverIndex(index);
+    setDropPosition(pos);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    const related = e.relatedTarget as HTMLElement | null;
+    if (!e.currentTarget.contains(related)) {
+      setDragOverIndex(null);
+      setDropPosition(null);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null) return;
+
+    let toIndex = targetIndex;
+    if (dropPosition === 'bottom' && draggedIndex < targetIndex) {
+      toIndex = targetIndex;
+    } else if (dropPosition === 'bottom' && draggedIndex > targetIndex) {
+      toIndex = targetIndex + 1;
+    } else if (dropPosition === 'top' && draggedIndex < targetIndex) {
+      toIndex = targetIndex - 1;
+    } else if (dropPosition === 'top' && draggedIndex > targetIndex) {
+      toIndex = targetIndex;
+    }
+
+    toIndex = Math.max(0, Math.min(toIndex, visibleCategories.length - 1));
+
+    const fromIndex = draggedIndex;
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    setDropPosition(null);
+
+    if (fromIndex !== toIndex) {
+      await handleReorder(fromIndex, toIndex);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    setDropPosition(null);
   };
 
   const handleAdd = () => {
@@ -149,8 +260,6 @@ export default function AdminCategories() {
     if (cat) loadSettings(cat);
   };
 
-  const visibleCategories = categories.filter(c => (categoryDetails[c]?.parentId || null) === activeCategory);
-
   const breadcrumbs = buildBreadcrumbs();
 
   return (
@@ -169,20 +278,34 @@ export default function AdminCategories() {
                 <ChevronRight className="w-4 h-4 text-slate-300" />
                 <button 
                   onClick={() => navigateTo(crumb)}
-                  className={`hover:text-blue-600 transition-colors ${crumb === activeCategory ? 'text-slate-900' : ''}`}
+                  className={`hover:text-blue-600 transition-colors ${crumb === activeCategory ? 'text-slate-900 font-bold' : ''}`}
                 >
                   {crumb}
                 </button>
               </React.Fragment>
             ))}
           </nav>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-            {activeCategory ? activeCategory : 'Category Dashboard'}
-          </h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+              {activeCategory ? activeCategory : 'Category Dashboard'}
+            </h1>
+            {orderFeedback && (
+              <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold px-3 py-1 rounded-full animate-in fade-in zoom-in-95 duration-200">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                {orderFeedback}
+              </span>
+            )}
+            {isSavingOrder && (
+              <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-semibold px-3 py-1 rounded-full">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                Saving order...
+              </span>
+            )}
+          </div>
           <p className="text-slate-500 text-sm mt-1">
             {activeCategory 
-              ? 'Manage settings and sub-categories for this section.'
-              : 'Overview of all your top-level product categories.'}
+              ? 'Manage settings and sub-categories. Drag categories to change display order.'
+              : 'Overview of all your top-level product categories. Drag to change display order on homepage.'}
           </p>
         </div>
         
@@ -192,7 +315,7 @@ export default function AdminCategories() {
             setError('');
             setIsCreateModalOpen(true);
           }}
-          className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-blue-600/20"
+          className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-blue-600/20 shrink-0"
         >
           <PlusCircle className="w-4 h-4" /> 
           {activeCategory ? 'Add Sub-category' : 'Create Category'}
@@ -211,17 +334,25 @@ export default function AdminCategories() {
         {/* Left Column: Sub-categories List */}
         <div className={`lg:col-span-2 space-y-6 ${!activeCategory && 'lg:col-span-3'}`}>
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-bold text-slate-800 text-[15px] flex items-center gap-2">
+            
+            {/* Table Header Bar */}
+            <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white">
+              <div className="flex items-center gap-2.5">
                 <Folder className="w-4 h-4 text-blue-500" />
-                {activeCategory ? 'Sub-categories' : 'Top Level Categories'}
-              </h2>
-              <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                {visibleCategories.length}
-              </span>
+                <h2 className="font-bold text-slate-800 text-[15px]">
+                  {activeCategory ? 'Sub-categories' : 'Top Level Categories'}
+                </h2>
+                <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                  {visibleCategories.length}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-lg">
+                <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
+                <span>Drag handle or use arrows to adjust order</span>
+              </div>
             </div>
 
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-gray-100">
               {visibleCategories.length === 0 ? (
                 <div className="py-16 flex flex-col items-center justify-center text-center px-4">
                   <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
@@ -241,17 +372,85 @@ export default function AdminCategories() {
                   </button>
                 </div>
               ) : (
-                visibleCategories.map(cat => {
+                visibleCategories.map((cat, index) => {
                   const prodCount = getProductCount(cat);
                   const subCount = getSubCategoryCount(cat);
+                  const isDragging = draggedIndex === index;
+                  const isOver = dragOverIndex === index;
                   
                   return (
                     <div 
-                      key={cat} 
+                      key={cat}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, index)}
+                      onDragEnd={handleDragEnd}
                       onClick={() => navigateTo(cat)}
-                      className="px-6 py-4 hover:bg-blue-50/50 transition-colors flex items-center justify-between group cursor-pointer"
+                      className={`px-5 py-3.5 transition-all relative flex items-center justify-between group cursor-pointer select-none ${
+                        isDragging 
+                          ? 'opacity-40 bg-blue-50/50 border-2 border-dashed border-blue-400 scale-[0.99]' 
+                          : 'hover:bg-slate-50/80 bg-white'
+                      }`}
                     >
-                      <div className="flex items-center gap-4">
+                      {/* Drop target indicator lines */}
+                      {isOver && dropPosition === 'top' && (
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-blue-600 z-10 rounded-full shadow-sm">
+                          <div className="absolute -left-1 -top-1 w-3 h-3 rounded-full bg-blue-600 border-2 border-white" />
+                        </div>
+                      )}
+                      {isOver && dropPosition === 'bottom' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 z-10 rounded-full shadow-sm">
+                          <div className="absolute -left-1 -bottom-1 w-3 h-3 rounded-full bg-blue-600 border-2 border-white" />
+                        </div>
+                      )}
+
+                      {/* Left: Drag Handle, Sequence Number & Thumbnail */}
+                      <div className="flex items-center gap-3">
+                        {/* Drag Handle */}
+                        <div 
+                          className="cursor-grab active:cursor-grabbing p-1.5 -ml-1 text-slate-300 group-hover:text-slate-600 hover:bg-slate-200/60 rounded-md transition-colors flex items-center justify-center shrink-0"
+                          title="Drag to reorder category"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <GripVertical className="w-4 h-4" />
+                        </div>
+
+                        {/* Order Rank Badge */}
+                        <div 
+                          className="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 text-slate-600 font-extrabold text-xs flex items-center justify-center shrink-0 group-hover:bg-blue-50 group-hover:border-blue-200 group-hover:text-blue-700 transition-colors"
+                          title={`Order: #${index + 1}`}
+                        >
+                          {index + 1}
+                        </div>
+
+                        {/* Up / Down Quick Move Buttons */}
+                        <div 
+                          className="flex flex-col -space-y-0.5 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            disabled={index === 0 || isSavingOrder}
+                            onClick={() => handleReorder(index, index - 1)}
+                            className="p-0.5 text-slate-400 hover:text-blue-600 hover:bg-blue-100/60 rounded transition-colors disabled:opacity-20 disabled:pointer-events-none"
+                            title="Move Up"
+                          >
+                            <ChevronUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index === visibleCategories.length - 1 || isSavingOrder}
+                            onClick={() => handleReorder(index, index + 1)}
+                            className="p-0.5 text-slate-400 hover:text-blue-600 hover:bg-blue-100/60 rounded transition-colors disabled:opacity-20 disabled:pointer-events-none"
+                            title="Move Down"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Thumbnail */}
                         <div className="w-12 h-12 rounded-xl bg-slate-100 border border-gray-200 flex items-center justify-center overflow-hidden shrink-0">
                           {categoryImages[cat] ? (
                             <img src={categoryImages[cat]} alt={cat} className="w-full h-full object-cover" />
@@ -259,16 +458,24 @@ export default function AdminCategories() {
                             <ImageIcon className="w-5 h-5 text-gray-400" />
                           )}
                         </div>
+
+                        {/* Category Info */}
                         <div>
-                          <h4 className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{cat}</h4>
+                          <h4 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors text-sm sm:text-[15px]">
+                            {cat}
+                          </h4>
                           <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-500 mt-0.5">
-                            <span className="flex items-center gap-1"><Folder className="w-3 h-3" /> {subCount} sub-categories</span>
-                            <span className="flex items-center gap-1"><Tag className="w-3 h-3" /> {prodCount} products</span>
+                            <span className="flex items-center gap-1"><Folder className="w-3 h-3 text-slate-400" /> {subCount} sub-categories</span>
+                            <span className="flex items-center gap-1"><Tag className="w-3 h-3 text-slate-400" /> {prodCount} products</span>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-4">
+                      {/* Right: Action Chevron */}
+                      <div className="flex items-center gap-3">
+                        <span className="text-[11px] font-semibold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:inline">
+                          {activeCategory ? 'Configure' : 'Explore Sub-categories'}
+                        </span>
                         <div className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-blue-100 text-slate-300 group-hover:text-blue-600 transition-colors">
                           <ChevronRight className="w-5 h-5" />
                         </div>

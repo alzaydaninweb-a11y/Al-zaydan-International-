@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Settings, Save, Phone, MapPin, Mail, Instagram, Facebook, Linkedin, Youtube, Twitter, Image as ImageIcon, Plus, X, Users, Trash2, Shield, Layout, Upload, Loader, ArrowRight, MessageCircle } from 'lucide-react';
+import { Settings, Save, Phone, MapPin, Mail, Instagram, Facebook, Linkedin, Youtube, Twitter, Image as ImageIcon, Plus, X, Users, Trash2, Shield, Layout, Upload, Loader, ArrowRight, MessageCircle, Sparkles, Layers, Sliders, Eye, ExternalLink, RefreshCw, Search, Check, CheckCircle2, PackageSearch } from 'lucide-react';
 import WhatsAppIcon from '../../components/icons/WhatsAppIcon';
 import { useStore } from '../../context/StoreContext';
 import { uploadToR2 } from '../../lib/cloudflareR2';
 
 export default function AdminSettings() {
-  const { settings, updateGeneralSettings } = useStore();
+  const { settings, updateGeneralSettings, products } = useStore();
   const [form, setForm] = useState(settings || {});
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -14,6 +14,25 @@ export default function AdminSettings() {
   // Security IP states
   const [currentIp, setCurrentIp] = useState('');
   const [newIpInput, setNewIpInput] = useState('');
+
+  // Hero Section Dynamic Controls State
+  const [bgUploading, setBgUploading] = useState(false);
+  const bgFileRef = useRef<HTMLInputElement>(null);
+
+  const [newFeaturedUrl, setNewFeaturedUrl] = useState('');
+  const [newFeaturedLink, setNewFeaturedLink] = useState('');
+  const [newFeaturedAlt, setNewFeaturedAlt] = useState('');
+  const [featuredUploading, setFeaturedUploading] = useState(false);
+  const featuredFileRef = useRef<HTMLInputElement>(null);
+
+  const [nodeUploadingId, setNodeUploadingId] = useState<string | null>(null);
+  const nodeFileRef = useRef<HTMLInputElement>(null);
+  const [activeNodeUploadKey, setActiveNodeUploadKey] = useState<string>('');
+
+  // Searchable Product Catalog Picker Modal State
+  const [productPickerNodeId, setProductPickerNodeId] = useState<string | null>(null);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [pickerCategory, setPickerCategory] = useState('All');
 
   useEffect(() => {
     fetch('/api/get-ip')
@@ -46,8 +65,8 @@ export default function AdminSettings() {
   const [newSlideSub, setNewSlideSub] = useState('');
   const [newSlideCta1Label, setNewSlideCta1Label] = useState('Start Sourcing');
   const [newSlideCta1To, setNewSlideCta1To] = useState('/search');
-  const [newSlideCta2Label, setNewSlideCta2Label] = useState('Become a Supplier');
-  const [newSlideCta2To, setNewSlideCta2To] = useState('/contact');
+  const [newSlideCta2Label, setNewSlideCta2Label] = useState('');
+  const [newSlideCta2To, setNewSlideCta2To] = useState('');
   const [slideUploading, setSlideUploading] = useState(false);
   const heroFileRef = useRef<HTMLInputElement>(null);
 
@@ -102,50 +121,112 @@ export default function AdminSettings() {
     setSaved(false);
   };
 
-  const handleHeroImageUpload = async (file: File) => {
-    setSlideUploading(true);
+  // ── Hero Config Helpers ──
+  const heroConfig = form.heroConfig || {};
+
+  const updateHeroConfig = (patch: any) => {
+    setForm({
+      ...form,
+      heroConfig: {
+        ...form.heroConfig,
+        ...patch,
+      }
+    });
+    setSaved(false);
+  };
+
+  const handleBgImageUpload = async (file: File) => {
+    setBgUploading(true);
     try {
-      const url = await uploadToR2(file, 'hero');
-      setNewSlideUrl(url);
+      const url = await uploadToR2(file, 'hero-bg');
+      updateHeroConfig({ bgImageUrl: url });
     } catch (err) {
-      alert('Image upload failed. Please try again or paste a URL.');
+      alert('Background image upload failed. Please try again.');
     } finally {
-      setSlideUploading(false);
+      setBgUploading(false);
     }
   };
 
-  const addHeroSlide = () => {
-    if (!newSlideUrl.trim()) return;
-    const slides = [...(form.heroSlides || [])];
-    slides.push({
-      id: Math.random().toString(36).substr(2, 9),
-      imageUrl: newSlideUrl.trim(),
-      title1: newSlideTitle1.trim() || '',
-      title2: newSlideTitle2.trim() || '',
-      title3: newSlideTitle3.trim() || '',
-      sub: newSlideSub.trim() || '',
-      cta1Label: newSlideCta1Label.trim() || 'Start Sourcing',
-      cta1To: newSlideCta1To.trim() || '/search',
-      cta2Label: newSlideCta2Label.trim() || 'Become a Supplier',
-      cta2To: newSlideCta2To.trim() || '/contact',
-    });
-    setForm({ ...form, heroSlides: slides });
-    setNewSlideUrl('');
-    setNewSlideTitle1('');
-    setNewSlideTitle2('');
-    setNewSlideTitle3('');
-    setNewSlideSub('');
-    setNewSlideCta1Label('Start Sourcing');
-    setNewSlideCta1To('/search');
-    setNewSlideCta2Label('Become a Supplier');
-    setNewSlideCta2To('/contact');
-    setSaved(false);
+  const handleFeaturedImageUpload = async (file: File) => {
+    setFeaturedUploading(true);
+    try {
+      const url = await uploadToR2(file, 'hero-featured');
+      const slides = [...(heroConfig.featuredSlides || [])];
+      slides.push({
+        id: Math.random().toString(36).substr(2, 9),
+        imageUrl: url,
+        linkUrl: newFeaturedLink.trim() || '',
+        altText: 'Featured Promotion',
+      });
+      updateHeroConfig({
+        featuredSlides: slides,
+        featuredImageUrl: url,
+      });
+      setNewFeaturedUrl('');
+      setNewFeaturedLink('');
+      setNewFeaturedAlt('');
+    } catch (err) {
+      alert('Featured image upload failed. Please try again.');
+    } finally {
+      setFeaturedUploading(false);
+    }
   };
 
-  const removeHeroSlide = (id: string) => {
-    const slides = (form.heroSlides || []).filter((s: any) => s.id !== id);
-    setForm({ ...form, heroSlides: slides });
-    setSaved(false);
+  const addFeaturedSlide = () => {
+    if (!newFeaturedUrl.trim()) return;
+    const slides = [...(heroConfig.featuredSlides || [])];
+    slides.push({
+      id: Math.random().toString(36).substr(2, 9),
+      imageUrl: newFeaturedUrl.trim(),
+      linkUrl: newFeaturedLink.trim() || '',
+      altText: newFeaturedAlt.trim() || 'Featured Promotion',
+    });
+    updateHeroConfig({
+      featuredSlides: slides,
+      featuredImageUrl: newFeaturedUrl.trim(),
+    });
+    setNewFeaturedUrl('');
+    setNewFeaturedLink('');
+    setNewFeaturedAlt('');
+  };
+
+  const removeFeaturedSlide = (id: string) => {
+    const slides = (heroConfig.featuredSlides || []).filter((s: any) => s.id !== id);
+    updateHeroConfig({ featuredSlides: slides });
+  };
+
+  const updateOrbitNode = (nodeId: string, patch: any) => {
+    const defaultNodes = [
+      { id: 'node-1', label: 'Top Left (e.g. Adhesives)', customTitle: 'Industrial Adhesives & Raw Materials', linkUrl: '/category/industrial-adhesive-tapes' },
+      { id: 'node-2', label: 'Mid Left (e.g. Traffic Safety)', customTitle: 'Traffic Safety Equipment', linkUrl: '/category/traffic-safety' },
+      { id: 'node-3', label: 'Top Right (e.g. Reflective Sheeting)', customTitle: 'Reflective Sheeting & Safety', linkUrl: '/category/reflectors-signage' },
+      { id: 'node-4', label: 'Bottom Right (e.g. Packaging Supplies)', customTitle: 'Packaging & Logistics Materials', linkUrl: '/category/packaging-materials-supplier-uae' },
+    ];
+
+    const currentNodes = heroConfig.orbitNodes && heroConfig.orbitNodes.length === 4
+      ? [...heroConfig.orbitNodes]
+      : defaultNodes;
+
+    const updated = currentNodes.map(node => {
+      if (node.id === nodeId) {
+        return { ...node, ...patch };
+      }
+      return node;
+    });
+
+    updateHeroConfig({ orbitNodes: updated });
+  };
+
+  const handleNodeImageUpload = async (nodeId: string, file: File) => {
+    setNodeUploadingId(nodeId);
+    try {
+      const url = await uploadToR2(file, `hero-node-${nodeId}`);
+      updateOrbitNode(nodeId, { customImageUrl: url });
+    } catch (err) {
+      alert('Orbit circle image upload failed. Please try again.');
+    } finally {
+      setNodeUploadingId(null);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -622,186 +703,476 @@ export default function AdminSettings() {
           </div>
         </div>
 
-        {/* Hero Slider Settings */}
+        {/* ─── MODERN HOMEPAGE HERO SECTION SETTINGS ─── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-5 border-b border-gray-100 bg-slate-50 flex items-center justify-between">
             <div>
-              <h2 className="text-[15px] font-bold text-slate-800">Homepage Hero Slider</h2>
-              <p className="text-[13px] text-slate-500 mt-0.5">Customize the main image sliders and banners on your homepage.</p>
+              <h2 className="text-[15px] font-bold text-slate-800 flex items-center gap-2">
+                <Layout className="w-4 h-4 text-blue-600" />
+                Homepage Hero Section & Interactive Visuals
+              </h2>
+              <p className="text-[13px] text-slate-500 mt-0.5">Customize background opacity, headline text, featured ad banners (with click links), and the 4 orbiting product circles.</p>
             </div>
             <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
-              <Layout className="w-3 h-3" /> Visual
+              <Sparkles className="w-3 h-3" /> Live Dynamic
             </div>
           </div>
           
-          <div className="p-6 space-y-6">
-            {/* Add New Slide Form */}
-            <div className="bg-slate-50/80 rounded-xl p-5 border border-slate-200/60">
-              <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <Plus className="w-3.5 h-3.5" /> Add New Hero Slide
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Image Upload */}
-                <div className="md:col-span-2">
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Background Image</label>
+          <div className="p-6 space-y-8">
+
+            {/* 1. BACKGROUND IMAGE & OPACITY */}
+            <div className="bg-slate-50/80 rounded-xl p-5 border border-slate-200/80 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                  <Layers className="w-3.5 h-3.5 text-blue-600" /> 1. Section Background & Opacity
+                </h3>
+                <span className="text-[11px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                  Opacity: {heroConfig.bgOpacity ?? 15}%
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Background Image URL or Upload</label>
                   <div className="flex gap-2">
                     <input
                       type="url"
-                      value={newSlideUrl}
-                      onChange={e => setNewSlideUrl(e.target.value)}
-                      placeholder="https://example.com/slide.jpg"
-                      className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                      value={heroConfig.bgImageUrl || ''}
+                      onChange={e => updateHeroConfig({ bgImageUrl: e.target.value })}
+                      placeholder="https://example.com/hero-bg.jpg (Optional)"
+                      className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
                     />
                     <input
                       type="file"
-                      ref={heroFileRef}
+                      ref={bgFileRef}
                       className="hidden"
                       accept="image/*"
-                      onChange={e => e.target.files && handleHeroImageUpload(e.target.files[0])}
+                      onChange={e => e.target.files && handleBgImageUpload(e.target.files[0])}
                     />
                     <button
                       type="button"
-                      onClick={() => heroFileRef.current?.click()}
-                      disabled={slideUploading}
-                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center gap-2 border border-slate-200 shrink-0"
+                      onClick={() => bgFileRef.current?.click()}
+                      disabled={bgUploading}
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3.5 py-2 rounded-xl text-xs transition-colors flex items-center gap-1.5 border border-slate-200 shrink-0 cursor-pointer"
                     >
-                      {slideUploading ? <Loader className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      {bgUploading ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                       Upload
                     </button>
+                    {heroConfig.bgImageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => updateHeroConfig({ bgImageUrl: '' })}
+                        className="p-2 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                        title="Remove Background Image"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
-                  {newSlideUrl && (
-                    <div className="mt-2 relative w-32 h-20 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
-                      <img src={newSlideUrl} alt="Preview" className="w-full h-full object-cover" />
-                    </div>
-                  )}
                 </div>
 
-                {/* Text Content */}
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Title Line 1 (White)</label>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1 flex items-center justify-between">
+                    <span>Background Opacity Blend</span>
+                    <span className="text-blue-600 font-extrabold">{heroConfig.bgOpacity ?? 15}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={heroConfig.bgOpacity ?? 15}
+                    onChange={e => updateHeroConfig({ bgOpacity: parseInt(e.target.value, 10) })}
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mt-2"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">Lower opacity (10-25%) provides subtle elegance without obscuring text.</p>
+                </div>
+
+                {/* ── Background Live Preview Card ── */}
+                {heroConfig.bgImageUrl && (
+                  <div className="md:col-span-2 mt-1 p-4 bg-slate-900 rounded-2xl border border-slate-700/60 shadow-lg relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-4">
+                    {/* Simulated Background Layer with Exact Opacity */}
+                    <div
+                      className="absolute inset-0 bg-cover bg-center pointer-events-none transition-opacity duration-300"
+                      style={{
+                        backgroundImage: `url(${heroConfig.bgImageUrl})`,
+                        opacity: (heroConfig.bgOpacity ?? 15) / 100,
+                      }}
+                    />
+                    <div className="relative z-10 flex items-center gap-3.5 min-w-0">
+                      <div className="w-20 h-14 rounded-xl overflow-hidden border-2 border-white/30 shadow-md bg-black/60 shrink-0">
+                        <img src={heroConfig.bgImageUrl} alt="Background Preview" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-500/30">
+                            <CheckCircle2 className="w-3 h-3" /> Background Live Preview
+                          </span>
+                          <span className="text-[11px] font-semibold text-slate-300">
+                            Opacity: <b className="text-white">{heroConfig.bgOpacity ?? 15}%</b>
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-300 truncate mt-1 max-w-[420px]">
+                          {heroConfig.bgImageUrl}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateHeroConfig({ bgImageUrl: '' })}
+                      className="relative z-10 bg-red-600/90 hover:bg-red-700 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-red-600/20 transition-all shrink-0 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Remove Image
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 2. HEADLINE & DESCRIPTION */}
+            <div className="bg-slate-50/80 rounded-xl p-5 border border-slate-200/80 space-y-4">
+              <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                <Sliders className="w-3.5 h-3.5 text-blue-600" /> 2. Hero Headline, Description & Search Bar
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Headline Main Text</label>
                   <input
                     type="text"
-                    value={newSlideTitle1}
-                    onChange={e => setNewSlideTitle1(e.target.value)}
-                    placeholder="e.g. Industrial Tools."
+                    value={heroConfig.titleLine1 !== undefined ? heroConfig.titleLine1 : 'Materials that help you'}
+                    onChange={e => updateHeroConfig({ titleLine1: e.target.value })}
+                    placeholder="e.g. Materials that help you"
                     className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Title Line 2 (White)</label>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Headline Highlighted Accent (Blue)</label>
                   <input
                     type="text"
-                    value={newSlideTitle2}
-                    onChange={e => setNewSlideTitle2(e.target.value)}
-                    placeholder="e.g. Safety Equipment."
-                    className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Title Line 3 (Blue Accent)</label>
-                  <input
-                    type="text"
-                    value={newSlideTitle3}
-                    onChange={e => setNewSlideTitle3(e.target.value)}
-                    placeholder="e.g. Delivered Fast."
+                    value={heroConfig.titleHighlight !== undefined ? heroConfig.titleHighlight : 'stay focus'}
+                    onChange={e => updateHeroConfig({ titleHighlight: e.target.value })}
+                    placeholder="e.g. stay focus"
                     className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
                   />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Subtitle / Description</label>
                   <textarea
-                    value={newSlideSub}
-                    onChange={e => setNewSlideSub(e.target.value)}
-                    placeholder="Brief description below the main titles..."
+                    value={heroConfig.description !== undefined ? heroConfig.description : 'Direct UAE & GCC wholesale supply of certified traffic safety equipment, reflective materials, industrial adhesive tapes, and packaging supplies.'}
+                    onChange={e => updateHeroConfig({ description: e.target.value })}
                     rows={2}
+                    placeholder="Brief description below the main headline..."
                     className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
                   />
                 </div>
-
-                {/* Primary Button */}
-                <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 space-y-3">
-                  <h4 className="text-[10px] font-bold text-blue-800 uppercase tracking-widest px-1">Primary Button (Blue)</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Button Text</label>
-                      <input type="text" value={newSlideCta1Label} onChange={e => setNewSlideCta1Label(e.target.value)} placeholder="e.g. Start Sourcing" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Button Link</label>
-                      <input type="text" value={newSlideCta1To} onChange={e => setNewSlideCta1To(e.target.value)} placeholder="e.g. /search" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white" />
-                    </div>
-                  </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Search Placeholder</label>
+                  <input
+                    type="text"
+                    value={heroConfig.searchPlaceholder !== undefined ? heroConfig.searchPlaceholder : 'e.g. Reflective tape, Safety cones...'}
+                    onChange={e => updateHeroConfig({ searchPlaceholder: e.target.value })}
+                    placeholder="e.g. Reflective tape, Safety cones..."
+                    className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                  />
                 </div>
-
-                {/* Secondary Button */}
-                <div className="bg-slate-50/80 p-3 rounded-xl border border-slate-200 space-y-3">
-                  <h4 className="text-[10px] font-bold text-slate-600 uppercase tracking-widest px-1">Secondary Button (Outline)</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Button Text</label>
-                      <input type="text" value={newSlideCta2Label} onChange={e => setNewSlideCta2Label(e.target.value)} placeholder="e.g. Become a Supplier" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Button Link</label>
-                      <input type="text" value={newSlideCta2To} onChange={e => setNewSlideCta2To(e.target.value)} placeholder="e.g. /contact" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white" />
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="md:col-span-2 flex justify-end mt-2">
-                  <button
-                    type="button"
-                    onClick={addHeroSlide}
-                    disabled={!newSlideUrl.trim()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-colors shadow-sm shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Add Slide to Banner
-                  </button>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Search Button Label</label>
+                  <input
+                    type="text"
+                    value={heroConfig.buttonText !== undefined ? heroConfig.buttonText : 'Get Started'}
+                    onChange={e => updateHeroConfig({ buttonText: e.target.value })}
+                    placeholder="e.g. Get Started"
+                    className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                  />
                 </div>
               </div>
             </div>
 
-            {/* List Current Slides */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-2 px-1">
-                Current Slides ({form.heroSlides?.length || 0})
-              </h3>
-              {(form.heroSlides || []).length === 0 ? (
-                <div className="text-center py-8 bg-slate-50/30 rounded-xl border border-dashed border-slate-200">
-                  <p className="text-sm text-slate-400">No custom slides added yet. Storefront is using default placeholder slides.</p>
+            {/* 3. FEATURED BANNER IMAGES (AUTO-SLIDE WITH REDIRECT LINKS) */}
+            <div className="bg-slate-50/80 rounded-xl p-5 border border-slate-200/80 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                    <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> 3. Featured Advertisements & Visuals (Auto-Slider)
+                  </h3>
+                  <p className="text-[12px] text-slate-500 mt-0.5">Upload multiple ad banners or specialist photos. Slides automatically transition smoothly without cluttered dots, and redirect when clicked.</p>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(form.heroSlides || []).map((slide: any) => (
-                    <div key={slide.id} className="relative bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all group">
-                      <div className="h-32 relative">
-                        <img src={slide.imageUrl} alt="Slide Preview" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent" />
-                        <div className="absolute inset-0 p-4 flex flex-col justify-center">
-                          <p className="text-white font-bold text-sm leading-tight">
-                            {slide.title1 && <>{slide.title1}<br/></>}
-                            {slide.title2 && <>{slide.title2}<br/></>}
-                            {slide.title3 && <span className="text-blue-300">{slide.title3}</span>}
-                          </p>
+              </div>
+
+              {/* Add New Featured Slide Form */}
+              <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Image URL or Upload</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={newFeaturedUrl}
+                        onChange={e => setNewFeaturedUrl(e.target.value)}
+                        placeholder="https://example.com/ad-banner.jpg"
+                        className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-slate-50/50"
+                      />
+                      <input
+                        type="file"
+                        ref={featuredFileRef}
+                        className="hidden"
+                        accept="image/*"
+                        onChange={e => e.target.files && handleFeaturedImageUpload(e.target.files[0])}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => featuredFileRef.current?.click()}
+                        disabled={featuredUploading}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition-colors flex items-center gap-1.5 border border-slate-200 shrink-0 cursor-pointer"
+                      >
+                        {featuredUploading ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                        Upload
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Redirect Link (When Clicked)</label>
+                    <input
+                      type="text"
+                      value={newFeaturedLink}
+                      onChange={e => setNewFeaturedLink(e.target.value)}
+                      placeholder="e.g. /category/traffic-safety or /search"
+                      className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-slate-50/50"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-2">
+                  <div className="flex items-center gap-2">
+                    {newFeaturedUrl && (
+                      <div className="flex items-center gap-2 p-1.5 bg-slate-50 border border-slate-200 rounded-xl">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
+                          <img src={newFeaturedUrl} alt="Preview" className="w-full h-full object-cover" />
+                        </div>
+                        <span className="text-xs text-slate-600 font-semibold truncate max-w-[200px]">Image Ready</span>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addFeaturedSlide}
+                    disabled={!newFeaturedUrl.trim()}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2 rounded-xl text-xs transition-colors shadow-sm shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Featured Slide
+                  </button>
+                </div>
+              </div>
+
+              {/* Current Featured Slides List */}
+              <div className="space-y-2">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase px-1">
+                  Active Featured Slides ({(heroConfig.featuredSlides || []).length})
+                </label>
+                {(heroConfig.featuredSlides || []).length === 0 ? (
+                  <div className="text-center py-6 bg-white rounded-xl border border-dashed border-slate-200">
+                    <p className="text-xs text-slate-400">No custom featured slides uploaded. Showing default specialist portrait.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {(heroConfig.featuredSlides || []).map((slide, idx) => (
+                      <div key={slide.id} className="relative bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs group flex flex-col justify-between">
+                        <div className="aspect-[4/3] relative bg-slate-100">
+                          <img src={slide.imageUrl} alt={slide.altText || `Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeFeaturedSlide(slide.id)}
+                            className="absolute top-2 right-2 p-1.5 bg-red-600/90 hover:bg-red-700 text-white rounded-lg shadow-sm transition-transform group-hover:scale-105 cursor-pointer"
+                            title="Delete Slide"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="p-2.5 bg-slate-50/70 border-t border-slate-100">
+                          <div className="text-[11px] font-semibold text-slate-700 truncate">Slide #{idx + 1}</div>
+                          {slide.linkUrl ? (
+                            <div className="text-[10px] text-blue-600 truncate flex items-center gap-1">
+                              <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                              {slide.linkUrl}
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-slate-400 italic">No link assigned</div>
+                          )}
                         </div>
                       </div>
-                      <div className="p-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Slide Preview</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 4. SURROUNDING FLOATING CIRCLES (PRODUCT SELECTORS & DIRECT LINKS) */}
+            <div className="bg-slate-50/80 rounded-xl p-5 border border-slate-200/80 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" /> 4. Orbiting Floating Circles (Product Selector)
+                  </h3>
+                  <p className="text-[12px] text-slate-500 mt-0.5">Search and select products from your catalog for each of the 4 circles orbiting the hero image. Includes live circle preview.</p>
+                </div>
+              </div>
+
+              {/* Hidden file input for orbit node uploads */}
+              <input
+                type="file"
+                ref={nodeFileRef}
+                className="hidden"
+                accept="image/*"
+                onChange={e => {
+                  if (e.target.files && activeNodeUploadKey) {
+                    handleNodeImageUpload(activeNodeUploadKey, e.target.files[0]);
+                  }
+                }}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {[
+                  { id: 'node-1', defaultLabel: 'Top Left Circle', defaultTitle: 'Industrial Adhesives & Raw Materials', defaultLink: '/category/industrial-adhesive-tapes', defaultImage: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=400&auto=format&fit=crop' },
+                  { id: 'node-2', defaultLabel: 'Mid Left Circle', defaultTitle: 'Traffic Safety Equipment', defaultLink: '/category/traffic-safety', defaultImage: 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=400&auto=format&fit=crop' },
+                  { id: 'node-3', defaultLabel: 'Top Right Circle', defaultTitle: 'Reflective Sheeting & Safety', defaultLink: '/category/reflectors-signage', defaultImage: 'https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?q=80&w=400&auto=format&fit=crop' },
+                  { id: 'node-4', defaultLabel: 'Bottom Right Circle', defaultTitle: 'Packaging & Logistics Materials', defaultLink: '/category/packaging-materials-supplier-uae', defaultImage: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=400&auto=format&fit=crop' },
+                ].map(nodeDef => {
+                  const nodeData = (heroConfig.orbitNodes || []).find(n => n.id === nodeDef.id) || {};
+                  const selectedProduct = products.find(p => p.id === nodeData.productId);
+                  const displayImage = nodeData.customImageUrl || selectedProduct?.image || nodeDef.defaultImage;
+                  const displayTitle = nodeData.customTitle || selectedProduct?.name || nodeDef.defaultTitle;
+                  const displayLink = nodeData.linkUrl || (selectedProduct ? `/product/${selectedProduct.slug || selectedProduct.id}` : nodeDef.defaultLink);
+
+                  return (
+                    <div key={nodeDef.id} className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-4">
+                      
+                      {/* Node Header with Live Circle Preview Orb */}
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div className="flex items-center gap-3">
+                          {/* Live Preview Orb Badge */}
+                          <div className="relative group">
+                            <div className="w-12 h-12 rounded-full border-[2.5px] border-white shadow-md ring-2 ring-slate-900/10 overflow-hidden bg-slate-100 shrink-0">
+                              <img src={displayImage} alt={displayTitle} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                            </div>
+                            <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full flex items-center justify-center text-[8px] text-white font-black" title="Live Preview">
+                              ✓
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md">
+                              {nodeDef.defaultLabel}
+                            </span>
+                            <h4 className="text-xs font-semibold text-slate-600 truncate max-w-[200px] mt-0.5">
+                              {displayTitle}
+                            </h4>
+                          </div>
+                        </div>
+
+                        {/* Search & Choose from Catalog Button */}
                         <button
                           type="button"
-                          onClick={() => removeHeroSlide(slide.id)}
-                          className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                          title="Remove Slide"
+                          onClick={() => {
+                            setProductPickerNodeId(nodeDef.id);
+                            setPickerSearch('');
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-sm shadow-blue-600/20 transition-all cursor-pointer"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Search className="w-3.5 h-3.5" />
+                          <span>{nodeData.productId ? 'Change Product' : 'Search Catalog'}</span>
                         </button>
                       </div>
+
+                      {/* Selected Product Info Card */}
+                      {selectedProduct ? (
+                        <div className="bg-blue-50/60 border border-blue-200/80 rounded-xl p-3 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden border border-blue-200 bg-white shrink-0">
+                              <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wide">Attached Catalog Product</span>
+                              <div className="text-xs font-bold text-slate-800 truncate">{selectedProduct.name}</div>
+                              <div className="text-[10px] text-slate-500 truncate">{selectedProduct.category}</div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateOrbitNode(nodeDef.id, {
+                                productId: '',
+                                customTitle: '',
+                                customImageUrl: '',
+                                linkUrl: '',
+                              });
+                            }}
+                            className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                            title="Unlink Product"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="p-3 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex items-center justify-between">
+                          <span className="text-xs text-slate-500">No product selected from catalog.</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProductPickerNodeId(nodeDef.id);
+                              setPickerSearch('');
+                            }}
+                            className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+                          >
+                            <PackageSearch className="w-3.5 h-3.5" /> Browse Products
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Custom Image / Upload Override */}
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Custom Image URL or Upload</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="url"
+                            value={nodeData.customImageUrl || ''}
+                            onChange={e => updateOrbitNode(nodeDef.id, { customImageUrl: e.target.value })}
+                            placeholder="https://... (Optional custom image override)"
+                            className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveNodeUploadKey(nodeDef.id);
+                              nodeFileRef.current?.click();
+                            }}
+                            disabled={nodeUploadingId === nodeDef.id}
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2.5 py-1.5 rounded-lg text-[11px] transition-colors border border-slate-200 shrink-0 cursor-pointer flex items-center gap-1"
+                          >
+                            {nodeUploadingId === nodeDef.id ? <Loader className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                            <span>Upload</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Destination Link */}
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Destination Link</label>
+                        <input
+                          type="text"
+                          value={nodeData.linkUrl !== undefined ? nodeData.linkUrl : displayLink}
+                          onChange={e => updateOrbitNode(nodeDef.id, { linkUrl: e.target.value })}
+                          placeholder={nodeDef.defaultLink}
+                          className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white font-mono text-slate-700"
+                        />
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  );
+                })}
+              </div>
             </div>
+
           </div>
         </div>
 
@@ -979,6 +1350,187 @@ export default function AdminSettings() {
           </button>
         </div>
       </form>
+
+      {/* ── Product Catalog Search & Choose Modal ── */}
+      {productPickerNodeId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh]">
+            
+            {/* Header */}
+            <div className="p-4 sm:p-5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-blue-100 text-blue-600 rounded-2xl">
+                  <PackageSearch className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-base">Select Product from Catalog</h3>
+                  <p className="text-xs text-slate-500">
+                    Assigning to{' '}
+                    <span className="font-bold text-blue-600">
+                      {productPickerNodeId === 'node-1' ? 'Top Left Circle' : productPickerNodeId === 'node-2' ? 'Mid Left Circle' : productPickerNodeId === 'node-3' ? 'Top Right Circle' : 'Bottom Right Circle'}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setProductPickerNodeId(null);
+                  setPickerSearch('');
+                }}
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search & Category Filter Bar */}
+            <div className="p-4 border-b border-slate-100 bg-white space-y-3">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={pickerSearch}
+                  onChange={e => setPickerSearch(e.target.value)}
+                  placeholder="Search products by name, category, or SKU..."
+                  className="w-full pl-10 pr-12 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-white transition-all"
+                  autoFocus
+                />
+                {pickerSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setPickerSearch('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold px-1.5 py-0.5 rounded bg-slate-200/60 cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {/* Categories Pills Filter */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
+                {['All', ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))].slice(0, 15).map(cat => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setPickerCategory(cat)}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                      pickerCategory === cat
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Filtered Products Grid */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {(() => {
+                const filtered = products.filter(p => {
+                  const matchesCategory = pickerCategory === 'All' || p.category === pickerCategory;
+                  const q = pickerSearch.toLowerCase().trim();
+                  const matchesSearch = !q || (p.name && p.name.toLowerCase().includes(q)) || (p.category && p.category.toLowerCase().includes(q)) || (p.sku && p.sku.toLowerCase().includes(q));
+                  return matchesCategory && matchesSearch;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="text-center py-12">
+                      <PackageSearch className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-slate-500">No products found matching "{pickerSearch}"</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPickerSearch('');
+                          setPickerCategory('All');
+                        }}
+                        className="mt-2 text-xs font-bold text-blue-600 hover:underline cursor-pointer"
+                      >
+                        Reset search filters
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {filtered.slice(0, 80).map(p => {
+                      const currentNode = (heroConfig.orbitNodes || []).find(n => n.id === productPickerNodeId);
+                      const isSelected = currentNode?.productId === p.id;
+
+                      return (
+                        <div
+                          key={p.id}
+                          onClick={() => {
+                            updateOrbitNode(productPickerNodeId!, {
+                              productId: p.id,
+                              customTitle: p.name,
+                              customImageUrl: p.image,
+                              linkUrl: `/product/${p.slug || p.id}`,
+                            });
+                            setProductPickerNodeId(null);
+                            setPickerSearch('');
+                          }}
+                          className={`p-3 rounded-2xl border flex items-center justify-between gap-3 cursor-pointer transition-all hover:shadow-md ${
+                            isSelected
+                              ? 'bg-blue-50/80 border-blue-500 ring-2 ring-blue-500/20'
+                              : 'bg-white border-slate-200 hover:border-blue-300 hover:bg-slate-50/60'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0">
+                              <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-bold text-slate-800 line-clamp-1">{p.name}</h4>
+                              <p className="text-[10px] text-slate-400 truncate mt-0.5">{p.category}</p>
+                              {p.price ? (
+                                <p className="text-[11px] font-bold text-blue-600 mt-0.5">AED {p.price}</p>
+                              ) : (
+                                <p className="text-[10px] text-slate-400 mt-0.5">Wholesale pricing</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-colors cursor-pointer ${
+                              isSelected
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700'
+                            }`}
+                          >
+                            {isSelected ? 'Selected' : 'Choose'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="p-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+              <span>Showing matching products from your live catalog.</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setProductPickerNodeId(null);
+                  setPickerSearch('');
+                }}
+                className="px-4 py-1.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

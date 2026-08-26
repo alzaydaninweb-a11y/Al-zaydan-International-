@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams, Link, useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import ProductListingGrid from '../components/home/ProductListingGrid';
-import { Filter, X, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw, Check, ChevronRight } from 'lucide-react';
+import { Filter, X, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw, Check, ChevronRight, Search } from 'lucide-react';
 import { useSEO } from '../lib/useSEO';
 import { generateSlug } from '../lib/blogService';
 import { generateOrganizationSchema, generateBreadcrumbSchema, generateItemListSchema } from '../lib/schemaGenerator';
 import { generateCategorySEO } from '../lib/seoGenerator';
+import SmartSearchDropdown, { getRecentSearches, saveRecentSearch, removeRecentSearch } from '../components/ui/SmartSearchDropdown';
 
 // ─── Collapsible filter section ───────────────────────────────────────────────
 
@@ -137,8 +138,58 @@ export default function SearchPage() {
   const [selCategory, setSelCategory]   = useState(categoryQuery);
   const [selBrands, setSelBrands]       = useState<string[]>([]);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [localSearch, setLocalSearch]   = useState(searchQuery);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setRecentSearches(getRecentSearches());
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(localSearch);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [localSearch]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSearchDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => { setSelCategory(categoryQuery); }, [categoryQuery]);
+  useEffect(() => { setLocalSearch(searchQuery); }, [searchQuery]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (localSearch.trim()) {
+      saveRecentSearch(localSearch.trim());
+    }
+    const params = new URLSearchParams(searchParams);
+    if (localSearch.trim()) {
+      params.set('q', localSearch.trim());
+    } else {
+      params.delete('q');
+    }
+    setShowSearchDropdown(false);
+    navigate({ search: params.toString() });
+  };
+
+  const handleClearSearch = () => {
+    setLocalSearch('');
+    setShowSearchDropdown(false);
+    const params = new URLSearchParams(searchParams);
+    params.delete('q');
+    navigate({ search: params.toString() });
+  };
 
   const categoryParam = searchParams.get('category');
   useEffect(() => {
@@ -422,151 +473,202 @@ export default function SearchPage() {
   return (
     <div className="bg-slate-50 min-h-[calc(100vh-200px)]">
 
-      {/* Header / Breadcrumb Bar */}
-      <div className="bg-white border-b border-slate-200 py-3 px-4 shadow-sm">
-        <div className="w-full">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex flex-col">
-              <div className="flex items-center text-[13px] text-slate-500 font-medium">
-                <Link to="/" className="hover:text-slate-900 transition-colors">Home</Link>
-                <span className="mx-2 text-slate-300">/</span>
-                <span className="text-slate-900 font-bold truncate max-w-[200px] sm:max-w-sm">{pageLabel}</span>
-              </div>
+      {/* ─── SINGLE UNIFIED HEADER, SEARCH & FILTERS BAR ─── */}
+      <div className="w-full bg-white border-b border-slate-200 py-2.5 px-4 sticky top-0 md:top-[60px] z-30 shadow-xs">
+        <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-3">
+          
+          {/* Left: Breadcrumbs (Left Oriented Flush) */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center text-[13px] text-slate-500 font-medium">
+              <Link to="/" className="hover:text-slate-900 transition-colors">Home</Link>
+              <span className="mx-1.5 text-slate-300">/</span>
+              <span className="text-slate-900 font-bold truncate max-w-[200px] sm:max-w-[320px]">{pageLabel}</span>
+            </div>
+          </div>
+
+          {/* Right Group: Search with Smart Suggestions + Category Dropdown + Brand Dropdown (Right Oriented) */}
+          <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end shrink-0">
+            
+            {/* In-Catalog Search Bar with Smart Suggestions Dropdown */}
+            <div className="relative flex-1 md:w-[280px] lg:w-[320px]" ref={searchContainerRef}>
+              <form onSubmit={handleSearchSubmit} className="relative flex items-center">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+                <input
+                  type="text"
+                  data-smartsearch="true"
+                  value={localSearch}
+                  onChange={e => {
+                    setLocalSearch(e.target.value);
+                    setShowSearchDropdown(true);
+                  }}
+                  onFocus={() => setShowSearchDropdown(true)}
+                  placeholder="Search products..."
+                  className="w-full pl-9 pr-8 py-1.5 text-xs sm:text-[13px] bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-slate-800 placeholder:text-slate-400 font-medium transition-all"
+                  autoComplete="off"
+                />
+                {localSearch && (
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="absolute right-2.5 text-slate-300 hover:text-slate-500 p-0.5 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </form>
+
+              {/* Suggestions dropdown */}
+              {showSearchDropdown && (
+                <SmartSearchDropdown
+                  query={debouncedSearchQuery}
+                  products={ALL_PRODUCTS}
+                  categories={ALL_CATEGORIES}
+                  focusedIndex={-1}
+                  onSelectText={(txt) => {
+                    setLocalSearch(txt);
+                    setShowSearchDropdown(false);
+                    saveRecentSearch(txt);
+                    const params = new URLSearchParams(searchParams);
+                    params.set('q', txt);
+                    navigate({ search: params.toString() });
+                  }}
+                  onSelectProduct={(prod) => {
+                    setShowSearchDropdown(false);
+                    navigate(`/product/${prod.slug || prod.id}`);
+                  }}
+                  onClose={() => setShowSearchDropdown(false)}
+                  onRecentRemove={(term) => {
+                    removeRecentSearch(term);
+                    setRecentSearches(getRecentSearches());
+                  }}
+                  recentSearches={recentSearches}
+                />
+              )}
             </div>
 
+            {/* Mobile Filter Button */}
             <button
               onClick={() => setIsMobileOpen(true)}
-              className="md:hidden flex items-center gap-1.5 border border-slate-300 rounded-lg px-3 py-2 text-[13px] font-bold text-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors shrink-0"
+              className="md:hidden flex items-center gap-1.5 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors shrink-0"
             >
-              <SlidersHorizontal className="w-4 h-4" />
-              <span className="font-extrabold text-[13px]">Filters</span>
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Filters</span>
               {activeFilterCount > 0 && (
-                <span className="bg-blue-600 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+                <span className="bg-blue-600 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                   {activeFilterCount}
                 </span>
               )}
             </button>
-          </div>
-        </div>
-      </div>
 
-      {/* Horizontal Dropdowns bar (Desktop only) */}
-      <div className="hidden md:block bg-white border-b border-slate-200 py-2.5 px-4 sticky top-[108px] z-20 shadow-sm">
-        <div className="w-full space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              
-              {/* Category Dropdown */}
-              <div className="relative" ref={categoryRef}>
+            {/* Desktop Category Dropdown */}
+            <div className="hidden md:block relative" ref={categoryRef}>
+              <button
+                onClick={() => setActiveDropdown(curr => curr === 'category' ? null : 'category')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-semibold transition-all bg-white hover:bg-slate-50 ${
+                  selCategory
+                    ? 'border-blue-500 text-blue-600 font-bold bg-blue-50/40'
+                    : 'border-slate-200 text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                <span>Category: {selCategory || 'All'}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${activeDropdown === 'category' ? 'rotate-180 text-blue-500' : ''}`} />
+              </button>
+
+              {activeDropdown === 'category' && (
+                <div className="absolute right-0 mt-1.5 w-[300px] max-h-[350px] overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-40 p-3 animate-in fade-in slide-in-from-top-2 duration-150 custom-scrollbar">
+                  <div className="space-y-1 pb-1">
+                    <button
+                      onClick={() => {
+                        setSelBrands([]);
+                        setActiveDropdown(null);
+                        navigate('/search' + (searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''));
+                      }}
+                      className={`w-full flex items-center gap-2 text-[12px] py-1 transition-colors text-left
+                        ${!selCategory ? 'font-bold text-blue-600' : 'font-medium text-slate-600 hover:text-slate-900'}
+                      `}
+                    >
+                      <div className={`w-1 h-1 rounded-full transition-colors ${!selCategory ? 'bg-blue-600' : 'bg-transparent'}`} />
+                      All Categories
+                    </button>
+
+                    {topLevelCategories.map(cat => (
+                      <CategoryNode 
+                        key={cat} 
+                        cat={cat} 
+                        depth={0} 
+                        activePath={activePath} 
+                        selCategory={selCategory} 
+                        allCategories={ALL_CATEGORIES} 
+                        categoryDetails={categoryDetails} 
+                        navigate={(path: string) => {
+                          setActiveDropdown(null);
+                          navigate(path);
+                        }}
+                        setSelBrands={setSelBrands}
+                        searchQuery={searchQuery}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Brand Dropdown */}
+            {availableBrands.length > 0 && (
+              <div className="hidden md:block relative" ref={brandRef}>
                 <button
-                  onClick={() => setActiveDropdown(curr => curr === 'category' ? null : 'category')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 border rounded-md text-xs font-semibold transition-all bg-white hover:bg-slate-50 ${
-                    selCategory
-                      ? 'border-slate-800 text-slate-900 font-bold'
-                      : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                  onClick={() => setActiveDropdown(curr => curr === 'brand' ? null : 'brand')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-semibold transition-all bg-white hover:bg-slate-50 ${
+                    selBrands.length > 0
+                      ? 'border-blue-500 text-blue-600 font-bold bg-blue-50/40'
+                      : 'border-slate-200 text-slate-700 hover:border-slate-300'
                   }`}
                 >
-                  <span>Category: {selCategory || 'All'}</span>
-                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${activeDropdown === 'category' ? 'rotate-180' : ''}`} />
+                  <span>Brand : {selBrands.length === 0 ? 'All' : selBrands.length === 1 ? selBrands[0] : `${selBrands.length} selected`}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${activeDropdown === 'brand' ? 'rotate-180 text-blue-500' : ''}`} />
                 </button>
 
-                {activeDropdown === 'category' && (
-                  <div className="absolute left-0 mt-1.5 w-[300px] max-h-[350px] overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-xl z-30 p-3 animate-in fade-in slide-in-from-top-2 duration-150 custom-scrollbar">
-                    <div className="space-y-1 pb-1">
+                {activeDropdown === 'brand' && (
+                  <div className="absolute right-0 mt-1.5 w-[220px] max-h-[300px] overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-40 p-2 animate-in fade-in slide-in-from-top-2 duration-150 custom-scrollbar">
+                    <button
+                      onClick={() => {
+                        setSelBrands([]);
+                        setActiveDropdown(null);
+                      }}
+                      className={`w-full text-left px-2 py-1 text-xs rounded hover:bg-slate-50 transition-colors ${selBrands.length === 0 ? 'font-bold text-blue-600' : 'text-slate-600'}`}
+                    >
+                      All Brands
+                    </button>
+                    {availableBrands.map(b => (
                       <button
-                        onClick={() => {
-                          setSelBrands([]);
-                          setActiveDropdown(null);
-                          navigate('/search' + (searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''));
-                        }}
-                        className={`w-full flex items-center gap-2 text-[12px] py-1 transition-colors text-left
-                          ${!selCategory ? 'font-bold text-blue-600' : 'font-medium text-slate-600 hover:text-slate-900'}
-                        `}
+                        key={b}
+                        onClick={() => toggleBrand(b)}
+                        className={`w-full flex items-center justify-between px-2 py-1 text-xs rounded hover:bg-slate-50 transition-colors ${selBrands.includes(b) ? 'font-bold text-blue-600 bg-blue-50/50' : 'text-slate-600'}`}
                       >
-                        <div className={`w-1 h-1 rounded-full transition-colors ${!selCategory ? 'bg-blue-600' : 'bg-transparent'}`} />
-                        All Categories
+                        <span>{b}</span>
+                        {selBrands.includes(b) && <Check className="w-3.5 h-3.5 text-blue-600" />}
                       </button>
-
-                      {topLevelCategories.map(cat => (
-                        <CategoryNode 
-                          key={cat} 
-                          cat={cat} 
-                          depth={0} 
-                          activePath={activePath} 
-                          selCategory={selCategory} 
-                          allCategories={ALL_CATEGORIES} 
-                          categoryDetails={categoryDetails} 
-                          navigate={(path: string) => {
-                            setActiveDropdown(null);
-                            navigate(path);
-                          }}
-                          setSelBrands={setSelBrands}
-                          searchQuery={searchQuery}
-                        />
-                      ))}
-                    </div>
+                    ))}
                   </div>
                 )}
               </div>
-
-              {/* Brand Dropdown */}
-              {availableBrands.length > 0 && (
-                <div className="relative" ref={brandRef}>
-                  <button
-                    onClick={() => setActiveDropdown(curr => curr === 'brand' ? null : 'brand')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 border rounded-md text-xs font-semibold transition-all bg-white hover:bg-slate-50 ${
-                      selBrands.length > 0
-                        ? 'border-slate-800 text-slate-900 font-bold'
-                        : 'border-slate-200 text-slate-500 hover:border-slate-300'
-                    }`}
-                  >
-                    <span>Brand {selBrands.length > 0 ? `(${selBrands.length})` : ': All'}</span>
-                    <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${activeDropdown === 'brand' ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {activeDropdown === 'brand' && (
-                    <div className="absolute left-0 mt-1.5 w-[240px] max-h-[250px] overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-xl z-30 p-3 animate-in fade-in slide-in-from-top-2 duration-150 custom-scrollbar">
-                      <ul className="space-y-1.5">
-                        {availableBrands.map(brand => (
-                          <li key={brand}>
-                            <button
-                              onClick={() => toggleBrand(brand)}
-                              className="w-full flex items-center gap-2 text-[12px] text-slate-700 hover:text-slate-900 transition-colors py-0.5"
-                            >
-                              <div className={`w-3.5 h-3.5 shrink-0 rounded border flex items-center justify-center transition-all ${
-                                selBrands.includes(brand)
-                                  ? 'bg-slate-900 border-slate-900'
-                                  : 'border-slate-300 bg-white'
-                              }`}>
-                                {selBrands.includes(brand) && <Check className="w-2 h-2 text-white" />}
-                              </div>
-                              <span className={selBrands.includes(brand) ? 'font-bold text-slate-900' : 'font-medium'}>
-                                {brand}
-                              </span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-
-            </div>
+            )}
 
             {/* Clear All Link */}
             {activeFilterCount > 0 && (
               <button
                 onClick={clearAll}
-                className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-red-500 font-bold transition-colors"
+                className="hidden md:flex items-center gap-1 text-[11px] text-slate-400 hover:text-red-500 font-bold transition-colors ml-1"
               >
-                <RotateCcw className="w-3 h-3" /> Clear Filters
+                <RotateCcw className="w-3 h-3" /> Clear
               </button>
             )}
           </div>
 
-          <ActivePills />
         </div>
+
+        {/* Active Filter Pills (if filters active) */}
+        <ActivePills />
       </div>
 
       <div className="w-full px-4 py-5 flex gap-6 items-start">

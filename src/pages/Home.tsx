@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ChevronRight, Shield, Award, Globe, Lock, Headphones, ChevronLeft,
-  Database, FlaskConical, Atom, Home as HomeIcon, Settings, Cpu, Package, Scissors, Factory, Menu, AlertCircle
+  Database, FlaskConical, Atom, Home as HomeIcon, Settings, Cpu, Package, Scissors, Factory, Menu, AlertCircle, Search, ArrowRight, Sparkles
 } from 'lucide-react';
 import { useStore, Product } from '../context/StoreContext';
 import { generateSlug } from '../lib/blogService';
 import ProductSection from '../components/home/ProductSection';
 import ProductCard from '../components/ui/ProductCard';
-import QuickSearchPills from '../components/home/QuickSearchPills';
+import SmartSearchDropdown, {
+  getRecentSearches, saveRecentSearch, removeRecentSearch
+} from '../components/ui/SmartSearchDropdown';
 
 import ProcurementSupport from '../components/home/ProcurementSupport';
 import { useSEO } from '../lib/useSEO';
@@ -184,7 +186,6 @@ const DEFAULT_HERO_SLIDES = [
     title3: 'Endless Opportunities.',
     sub: 'Source quality materials from verified suppliers worldwide and grow your business with confidence.',
     cta1Label: 'Start Sourcing', cta1To: '/search',
-    cta2Label: 'Become a Supplier', cta2To: '/contact',
   },
   {
     id: '2',
@@ -263,9 +264,7 @@ const getCategoryImage = (categoryName: string, products: Product[], categoryIma
   return fallbacks[categoryName] || 'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?q=80&w=400&auto=format&fit=crop';
 };
 
-const getCategorySub = (categoryName: string, products: Product[]) => {
-  const count = products.filter(p => p.category === categoryName).length;
-  const countStr = `${count} product${count !== 1 ? 's' : ''}`;
+const getCategorySub = (categoryName: string, _products: Product[]) => {
   const descriptions: Record<string, string> = {
     'Traffic Safety': 'Cones, lights & signs',
     'Safety Gear': 'Helmets, vests & gear',
@@ -276,13 +275,53 @@ const getCategorySub = (categoryName: string, products: Product[]) => {
     'Road Studs': 'Markers & cats eyes',
     'Bulk Offers': 'Wholesale packages',
   };
-  return `${descriptions[categoryName] || 'Industrial supplies'} • ${countStr}`;
+  return descriptions[categoryName] || 'Industrial supplies';
 };
 
 export default function Home() {
+  const navigate = useNavigate();
   const { products, categories, settings, categoryImages, categoryDetails } = useStore();
   const [activeSlide, setActiveSlide] = useState(0);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+
+  // Hero Search State
+  const [heroSearchQuery, setHeroSearchQuery] = useState('');
+  const [debouncedHeroQuery, setDebouncedHeroQuery] = useState('');
+  const [showHeroDropdown, setShowHeroDropdown] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const heroSearchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setRecentSearches(getRecentSearches());
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedHeroQuery(heroSearchQuery);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [heroSearchQuery]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (heroSearchRef.current && !heroSearchRef.current.contains(e.target as Node)) {
+        setShowHeroDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleHeroSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (heroSearchQuery.trim()) {
+      saveRecentSearch(heroSearchQuery.trim());
+      navigate(`/search?q=${encodeURIComponent(heroSearchQuery.trim())}`);
+      setShowHeroDropdown(false);
+    } else {
+      navigate('/search');
+    }
+  };
 
   useSEO({
     title: 'Industrial Supplies, Traffic Safety & Reflective Materials Supplier UAE | Al Zaydan International',
@@ -419,159 +458,352 @@ export default function Home() {
   };
 
 
+  const [activeFeaturedIndex, setActiveFeaturedIndex] = useState(0);
+
+  const heroConfig = settings?.heroConfig;
+  const featuredSlides = (heroConfig?.featuredSlides && heroConfig.featuredSlides.length > 0)
+    ? heroConfig.featuredSlides
+    : (heroConfig?.featuredImageUrl ? [{ id: 'single-featured', imageUrl: heroConfig.featuredImageUrl, linkUrl: heroConfig?.featuredImageLink || '', altText: 'Featured Hero' }] : null);
+
+  useEffect(() => {
+    if (!featuredSlides || featuredSlides.length <= 1) return;
+    const intervalTime = (heroConfig?.slideInterval || 5) * 1000;
+    const timer = setInterval(() => {
+      setActiveFeaturedIndex(prev => (prev + 1) % featuredSlides.length);
+    }, intervalTime);
+    return () => clearInterval(timer);
+  }, [featuredSlides, heroConfig?.slideInterval]);
+
+  const defaultOrbitNodes = [
+    {
+      id: 'node-1',
+      label: 'Top Left',
+      customTitle: 'Industrial Adhesives & Raw Materials',
+      customImageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=400&auto=format&fit=crop',
+      linkUrl: '/category/industrial-adhesive-tapes'
+    },
+    {
+      id: 'node-2',
+      label: 'Mid Left',
+      customTitle: 'Traffic Safety Equipment',
+      customImageUrl: 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=400&auto=format&fit=crop',
+      linkUrl: '/category/traffic-safety'
+    },
+    {
+      id: 'node-3',
+      label: 'Top Right',
+      customTitle: 'Reflective Sheeting & Safety',
+      customImageUrl: 'https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?q=80&w=400&auto=format&fit=crop',
+      linkUrl: '/category/reflectors-signage'
+    },
+    {
+      id: 'node-4',
+      label: 'Bottom Right',
+      customTitle: 'Packaging & Logistics Materials',
+      customImageUrl: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=400&auto=format&fit=crop',
+      linkUrl: '/category/packaging-materials-supplier-uae'
+    },
+  ];
+
+  const getResolvedNode = (nodeId: string, defaultDef: typeof defaultOrbitNodes[0]) => {
+    const configured = (heroConfig?.orbitNodes || []).find(n => n.id === nodeId);
+    if (!configured) return defaultDef;
+    const prod = configured.productId ? products.find(p => p.id === configured.productId) : null;
+    return {
+      title: configured.customTitle || prod?.name || defaultDef.customTitle,
+      imageUrl: configured.customImageUrl || prod?.image || defaultDef.customImageUrl,
+      linkUrl: configured.linkUrl || (prod ? `/product/${prod.slug || prod.id}` : defaultDef.linkUrl),
+    };
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#f5f7fa] font-sans">
       
-      {/* ─── SECTION 1: HERO FULL-BLEED SLIDER ─── */}
-      <section className="bg-white border-b border-gray-200">
-        <div className="max-w-[1400px] mx-auto px-6 py-4 flex gap-6">
+      {/* ─── SECTION 1: HERO (ENLARGED + AUTO-SCROLLING CATEGORIES) ─── */}
+      <section className="relative bg-[#eff1f3] border-b border-slate-200/80 z-20 py-14 sm:py-20 lg:py-24 xl:py-28 overflow-hidden">
+        {/* Dynamic Background Image Layer with Configured Opacity */}
+        {heroConfig?.bgImageUrl && (
+          <div
+            className="absolute inset-0 pointer-events-none z-0 bg-cover bg-center transition-opacity duration-700"
+            style={{
+              backgroundImage: `url(${heroConfig.bgImageUrl})`,
+              opacity: (heroConfig.bgOpacity ?? 15) / 100,
+            }}
+          />
+        )}
 
-          {/* Categories Sidebar (Desktop only) */}
-          <div 
-            className="hidden lg:block w-[240px] xl:w-[260px] border border-gray-200 rounded-lg shrink-0 h-[420px] bg-white relative"
-            onMouseLeave={() => setHoveredCategory(null)}
-          >
-            <div className="flex flex-col h-full py-2">
-              {/* Scrollable list */}
-              <div className="flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gray-200 hover:[&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent">
-                {topLevelCategories.map(catName => {
-                  const IconComponent = getCategoryIcon(catName);
-                  const hasSub = categories.some(sub => categoryDetails?.[sub]?.parentId === catName);
-                  const isHovered = hoveredCategory === catName;
-                  return (
-                    <Link
-                      key={catName}
-                      to={`/category/${categoryDetails?.[catName]?.slug || generateSlug(catName)}`}
-                      onMouseEnter={() => setHoveredCategory(catName)}
-                      className={`flex items-center justify-between px-4 py-2 text-[13px] transition-colors font-semibold ${
-                        isHovered 
-                          ? 'bg-blue-50 text-blue-600' 
-                          : 'text-gray-700 hover:bg-blue-50/50 hover:text-blue-600'
-                      }`}
-                    >
-                      <span className="flex items-center gap-3">
-                        <IconComponent className={`w-4 h-4 ${isHovered ? 'text-blue-500' : 'text-gray-400'}`} />
-                        <span className="truncate max-w-[150px]">{catName}</span>
-                      </span>
-                      {hasSub ? (
-                        <ChevronRight className={`w-3.5 h-3.5 ${isHovered ? 'text-blue-500' : 'text-gray-300'}`} />
-                      ) : null}
-                    </Link>
-                  );
-                })}
-              </div>
-              <Link
-                to="/search"
-                className="flex items-center justify-between px-4 py-2.5 text-[13px] text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors font-bold border-t border-gray-100 mt-1 shrink-0"
-              >
-                <span className="flex items-center gap-3">
-                  <Menu className="w-4 h-4 text-gray-400" />
-                  <span>All Categories</span>
-                </span>
-                <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-              </Link>
-            </div>
+        <div className="max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
 
-            {/* Subcategories Flyout Menu */}
-            {hoveredCategory && (() => {
-              const subCats = categories.filter(sub => categoryDetails?.[sub]?.parentId === hoveredCategory);
-              if (subCats.length === 0) return null;
-              return (
-                <div className="absolute left-[100%] top-0 z-20 w-[240px] xl:w-[260px] border border-gray-200 rounded-r-lg bg-white h-[420px] shadow-lg flex flex-col py-2 overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gray-200 hover:[&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent transition-all duration-150 ease-out">
-                  <div className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 mb-1.5 truncate">
-                    {hoveredCategory}
-                  </div>
-                  {subCats.map(subCat => (
-                    <Link
-                      key={subCat}
-                      to={`/category/${categoryDetails?.[subCat]?.slug || generateSlug(subCat)}`}
-                      className="flex items-center justify-between px-4 py-2 text-[13px] text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors font-semibold"
-                    >
-                      <span className="truncate max-w-[180px]">{subCat}</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
-                    </Link>
+            {/* Left Column: Typography + Floating Search Bar + Auto-scrolling Categories */}
+            <div className="lg:col-span-6 xl:col-span-7 flex flex-col justify-center relative z-30">
+              <h1 className="text-4xl sm:text-5xl lg:text-[60px] xl:text-[68px] font-black text-[#192434] tracking-tight leading-[1.08] mb-6">
+                {heroConfig?.titleLine1 !== undefined ? (
+                  <>
+                    {heroConfig.titleLine1} <br className="hidden sm:inline" />
+                    {heroConfig.titleHighlight && (
+                      <span className="text-[#0052d9]">{heroConfig.titleHighlight}</span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    Materials <br className="hidden sm:inline" />
+                    that help you <br className="hidden sm:inline" />
+                    stay <span className="text-[#0052d9]">focus</span>
+                  </>
+                )}
+              </h1>
+
+              <p className="text-slate-500 text-sm sm:text-base lg:text-[17px] leading-relaxed max-w-[500px] mb-9 font-medium">
+                {heroConfig?.description !== undefined ? heroConfig.description : 'Direct UAE & GCC wholesale supply of certified traffic safety equipment, reflective materials, industrial adhesive tapes, and packaging supplies.'}
+              </p>
+
+              {/* Floating Pill Search Bar with Dot Grid Decoration */}
+              <div className="relative inline-block w-full max-w-[580px] z-40" ref={heroSearchRef}>
+                {/* Dot Matrix Decoration */}
+                <div className="absolute -left-6 -bottom-6 w-28 h-28 grid grid-cols-6 gap-2.5 opacity-25 pointer-events-none -z-0">
+                  {Array.from({ length: 24 }).map((_, i) => (
+                    <span key={i} className="w-1.5 h-1.5 rounded-full bg-slate-400" />
                   ))}
                 </div>
-              );
-            })()}
-          </div>
 
-          {/* Hero Slider — full-bleed background image */}
-          {(() => {
-            // Always fall back to default slides — never show an empty hero
-            const slides = (settings?.heroSlides && settings.heroSlides.length > 0)
-              ? settings.heroSlides
-              : DEFAULT_HERO_SLIDES;
-            const slide = slides[activeSlide % slides.length];
-            return (
-              <div className="flex-grow relative rounded-xl overflow-hidden h-[420px]">
-                {/* Background images — preloaded stack, only active one visible */}
-                {slides.map((s, idx) => (
-                  <img
-                    key={s.id}
-                    src={s.imageUrl}
-                    alt={s.title1 || 'B2B Industrial Supplies Sourcing UAE'}
-                    title={s.title1 || 'B2B Industrial Supplies Sourcing UAE'}
-                    width="1600"
-                    height="420"
-                    fetchpriority={idx === 0 ? "high" : "auto"}
-                    loading={idx === 0 ? "eager" : "lazy"}
-                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${idx === activeSlide % slides.length ? 'opacity-100' : 'opacity-0'}`}
-                  />
-                ))}
-
-                {/* Dark gradient overlay for text readability */}
-                <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/30 to-transparent" />
-
-                {/* Text content */}
-                <div className="relative z-10 flex flex-col justify-center h-full px-8 sm:px-14 py-10 max-w-[620px]">
-                  <h2 className="text-2xl sm:text-3xl lg:text-[36px] font-bold text-white leading-tight mb-3 drop-shadow">
-                    {slide.title1 && <>{slide.title1}<br /></>}
-                    {slide.title2 && <>{slide.title2}<br /></>}
-                    {slide.title3 && <span className="text-blue-300">{slide.title3}</span>}
-                  </h2>
-                  {slide.sub && (
-                    <p className="text-[13.5px] sm:text-[14px] text-white/80 mb-6 max-w-[480px] leading-relaxed">
-                      {slide.sub}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-3">
-                    <Link
-                      to={slide.cta1To || '/search'}
-                      className="px-5 py-2.5 bg-[#0052d9] hover:bg-blue-500 text-white text-[13px] font-semibold rounded-md shadow-lg transition-all"
-                    >
-                      {slide.cta1Label || 'Start Sourcing'}
-                    </Link>
-                    <Link
-                      to={slide.cta2To || '/contact'}
-                      className="px-5 py-2.5 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white font-semibold rounded-md border border-white/30 transition-all text-[13px]"
-                    >
-                      {slide.cta2Label || 'Become a Supplier'}
-                    </Link>
+                {/* Main Pill Capsule Form */}
+                <form
+                  onSubmit={handleHeroSearch}
+                  className="relative z-10 bg-white rounded-full p-2.5 pl-6 sm:pl-8 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.12)] border border-slate-100 flex items-center justify-between gap-3 transition-shadow focus-within:shadow-[0_22px_55px_-12px_rgba(0,82,217,0.18)]"
+                >
+                  <div className="flex flex-col flex-1 min-w-0 pr-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1 select-none">
+                      Search materials or categories
+                    </label>
+                    <input
+                      type="text"
+                      data-smartsearch="true"
+                      value={heroSearchQuery}
+                      onChange={e => {
+                        setHeroSearchQuery(e.target.value);
+                        setShowHeroDropdown(true);
+                      }}
+                      onFocus={() => setShowHeroDropdown(true)}
+                      placeholder={heroConfig?.searchPlaceholder || "e.g. Reflective tape, Safety cones..."}
+                      className="w-full bg-transparent text-sm sm:text-base font-bold text-slate-800 placeholder:text-slate-300 placeholder:font-normal outline-none truncate"
+                      autoComplete="off"
+                    />
                   </div>
 
-                  {/* Slide Indicators */}
-                  <div className="flex items-center gap-2 mt-8">
-                    {slides.map((_, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setActiveSlide(idx)}
-                        className={`h-1.5 rounded-full transition-all ${idx === activeSlide % slides.length ? 'w-6 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/60'}`}
-                      />
-                    ))}
+                  <button
+                    type="submit"
+                    className="bg-[#0052d9] hover:bg-blue-700 active:bg-blue-800 text-white px-7 sm:px-9 py-3.5 rounded-full font-bold text-sm shadow-md shadow-blue-600/20 transition-all shrink-0 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 cursor-pointer"
+                  >
+                    <span>{heroConfig?.buttonText || 'Get Started'}</span>
+                  </button>
+                </form>
+
+                {/* Smart Search Dropdown popup */}
+                {showHeroDropdown && (
+                  <SmartSearchDropdown
+                    query={debouncedHeroQuery}
+                    products={products}
+                    categories={categories}
+                    focusedIndex={-1}
+                    onSelectText={(text) => {
+                      setHeroSearchQuery(text);
+                      saveRecentSearch(text);
+                      navigate(`/search?q=${encodeURIComponent(text)}`);
+                      setShowHeroDropdown(false);
+                    }}
+                    onSelectProduct={(p) => {
+                      setShowHeroDropdown(false);
+                      navigate(`/product/${p.slug || p.id}`);
+                    }}
+                    onClose={() => setShowHeroDropdown(false)}
+                    onRecentRemove={(text) => {
+                      removeRecentSearch(text);
+                      setRecentSearches(getRecentSearches());
+                    }}
+                    recentSearches={recentSearches}
+                  />
+                )}
+              </div>
+
+              {/* ── Auto-scrolling Horizontal All-Categories Strip ── */}
+              <div className="relative mt-8 w-full max-w-[580px] overflow-hidden group">
+                <div className="flex items-center gap-2.5">
+                  <span className="font-extrabold text-slate-400 uppercase tracking-wider text-[10px] shrink-0 flex items-center gap-1 pl-1 select-none">
+                    <Sparkles className="w-3 h-3 text-blue-500" />
+                    Categories:
+                  </span>
+
+                  {/* Marquee viewport with smooth edge masks */}
+                  <div className="relative flex-1 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)]">
+                    <div className="flex items-center gap-2.5 w-max animate-marquee hover:[animation-play-state:paused] py-1">
+                      {categories.concat(categories).map((catName, idx) => {
+                        const details = Object.values(categoryDetails || {}).find(c => c.name === catName);
+                        const catSlug = details?.slug || generateSlug(catName);
+                        return (
+                          <Link
+                            key={`${catName}-${idx}`}
+                            to={`/category/${catSlug}`}
+                            className="inline-flex items-center gap-1.5 bg-white/90 hover:bg-white text-slate-700 hover:text-blue-600 px-3.5 py-1.5 rounded-full text-xs font-semibold border border-slate-200/80 shadow-2xs transition-all hover:scale-105 shrink-0 whitespace-nowrap cursor-pointer"
+                          >
+                            <span>{catName}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
+              </div>
+
+            </div>
+
+            {/* Right Column: Enlarged Hero Visual with Wavy Lines & Floating Category Orbs */}
+            <div className="lg:col-span-6 xl:col-span-5 relative flex items-center justify-center min-h-[440px] lg:min-h-[520px]">
+              
+              {/* Harmonic Curved Wave Lines SVG container with local overflow control */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none -z-0">
+                <svg 
+                  className="absolute -inset-x-16 inset-y-0 w-[calc(100%+8rem)] h-full overflow-visible" 
+                  viewBox="0 0 640 480" 
+                  fill="none"
+                >
+                  <path d="M -70 130 C 150 60, 260 260, 470 140 C 560 90, 660 190, 760 130" stroke="#94a3b8" strokeWidth="2.5" strokeOpacity="0.45" strokeLinecap="round" fill="none" />
+                  <path d="M -70 175 C 150 105, 260 305, 470 185 C 560 135, 660 235, 760 175" stroke="#94a3b8" strokeWidth="2.5" strokeOpacity="0.45" strokeLinecap="round" fill="none" />
+                  <path d="M -70 220 C 150 150, 260 350, 470 230 C 560 180, 660 280, 760 220" stroke="#94a3b8" strokeWidth="2.5" strokeOpacity="0.45" strokeLinecap="round" fill="none" />
+                  <path d="M -70 265 C 150 195, 260 395, 470 275 C 560 225, 660 325, 760 265" stroke="#94a3b8" strokeWidth="2.5" strokeOpacity="0.45" strokeLinecap="round" fill="none" />
+                </svg>
+              </div>
+
+              {/* Main Specialist Portrait / Advertisements Slideshow */}
+              <div className="relative z-10 w-full max-w-[420px] sm:max-w-[460px] lg:max-w-[480px] mx-auto">
+                <div className="aspect-[4/4.3] rounded-[36px] overflow-hidden shadow-2xl bg-gradient-to-b from-slate-200/50 to-slate-300/30 border border-white/60 relative">
+                  {featuredSlides ? (
+                    featuredSlides.map((slide, idx) => {
+                      const isActive = idx === activeFeaturedIndex;
+                      const SlideContent = (
+                        <div
+                          key={slide.id}
+                          className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${isActive ? 'opacity-100 pointer-events-auto z-10' : 'opacity-0 pointer-events-none z-0'}`}
+                        >
+                          <img
+                            src={slide.imageUrl}
+                            alt={slide.altText || 'Featured Promotion'}
+                            className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-700"
+                          />
+                        </div>
+                      );
+
+                      if (slide.linkUrl) {
+                        return (
+                          <Link
+                            key={slide.id}
+                            to={slide.linkUrl}
+                            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out block ${isActive ? 'opacity-100 pointer-events-auto z-10' : 'opacity-0 pointer-events-none z-0'}`}
+                          >
+                            <img
+                              src={slide.imageUrl}
+                              alt={slide.altText || 'Featured Promotion'}
+                              className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-700"
+                            />
+                          </Link>
+                        );
+                      }
+                      return SlideContent;
+                    })
+                  ) : (
+                    <img
+                      src="/images/hero-specialist.jpg"
+                      alt="Industrial Procurement & Safety Specialist"
+                      className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-700"
+                    />
+                  )}
+                </div>
+
+                {/* ── Floating Circular Preview Orbs (Anchored around the portrait card boundary) ── */}
+
+                {/* Orb 1: Top Left */}
+                {(() => {
+                  const node = getResolvedNode('node-1', defaultOrbitNodes[0]);
+                  return (
+                    <Link
+                      to={node.linkUrl}
+                      title={node.title}
+                      className="absolute -top-5 -left-5 sm:-top-8 sm:-left-8 lg:-top-9 lg:-left-9 z-20 w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full border-[4px] border-white shadow-[0_16px_35px_rgba(0,0,0,0.2)] overflow-hidden hover:scale-115 transition-all duration-300 group bg-white ring-4 ring-slate-900/5"
+                    >
+                      <img
+                        src={node.imageUrl}
+                        alt={node.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                      <span className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                    </Link>
+                  );
+                })()}
+
+                {/* Orb 2: Mid Left */}
+                {(() => {
+                  const node = getResolvedNode('node-2', defaultOrbitNodes[1]);
+                  return (
+                    <Link
+                      to={node.linkUrl}
+                      title={node.title}
+                      className="absolute top-[40%] -left-7 sm:-left-10 lg:-left-11 z-20 w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full border-[4px] border-white shadow-[0_16px_35px_rgba(0,0,0,0.2)] overflow-hidden hover:scale-115 transition-all duration-300 group bg-white ring-4 ring-slate-900/5"
+                    >
+                      <img
+                        src={node.imageUrl}
+                        alt={node.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                      <span className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                    </Link>
+                  );
+                })()}
+
+                {/* Orb 3: Top Right */}
+                {(() => {
+                  const node = getResolvedNode('node-3', defaultOrbitNodes[2]);
+                  return (
+                    <Link
+                      to={node.linkUrl}
+                      title={node.title}
+                      className="absolute -top-5 -right-5 sm:-top-8 sm:-right-8 lg:-top-9 lg:-right-9 z-20 w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full border-[4px] border-white shadow-[0_16px_35px_rgba(0,0,0,0.2)] overflow-hidden hover:scale-115 transition-all duration-300 group bg-white ring-4 ring-slate-900/5"
+                    >
+                      <img
+                        src={node.imageUrl}
+                        alt={node.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                      <span className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                    </Link>
+                  );
+                })()}
+
+                {/* Orb 4: Bottom Right */}
+                {(() => {
+                  const node = getResolvedNode('node-4', defaultOrbitNodes[3]);
+                  return (
+                    <Link
+                      to={node.linkUrl}
+                      title={node.title}
+                      className="absolute bottom-3 -right-6 sm:bottom-5 sm:-right-10 lg:bottom-6 lg:-right-11 z-20 w-24 h-24 sm:w-30 sm:h-30 lg:w-34 lg:h-34 rounded-full border-[5px] border-white shadow-[0_20px_40px_rgba(0,0,0,0.24)] overflow-hidden hover:scale-115 transition-all duration-300 group bg-white ring-4 ring-slate-900/5"
+                    >
+                      <img
+                        src={node.imageUrl}
+                        alt={node.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                      <span className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                    </Link>
+                  );
+                })()}
 
               </div>
-            );
-          })()}
 
+            </div>
+
+          </div>
         </div>
       </section>
-
-
-      {/* ─── QUICK SEARCH PILLS ─── */}
-      <QuickSearchPills />
 
       {/* ─── SECTION 2: TRUST BADGES BAR ─── */}
       <section className="bg-white border-b border-gray-200">

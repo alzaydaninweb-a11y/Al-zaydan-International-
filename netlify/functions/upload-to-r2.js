@@ -23,11 +23,14 @@ const getAllowedOrigin = (event) => {
   const allowedOrigins = [
     'https://www.alzaydaninternational.com',
     'https://alzaydaninternational.com',
-    'http://localhost:3000',
-    'http://localhost:8888'
+    'https://alzaydan.com',
   ];
 
   if (allowedOrigins.includes(origin)) {
+    return origin;
+  }
+
+  if (/^http:\/\/localhost(:\d+)?$/i.test(origin) || /^http:\/\/127\.0\.0\.1(:\d+)?$/i.test(origin)) {
     return origin;
   }
 

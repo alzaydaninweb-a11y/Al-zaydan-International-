@@ -157,6 +157,31 @@ export type GeneralSettings = {
     phone: string;
     email: string;
   };
+  // Modern Hero Section Configuration
+  heroConfig?: {
+    bgImageUrl?: string;
+    bgOpacity?: number; // 0 - 100
+    titleLine1?: string;
+    titleHighlight?: string;
+    description?: string;
+    searchPlaceholder?: string;
+    buttonText?: string;
+    featuredSlides?: {
+      id: string;
+      imageUrl: string;
+      linkUrl?: string;
+      altText?: string;
+    }[];
+    slideInterval?: number;
+    orbitNodes?: {
+      id: string;
+      label: string;
+      productId?: string;
+      customTitle?: string;
+      customImageUrl?: string;
+      linkUrl?: string;
+    }[];
+  };
   // Marketing Campaign Popup
   marketingCampaign?: {
     active: boolean;
@@ -474,6 +499,7 @@ interface StoreContextType extends StoreState {
   addCategory: (name: string, parentId?: string | null) => Promise<void>;
   updateCategory: (oldName: string, newName: string) => Promise<void>;
   deleteCategory: (name: string) => Promise<void>;
+  reorderCategories: (newOrder: string[]) => Promise<void>;
   updateCategoryImage: (name: string, imageUrl: string) => Promise<void>;
   updateCategoryDetails: (name: string, details: Partial<CategoryDetails>) => Promise<void>;
   toggleFeatured: (id: string) => Promise<void>;
@@ -613,6 +639,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     await saveCategoryList(state.categories.filter(c => c !== name), newImages, newDetails);
   };
 
+  const reorderCategories = async (newOrder: string[]) => {
+    saveCategoriesCache(newOrder, state.categoryImages, state.categoryDetails);
+    setState({ categories: newOrder });
+    await saveCategoryList(newOrder, state.categoryImages, state.categoryDetails);
+  };
+
   const updateCategoryImage = async (name: string, imageUrl: string) => {
     const newImages = { ...state.categoryImages, [name]: imageUrl };
     await saveCategoryList(state.categories, newImages, state.categoryDetails);
@@ -744,7 +776,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       value={{
         ...snap,
         addProduct, updateProduct, deleteProduct,
-        addCategory, updateCategory, deleteCategory, updateCategoryImage,
+        addCategory, updateCategory, deleteCategory, reorderCategories, updateCategoryImage,
         updateCategoryDetails,
         toggleFeatured, toggleTopSelling,
         addVideo, updateVideo, deleteVideo,

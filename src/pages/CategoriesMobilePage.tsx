@@ -1,7 +1,6 @@
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Grid } from 'lucide-react';
-import { useStore, Product } from '../context/StoreContext';
+import React from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useStore } from '../context/StoreContext';
 import { useSEO } from '../lib/useSEO';
 import { generateSlug } from '../lib/blogService';
 
@@ -15,15 +14,17 @@ export default function CategoriesMobilePage() {
   });
 
   return (
-    <div className="flex-1 bg-gray-50 min-h-[calc(100vh-140px)]">
-      <div className="bg-white border-b border-gray-200 px-4 py-4 sm:py-6 shadow-sm sticky top-0 z-10">
-        <div className="max-w-[1400px] mx-auto flex items-center gap-2">
-          <Grid className="w-5 h-5 sm:w-6 sm:h-6 text-[#0052d9]" />
-          <h1 className="text-lg sm:text-2xl font-extrabold text-gray-900 tracking-tight">All Categories</h1>
+    <div className="flex-1 bg-slate-50 min-h-[calc(100vh-140px)]">
+      {/* Minimal Left-Oriented Breadcrumb Header */}
+      <div className="w-full bg-white border-b border-slate-200 px-4 py-2.5 shadow-2xs sticky top-0 md:top-[60px] z-10">
+        <div className="w-full flex items-center text-[13px] text-slate-500 font-medium">
+          <Link to="/" className="hover:text-slate-900 transition-colors">Home</Link>
+          <span className="mx-1.5 text-slate-300">/</span>
+          <span className="text-slate-900 font-bold">All Categories</span>
         </div>
       </div>
       
-      <div className="p-4 sm:p-6 lg:p-8 pb-12 max-w-[1400px] mx-auto">
+      <div className="w-full px-4 py-6 pb-16">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10">
           {categories.map((cat, i) => {
             // Get product count and fallback images if no uploaded image exists
@@ -68,9 +69,6 @@ export default function CategoriesMobilePage() {
                   <h3 className="text-[14px] font-bold text-gray-900 leading-tight group-hover:text-[#0052d9] transition-colors truncate">
                     {cat}
                   </h3>
-                  <p className="text-[12px] text-gray-400 mt-0.5 leading-snug truncate">
-                    {countStr}
-                  </p>
                 </div>
               </button>
             );
