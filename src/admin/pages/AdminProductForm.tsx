@@ -15,6 +15,14 @@ const EMPTY_FORM = {
   specifications: [] as { key: string; value: string }[],
   inStock: true, featured: false, topSelling: false,
   priceType: 'fixed' as 'fixed' | 'range' | 'hidden' | 'tiered',
+  priceTable: {
+    columns: ['Quantity', 'Unit Price (AED)', 'Discount', 'Lead Time'],
+    rows: [
+      { id: '1', values: { 'Quantity': '1 - 49 units', 'Unit Price (AED)': '10.00', 'Discount': 'Standard', 'Lead Time': '2 Days' }, price: 10, isCardDisplayPrice: true },
+      { id: '2', values: { 'Quantity': '50 - 199 units', 'Unit Price (AED)': '8.50', 'Discount': '15% OFF', 'Lead Time': '3 Days' }, price: 8.5, isCardDisplayPrice: false },
+      { id: '3', values: { 'Quantity': '200+ units', 'Unit Price (AED)': '7.00', 'Discount': '30% OFF', 'Lead Time': '5 Days' }, price: 7, isCardDisplayPrice: false },
+    ],
+  },
   priceTiers: [] as PriceTier[],
   priceMin: '', priceMax: '',
   moq: '', leadTime: '', shippingRegion: '', badge: '',
@@ -64,6 +72,21 @@ export default function AdminProductForm() {
         featured: existingProduct.featured || false,
         topSelling: existingProduct.topSelling || false,
         priceType: existingProduct.priceType || 'fixed',
+        priceTable: existingProduct.priceTable || (
+          existingProduct.priceTiers && existingProduct.priceTiers.length > 0 ? {
+            columns: ['Quantity Range', 'Unit Price (AED)', 'Discount'],
+            rows: existingProduct.priceTiers.map((t, idx) => ({
+              id: String(idx + 1),
+              values: {
+                'Quantity Range': `${t.minQty}${t.maxQty ? ` – ${t.maxQty}` : '+'} units`,
+                'Unit Price (AED)': String(t.price),
+                'Discount': t.discount ? `${t.discount}% OFF` : 'Standard'
+              },
+              price: t.price,
+              isCardDisplayPrice: !!t.isCardDisplayPrice
+            }))
+          } : EMPTY_FORM.priceTable
+        ),
         priceTiers: existingProduct.priceTiers || [],
         priceMin: String(existingProduct.priceMin ?? ''),
         priceMax: String(existingProduct.priceMax ?? ''),
@@ -368,102 +391,194 @@ export default function AdminProductForm() {
   const [showQuickTierModal, setShowQuickTierModal] = useState(false);
   const [quickTierText, setQuickTierText] = useState('');
 
-  const addPriceTierRow = () => {
-    const current = form.priceTiers || [];
-    const lastTier = current[current.length - 1];
-    const newMin = lastTier ? (lastTier.maxQty ? lastTier.maxQty + 1 : lastTier.minQty + 50) : 1;
-    const newTier: PriceTier = {
-      minQty: newMin,
-      maxQty: null,
-      price: lastTier ? Math.max(1, parseFloat((lastTier.price * 0.9).toFixed(2))) : 10,
-      discount: lastTier ? (lastTier.discount ? lastTier.discount + 5 : 5) : undefined,
-      isCardDisplayPrice: current.length === 0,
-    };
-    set('priceTiers', [...current, newTier]);
-  };
-
-  const updatePriceTierRow = (index: number, field: keyof PriceTier, val: any) => {
-    const next = [...(form.priceTiers || [])];
-    next[index] = { ...next[index], [field]: val };
-    
-    // Auto-calculate discount relative to tier 0 if price changed
-    if (field === 'price' && index > 0 && next[0]?.price > 0) {
-      const basePrice = next[0].price;
-      const thisPrice = parseFloat(val) || 0;
-      if (basePrice > thisPrice && thisPrice > 0) {
-        next[index].discount = Math.round(((basePrice - thisPrice) / basePrice) * 100);
-      }
-    }
-    set('priceTiers', next);
-  };
-
-  const removePriceTierRow = (index: number) => {
-    const current = form.priceTiers || [];
-    const removedWasSelected = current[index]?.isCardDisplayPrice;
-    const next = current.filter((_, i) => i !== index);
-    if (removedWasSelected && next.length > 0) {
-      next[0].isCardDisplayPrice = true;
-    }
-    set('priceTiers', next);
-  };
-
-  const setCardDisplayTier = (index: number) => {
-    const next = (form.priceTiers || []).map((t, i) => ({
-      ...t,
-      isCardDisplayPrice: i === index,
+  // ── Dynamic Custom Price Table Handlers ──
+  const addPriceTableColumn = () => {
+    const table = form.priceTable || { columns: [], rows: [] };
+    const newColName = `Column ${table.columns.length + 1}`;
+    const newColumns = [...table.columns, newColName];
+    const newRows = table.rows.map(r => ({
+      ...r,
+      values: { ...r.values, [newColName]: '' }
     }));
-    set('priceTiers', next);
+    set('priceTable', { columns: newColumns, rows: newRows });
   };
 
-  const parseTieredText = (rawText: string) => {
-    const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
-    const parsedTiers: PriceTier[] = [];
+  const renamePriceTableColumn = (oldName: string, newName: string) => {
+    if (!newName.trim() || oldName === newName) return;
+    const table = form.priceTable || { columns: [], rows: [] };
+    const newColumns = table.columns.map(c => c === oldName ? newName.trim() : c);
+    const newRows = table.rows.map(r => {
+      const newValues: Record<string, string> = {};
+      Object.keys(r.values).forEach(k => {
+        newValues[k === oldName ? newName.trim() : k] = r.values[k];
+      });
+      return { ...r, values: newValues };
+    });
+    set('priceTable', { columns: newColumns, rows: newRows });
+  };
 
-    for (const line of lines) {
-      // Matches: "1 - 50: 10.00" or "1 to 50 = AED 10" or "1-50, 10"
-      const rangeMatch = line.match(/^(\d+)\s*(?:-|–|—|to|,)\s*(\d+)\s*[:=,@\s]*\s*(?:AED|aed)?\s*(\d+(?:\.\d+)?)/i);
-      // Matches: "500+: 5.00" or "500 and above = 5" or "500+, 5" or "500 = 5"
-      const openMatch = line.match(/^(\d+)\s*(?:\+|and above|and more|plus)?\s*[:=,@\s]*\s*(?:AED|aed)?\s*(\d+(?:\.\d+)?)/i);
-
-      if (rangeMatch) {
-        const minQty = parseInt(rangeMatch[1], 10);
-        const maxQty = parseInt(rangeMatch[2], 10);
-        const price = parseFloat(rangeMatch[3]);
-        if (!isNaN(minQty) && !isNaN(maxQty) && !isNaN(price)) {
-          parsedTiers.push({ minQty, maxQty, price, isCardDisplayPrice: false });
-        }
-      } else if (openMatch) {
-        const minQty = parseInt(openMatch[1], 10);
-        const price = parseFloat(openMatch[2]);
-        if (!isNaN(minQty) && !isNaN(price)) {
-          parsedTiers.push({ minQty, maxQty: null, price, isCardDisplayPrice: false });
-        }
-      }
+  const removePriceTableColumn = (colName: string) => {
+    const table = form.priceTable || { columns: [], rows: [] };
+    if (table.columns.length <= 1) {
+      alert('You must have at least one column.');
+      return;
     }
+    const newColumns = table.columns.filter(c => c !== colName);
+    const newRows = table.rows.map(r => {
+      const newValues = { ...r.values };
+      delete newValues[colName];
+      return { ...r, values: newValues };
+    });
+    set('priceTable', { columns: newColumns, rows: newRows });
+  };
 
-    if (parsedTiers.length === 0) {
-      alert('Could not parse any valid tiers. Please ensure format is like:\n1 - 50: 10.00\n51 - 200: 8.50\n201+: 5.00');
+  const addPriceTableRow = () => {
+    const table = form.priceTable || { columns: ['Quantity Range', 'Unit Price (AED)'], rows: [] };
+    const newRowId = Math.random().toString(36).substring(2, 9);
+    const initialValues: Record<string, string> = {};
+    table.columns.forEach(c => {
+      initialValues[c] = '';
+    });
+    const newRow = {
+      id: newRowId,
+      values: initialValues,
+      price: 0,
+      isCardDisplayPrice: table.rows.length === 0,
+    };
+    set('priceTable', { ...table, rows: [...table.rows, newRow] });
+  };
+
+  const updatePriceTableRowValue = (rowId: string, colName: string, value: string) => {
+    const table = form.priceTable || { columns: [], rows: [] };
+    const newRows = table.rows.map(r => {
+      if (r.id !== rowId) return r;
+      const updatedValues = { ...r.values, [colName]: value };
+      
+      // Auto-detect numeric price if column name has 'price' or 'aed'
+      let updatedPrice = r.price;
+      if (/price|aed|rate|cost/i.test(colName)) {
+        const num = parseFloat(value.replace(/[^0-9.]/g, ''));
+        if (!isNaN(num) && num > 0) updatedPrice = num;
+      }
+      return { ...r, values: updatedValues, price: updatedPrice };
+    });
+    set('priceTable', { ...table, rows: newRows });
+  };
+
+  const updatePriceTableRowPrice = (rowId: string, price: number) => {
+    const table = form.priceTable || { columns: [], rows: [] };
+    const newRows = table.rows.map(r => r.id === rowId ? { ...r, price } : r);
+    set('priceTable', { ...table, rows: newRows });
+  };
+
+  const removePriceTableRow = (rowId: string) => {
+    const table = form.priceTable || { columns: [], rows: [] };
+    const wasDisplay = table.rows.find(r => r.id === rowId)?.isCardDisplayPrice;
+    const newRows = table.rows.filter(r => r.id !== rowId);
+    if (wasDisplay && newRows.length > 0) {
+      newRows[0].isCardDisplayPrice = true;
+    }
+    set('priceTable', { ...table, rows: newRows });
+  };
+
+  const setCardDisplayRow = (rowId: string) => {
+    const table = form.priceTable || { columns: [], rows: [] };
+    const newRows = table.rows.map(r => ({
+      ...r,
+      isCardDisplayPrice: r.id === rowId,
+    }));
+    set('priceTable', { ...table, rows: newRows });
+  };
+
+  // Structured Prompt/Table Parser: Creates both dynamic Columns & dynamic Rows from text
+  const parsePromptTableText = (rawText: string) => {
+    const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) {
+      alert('Please enter or paste your table text.');
       return;
     }
 
-    // Sort by minQty ascending
-    parsedTiers.sort((a, b) => a.minQty - b.minQty);
+    // Filter out markdown divider lines like |---|---|
+    const cleanLines = lines.filter(l => !/^[|\s-:]+$/.test(l));
+    if (cleanLines.length === 0) return;
 
-    // Calculate discounts relative to base tier
-    const basePrice = parsedTiers[0].price;
-    const tiersWithDiscount = parsedTiers.map((t, idx) => {
-      let discount = 0;
-      if (basePrice > t.price && basePrice > 0) {
-        discount = Math.round(((basePrice - t.price) / basePrice) * 100);
+    // Helper to split a line by delimiters (pipe, tab, comma, semicolon, colon)
+    const splitLine = (line: string): string[] => {
+      let trimmed = line;
+      if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+        trimmed = trimmed.slice(1, -1);
       }
-      return {
-        ...t,
-        discount: discount > 0 ? discount : undefined,
+      if (trimmed.includes('|')) {
+        return trimmed.split('|').map(s => s.trim());
+      }
+      if (trimmed.includes('\t')) {
+        return trimmed.split('\t').map(s => s.trim());
+      }
+      if (trimmed.includes(';') && !trimmed.includes(',')) {
+        return trimmed.split(';').map(s => s.trim());
+      }
+      if (trimmed.includes(',')) {
+        return trimmed.split(',').map(s => s.trim());
+      }
+      return [trimmed];
+    };
+
+    let headerLine = cleanLines[0];
+    let rowLines = cleanLines.slice(1);
+
+    // If first line starts with "Columns:" or "Header:", strip it
+    if (/^columns?:/i.test(headerLine)) {
+      headerLine = headerLine.replace(/^columns?:/i, '').trim();
+    }
+
+    let columns = splitLine(headerLine).filter(Boolean);
+    if (columns.length === 0) {
+      columns = ['Quantity Range', 'Unit Price (AED)', 'Details'];
+    }
+
+    const rows: Array<{ id: string; values: Record<string, string>; price?: number; isCardDisplayPrice?: boolean }> = [];
+
+    rowLines.forEach((line, idx) => {
+      const cells = splitLine(line);
+      const values: Record<string, string> = {};
+      let rowPrice: number | undefined = undefined;
+
+      columns.forEach((col, cIdx) => {
+        const val = cells[cIdx] !== undefined ? cells[cIdx] : '';
+        values[col] = val;
+
+        // Detect price if column name mentions price or value has numeric amount
+        if (/price|aed|cost|rate/i.test(col) && rowPrice === undefined) {
+          const num = parseFloat(val.replace(/[^0-9.]/g, ''));
+          if (!isNaN(num) && num > 0) rowPrice = num;
+        }
+      });
+
+      // If price was not found in a designated price column, check all values
+      if (rowPrice === undefined) {
+        for (const val of Object.values(values)) {
+          const num = parseFloat(val.replace(/[^0-9.]/g, ''));
+          if (!isNaN(num) && num > 0) {
+            rowPrice = num;
+            break;
+          }
+        }
+      }
+
+      rows.push({
+        id: String(idx + 1),
+        values,
+        price: rowPrice || 0,
         isCardDisplayPrice: idx === 0,
-      };
+      });
     });
 
-    set('priceTiers', tiersWithDiscount);
+    if (rows.length === 0) {
+      alert('Could not parse rows from input. Please check the format.');
+      return;
+    }
+
+    set('priceTable', { columns, rows });
     setShowQuickTierModal(false);
     setQuickTierText('');
   };
@@ -482,13 +597,8 @@ export default function AdminProductForm() {
       if (Number(form.priceMin) >= Number(form.priceMax)) e.priceMax = 'Max price must be greater than min price';
     }
     if (form.priceType === 'tiered') {
-      if (!form.priceTiers || form.priceTiers.length === 0) {
-        e.priceTiers = 'At least one pricing tier is required in the Price Table';
-      } else {
-        const invalidTier = form.priceTiers.some(t => isNaN(t.minQty) || t.minQty <= 0 || isNaN(t.price) || t.price <= 0);
-        if (invalidTier) {
-          e.priceTiers = 'All tiers must have valid Min Quantity and Unit Price';
-        }
+      if (!form.priceTable?.rows || form.priceTable.rows.length === 0) {
+        e.priceTiers = 'At least one row is required in the Price Table';
       }
     }
     if (!mediaUrls.length) e.image = 'At least one product image is required';
@@ -577,11 +687,10 @@ export default function AdminProductForm() {
       computedPrice = parseFloat(form.priceMin) || 0;
       computedMrp = parseFloat(form.priceMax) || 0;
     } else if (form.priceType === 'tiered') {
-      const displayTier = form.priceTiers.find(t => t.isCardDisplayPrice) || form.priceTiers[0];
-      computedPrice = displayTier ? displayTier.price : 0;
-      const baseTier = form.priceTiers[0];
-      computedMrp = baseTier ? baseTier.price : computedPrice;
-      computedDiscount = displayTier?.discount || 0;
+      const displayRow = form.priceTable?.rows?.find(r => r.isCardDisplayPrice) || form.priceTable?.rows?.[0];
+      computedPrice = displayRow?.price || parseFloat(form.price) || 0;
+      computedMrp = computedPrice;
+      computedDiscount = 0;
     }
 
     const productData: Omit<Product, 'id'> = {
@@ -601,6 +710,7 @@ export default function AdminProductForm() {
       topSelling: form.topSelling,
       description: form.description.trim(),
       priceType: form.priceType,
+      priceTable: form.priceType === 'tiered' ? form.priceTable : undefined,
       priceTiers: form.priceType === 'tiered' ? form.priceTiers : undefined,
       priceMin: form.priceType === 'range' ? parseFloat(form.priceMin) : undefined,
       priceMax: form.priceType === 'range' ? parseFloat(form.priceMax) : undefined,
@@ -1054,38 +1164,48 @@ export default function AdminProductForm() {
                     </div>
                   )}
 
-                  {/* 🆕 4th Option: Price Table (Volume / Tiered Bulk Pricing) */}
+                  {/* 🆕 4th Option: Dynamic Custom Columns Price Table */}
                   {form.priceType === 'tiered' && (
                     <div className="space-y-4">
+                      {/* Top Banner with Action Buttons */}
                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-100 rounded-xl p-3.5">
                         <div>
                           <h3 className="text-xs font-extrabold text-blue-950 uppercase tracking-wider flex items-center gap-1.5">
                             <Table className="w-3.5 h-3.5 text-blue-600" />
-                            Quantity-Based Pricing Table
+                            Custom Dynamic Price Table
                           </h3>
                           <p className="text-[11px] text-slate-600 mt-0.5">
-                            Select the radio button on any row to choose which price appears on product cards across the store.
+                            Add, edit, or delete any columns & rows. You can type column names directly in the header!
                           </p>
                         </div>
-                        <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0">
+                        <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0 flex-wrap">
                           {/* Sparkle Quick Rule-Based Parser */}
                           <button
                             type="button"
                             onClick={() => setShowQuickTierModal(true)}
                             className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-white border border-blue-200 hover:border-blue-400 text-blue-700 hover:text-blue-800 text-xs font-bold px-3 py-1.5 rounded-lg shadow-2xs transition-all cursor-pointer"
-                            title="Quick Rule-Based Paste"
+                            title="Generate entire table with custom columns via Prompt or Text"
                           >
                             <Sparkles className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
-                            <span>✨ Smart Fill / Paste</span>
+                            <span>✨ Prompt / Smart Fill</span>
                           </button>
 
                           <button
                             type="button"
-                            onClick={addPriceTierRow}
-                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-[#0052d9] hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-2xs transition-all cursor-pointer"
+                            onClick={addPriceTableColumn}
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-white border border-slate-300 hover:border-slate-400 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg shadow-2xs transition-all cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5 text-slate-500" />
+                            <span>Add Column</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={addPriceTableRow}
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-[#0052d9] hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-2xs transition-all cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" />
-                            <span>Add Tier</span>
+                            <span>Add Row</span>
                           </button>
                         </div>
                       </div>
@@ -1096,111 +1216,98 @@ export default function AdminProductForm() {
                         </p>
                       )}
 
-                      {/* Tiers Table */}
-                      <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                      {/* Dynamic Columns & Rows Table */}
+                      <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs bg-white">
                         <div className="overflow-x-auto">
-                          <table className="w-full text-left text-xs">
-                            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider text-[10px]">
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead className="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-extrabold uppercase tracking-wider text-[10px]">
                               <tr>
-                                <th className="p-3 w-12 text-center" title="Mark which tier price shows on product cards">
+                                <th className="p-3 w-14 text-center border-r border-slate-200/80 bg-slate-100" title="Select which row's price is displayed on product cards">
                                   Card Price
                                 </th>
-                                <th className="p-3">Min Qty</th>
-                                <th className="p-3">Max Qty (Empty for +)</th>
-                                <th className="p-3">Unit Price (AED)</th>
-                                <th className="p-3">Discount / Savings</th>
+                                
+                                {/* Dynamic Editable Columns */}
+                                {(form.priceTable?.columns || []).map((colName, cIdx) => (
+                                  <th key={cIdx} className="p-2 border-r border-slate-200/80 min-w-[140px]">
+                                    <div className="flex items-center gap-1">
+                                      <input
+                                        type="text"
+                                        value={colName}
+                                        onChange={e => renamePriceTableColumn(colName, e.target.value)}
+                                        placeholder={`Column ${cIdx + 1}`}
+                                        className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-xs font-extrabold text-slate-800 focus:border-blue-500 outline-none"
+                                      />
+                                      {(form.priceTable?.columns || []).length > 1 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => removePriceTableColumn(colName)}
+                                          className="p-1 text-slate-400 hover:text-red-600 rounded transition-colors"
+                                          title={`Delete ${colName} column`}
+                                        >
+                                          <X className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </th>
+                                ))}
+
+                                <th className="p-3 w-32 border-r border-slate-200/80 text-center" title="Numeric price for cart & calculations">
+                                  Price (AED)
+                                </th>
                                 <th className="p-3 w-12 text-center">Action</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                              {(form.priceTiers || []).map((tier, idx) => (
-                                <tr key={idx} className={tier.isCardDisplayPrice ? 'bg-blue-50/40' : 'hover:bg-slate-50/60'}>
+                              {(form.priceTable?.rows || []).map((row, rIdx) => (
+                                <tr key={row.id || rIdx} className={row.isCardDisplayPrice ? 'bg-blue-50/50' : 'hover:bg-slate-50/70'}>
                                   {/* Radio to choose card display price */}
-                                  <td className="p-3 text-center">
+                                  <td className="p-3 text-center border-r border-slate-100">
                                     <input
                                       type="radio"
                                       name="cardDisplayPriceRadio"
-                                      checked={!!tier.isCardDisplayPrice}
-                                      onChange={() => setCardDisplayTier(idx)}
+                                      checked={!!row.isCardDisplayPrice}
+                                      onChange={() => setCardDisplayRow(row.id)}
                                       className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                      title="Show this tier price on product cards"
+                                      title="Show this row's price on product cards"
                                     />
                                   </td>
 
-                                  {/* Min Qty */}
-                                  <td className="p-3">
-                                    <input
-                                      type="number"
-                                      min="1"
-                                      value={tier.minQty ?? ''}
-                                      onChange={e => updatePriceTierRow(idx, 'minQty', parseInt(e.target.value) || 0)}
-                                      placeholder="1"
-                                      className="w-24 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:border-blue-500 outline-none bg-white"
-                                    />
-                                  </td>
-
-                                  {/* Max Qty */}
-                                  <td className="p-3">
-                                    <div className="flex items-center gap-1.5">
+                                  {/* Dynamic Cells for each column */}
+                                  {(form.priceTable?.columns || []).map((colName, cIdx) => (
+                                    <td key={cIdx} className="p-2 border-r border-slate-100">
                                       <input
-                                        type="number"
-                                        min={tier.minQty ? tier.minQty + 1 : 1}
-                                        value={tier.maxQty ?? ''}
-                                        onChange={e => updatePriceTierRow(idx, 'maxQty', e.target.value ? parseInt(e.target.value) : null)}
-                                        placeholder="Leave empty for +"
-                                        className="w-32 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:border-blue-500 outline-none bg-white"
+                                        type="text"
+                                        value={row.values?.[colName] ?? ''}
+                                        onChange={e => updatePriceTableRowValue(row.id, colName, e.target.value)}
+                                        placeholder={`Enter ${colName}...`}
+                                        className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:border-blue-500 outline-none bg-white text-slate-800"
                                       />
-                                      {tier.maxQty == null && (
-                                        <span className="text-[11px] font-bold text-blue-600 bg-blue-100/70 px-1.5 py-0.5 rounded">
-                                          {tier.minQty}+
-                                        </span>
-                                      )}
-                                    </div>
-                                  </td>
+                                    </td>
+                                  ))}
 
-                                  {/* Unit Price */}
-                                  <td className="p-3">
+                                  {/* Numeric price for calculation / cart */}
+                                  <td className="p-2 border-r border-slate-100">
                                     <div className="flex items-center gap-1">
-                                      <span className="text-slate-400 font-bold text-[11px]">AED</span>
+                                      <span className="text-slate-400 font-bold text-[10px]">AED</span>
                                       <input
                                         type="number"
                                         min="0"
                                         step="0.01"
-                                        value={tier.price ?? ''}
-                                        onChange={e => updatePriceTierRow(idx, 'price', parseFloat(e.target.value) || 0)}
+                                        value={row.price ?? ''}
+                                        onChange={e => updatePriceTableRowPrice(row.id, parseFloat(e.target.value) || 0)}
                                         placeholder="0.00"
-                                        className="w-28 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:border-blue-500 outline-none bg-white"
+                                        className="w-20 border border-gray-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-900 focus:border-blue-500 outline-none bg-white"
                                       />
                                     </div>
                                   </td>
 
-                                  {/* Discount / Savings */}
-                                  <td className="p-3">
-                                    <div className="flex items-center gap-1.5">
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        value={tier.discount ?? ''}
-                                        onChange={e => updatePriceTierRow(idx, 'discount', e.target.value ? parseInt(e.target.value) : undefined)}
-                                        placeholder="Auto %"
-                                        className="w-20 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:border-blue-500 outline-none bg-white"
-                                      />
-                                      {tier.discount && tier.discount > 0 ? (
-                                        <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded whitespace-nowrap">
-                                          {tier.discount}% OFF
-                                        </span>
-                                      ) : null}
-                                    </div>
-                                  </td>
-
-                                  {/* Delete Tier */}
-                                  <td className="p-3 text-center">
+                                  {/* Delete Row */}
+                                  <td className="p-2 text-center">
                                     <button
                                       type="button"
-                                      onClick={() => removePriceTierRow(idx)}
+                                      onClick={() => removePriceTableRow(row.id)}
                                       className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                                      title="Remove Tier"
+                                      title="Remove Row"
                                     >
                                       <Trash2 className="w-4 h-4" />
                                     </button>
@@ -1213,16 +1320,16 @@ export default function AdminProductForm() {
                       </div>
 
                       {/* Storefront Card Preview Notice */}
-                      {form.priceTiers && form.priceTiers.length > 0 && (
+                      {form.priceTable?.rows && form.priceTable.rows.length > 0 && (
                         <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center justify-between gap-3 text-xs">
                           <div className="flex items-center gap-2">
                             <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
                             <span className="text-slate-700">
                               Selected Card Display Price:{' '}
                               <strong className="text-blue-700 font-extrabold">
-                                AED {(form.priceTiers.find(t => t.isCardDisplayPrice) || form.priceTiers[0])?.price?.toFixed(2) || '0.00'}
+                                AED {(form.priceTable.rows.find(r => r.isCardDisplayPrice) || form.priceTable.rows[0])?.price?.toFixed(2) || '0.00'}
                               </strong>
-                              {' '}(Tiers: {form.priceTiers.length} bulk levels)
+                              {' '}(Table: {form.priceTable.columns.length} columns × {form.priceTable.rows.length} rows)
                             </span>
                           </div>
                           <span className="text-[11px] font-semibold text-blue-600 bg-white border border-blue-200 px-2.5 py-1 rounded-md">
@@ -1244,10 +1351,10 @@ export default function AdminProductForm() {
                   )}
                 </div>
 
-                {/* ⚡ Quick Paste / Smart Fill Rule-Based Modal */}
+                {/* ⚡ Quick-Fill / Prompt-Based Table Generator Modal */}
                 {showQuickTierModal && (
                   <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                       
                       {/* Modal Header */}
                       <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
@@ -1256,8 +1363,8 @@ export default function AdminProductForm() {
                             <Sparkles className="w-4 h-4" />
                           </div>
                           <div>
-                            <h3 className="text-sm font-extrabold text-slate-900">Quick-Paste Price Table (Rule-Based)</h3>
-                            <p className="text-[11px] text-slate-500">Paste your raw tier lines to generate the table instantly.</p>
+                            <h3 className="text-sm font-extrabold text-slate-900">Prompt / Smart Table Generator</h3>
+                            <p className="text-[11px] text-slate-500">Paste your structured text to create both columns and rows automatically.</p>
                           </div>
                         </div>
                         <button
@@ -1273,13 +1380,13 @@ export default function AdminProductForm() {
                       <div className="p-5 space-y-4">
                         <div>
                           <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                            Paste Pricing Tiers
+                            Prompt / Table Text (Line 1 = Column Names, Lines 2+ = Data Rows)
                           </label>
                           <textarea
-                            rows={6}
+                            rows={7}
                             value={quickTierText}
                             onChange={e => setQuickTierText(e.target.value)}
-                            placeholder={`1 - 49: 10.00\n50 - 199: 8.50\n200 - 499: 7.00\n500+: 5.00`}
+                            placeholder={`Quantity | Unit Price (AED) | Packaging | Lead Time\n1 - 49 units | 12.00 | Box of 20 | 2 Days\n50 - 199 units | 9.50 | Carton | 3 Days\n200+ units | 7.00 | Pallet | 5 Days`}
                             className="w-full border border-gray-300 rounded-xl p-3 text-xs font-mono focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-slate-50 leading-relaxed"
                           />
                         </div>
@@ -1290,27 +1397,32 @@ export default function AdminProductForm() {
                             <HelpCircle className="w-3.5 h-3.5 text-blue-600" />
                             Supported formats:
                           </p>
-                          <ul className="text-[11px] text-slate-600 space-y-0.5 list-disc list-inside">
-                            <li><code className="bg-white px-1 rounded border border-blue-100">1 - 50: 10.00</code></li>
-                            <li><code className="bg-white px-1 rounded border border-blue-100">51 to 200 = AED 8.50</code></li>
-                            <li><code className="bg-white px-1 rounded border border-blue-100">201+, 5.00</code></li>
-                          </ul>
+                          <p className="text-[11px] text-slate-600 mb-2">
+                            The first line sets the exact column names separated by <code className="bg-white px-1 rounded border border-blue-100">|</code> or <code className="bg-white px-1 rounded border border-blue-100">,</code> or <code className="bg-white px-1 rounded border border-blue-100">Tab</code>. All following lines become rows.
+                          </p>
 
-                          <div className="mt-3 pt-2.5 border-t border-blue-100/80 flex items-center gap-2 flex-wrap">
-                            <span className="text-[10px] font-bold text-blue-700 uppercase">Load Samples:</span>
+                          <div className="mt-2 pt-2 border-t border-blue-100/80 flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] font-bold text-blue-700 uppercase">Load Templates:</span>
                             <button
                               type="button"
-                              onClick={() => setQuickTierText(`1 - 49: 12.00\n50 - 199: 9.50\n200 - 499: 7.50\n500+: 5.00`)}
+                              onClick={() => setQuickTierText(`Quantity | Unit Price (AED) | Packaging | Lead Time\n1 - 49 units | 12.00 | Box of 20 | 2 Days\n50 - 199 units | 9.50 | Carton | 3 Days\n200+ units | 7.00 | Pallet | 5 Days`)}
                               className="text-[11px] bg-white border border-blue-200 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-50 font-medium cursor-pointer"
                             >
-                              Standard 4-Tier
+                              Quantity & Packaging (4 cols)
                             </button>
                             <button
                               type="button"
-                              onClick={() => setQuickTierText(`1 - 99: 25.00\n100 - 499: 20.00\n500+: 15.00`)}
+                              onClick={() => setQuickTierText(`Size | Thickness | MOQ | Price (AED) | Material\nSmall | 2mm | 100 pcs | 5.00 | EPDM Rubber\nMedium | 4mm | 50 pcs | 8.50 | EPDM Rubber\nLarge | 6mm | 20 pcs | 14.00 | Heavy Duty`)}
                               className="text-[11px] bg-white border border-blue-200 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-50 font-medium cursor-pointer"
                             >
-                              Wholesale 3-Tier
+                              Size & Thickness (5 cols)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setQuickTierText(`Volume Tier | Price (AED) | Discount\n1 - 99 units | 25.00 | Standard\n100 - 499 units | 20.00 | 20% OFF\n500+ units | 15.00 | 40% OFF`)}
+                              className="text-[11px] bg-white border border-blue-200 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-50 font-medium cursor-pointer"
+                            >
+                              Wholesale Tiers (3 cols)
                             </button>
                           </div>
                         </div>
@@ -1327,12 +1439,12 @@ export default function AdminProductForm() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => parseTieredText(quickTierText)}
+                          onClick={() => parsePromptTableText(quickTierText)}
                           disabled={!quickTierText.trim()}
                           className="px-5 py-2 rounded-xl text-xs font-bold bg-[#0052d9] hover:bg-blue-700 text-white shadow-xs transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                         >
                           <Sparkles className="w-3.5 h-3.5" />
-                          <span>Generate Price Table</span>
+                          <span>Generate Complete Table</span>
                         </button>
                       </div>
 

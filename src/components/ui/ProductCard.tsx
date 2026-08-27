@@ -30,6 +30,15 @@ export interface MarketplaceProduct {
   shippingRegion?: string;
   specs?: string[];
   priceType?: 'fixed' | 'range' | 'hidden' | 'tiered';
+  priceTable?: {
+    columns: string[];
+    rows: Array<{
+      id: string;
+      values: Record<string, string>;
+      price?: number;
+      isCardDisplayPrice?: boolean;
+    }>;
+  };
   priceTiers?: Array<{
     minQty: number;
     maxQty?: number | null;
@@ -136,21 +145,23 @@ export default function ProductCard({ product, compact = false }: Props) {
           AED {product.priceMin.toFixed(2)}–{product.priceMax.toFixed(2)}
         </span>
       );
-    if (product.priceType === 'tiered' && product.priceTiers && product.priceTiers.length > 0) {
-      const displayTier = product.priceTiers.find(t => t.isCardDisplayPrice) || product.priceTiers[0];
-      const lowestTier = [...product.priceTiers].sort((a, b) => a.price - b.price)[0];
+    if (product.priceType === 'tiered') {
+      const displayRow = product.priceTable?.rows?.find(r => r.isCardDisplayPrice) || product.priceTable?.rows?.[0];
+      const displayTier = product.priceTiers?.find(t => t.isCardDisplayPrice) || product.priceTiers?.[0];
+      const cardPrice = displayRow?.price ?? displayTier?.price ?? product.price;
+
       return (
         <div className="flex flex-col gap-0.5">
           <div className="flex items-baseline gap-1.5 flex-wrap">
             <span className="text-[15px] font-extrabold text-slate-900">
-              AED {displayTier.price.toFixed(2)}
+              AED {Number(cardPrice || 0).toFixed(2)}
             </span>
             <span className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded">
-              Volume Rates
+              Price Table
             </span>
           </div>
           <span className="text-[10px] text-slate-400 font-medium">
-            From AED {lowestTier.price.toFixed(2)} / unit
+            Multiple options in table
           </span>
         </div>
       );

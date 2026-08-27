@@ -21,6 +21,16 @@ export interface PriceTier {
   isCardDisplayPrice?: boolean;
 }
 
+export interface DynamicPriceTable {
+  columns: string[];
+  rows: Array<{
+    id: string;
+    values: Record<string, string>;
+    price?: number;
+    isCardDisplayPrice?: boolean;
+  }>;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -44,6 +54,7 @@ export interface Product {
   featured?: boolean;
   topSelling?: boolean;
   priceType?: 'fixed' | 'range' | 'hidden' | 'tiered';
+  priceTable?: DynamicPriceTable;
   priceTiers?: PriceTier[];
   priceMin?: number;
   priceMax?: number;
