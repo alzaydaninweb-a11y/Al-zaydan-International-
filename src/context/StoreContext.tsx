@@ -202,6 +202,9 @@ export type GeneralSettings = {
       customTitle?: string;
       customImageUrl?: string;
       customBadge?: string;
+      customBadgeColor?: string;
+      customBadgeShape?: string;
+      customBadgeStyle?: string;
       customPrice?: string;
       linkUrl?: string;
     }[];
@@ -574,16 +577,33 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   // ─── CRUD ───────────────────────────────────────────────────────────────────
 
+  const sanitizePayload = (obj: any): any => {
+    if (obj === null || obj === undefined) return null;
+    if (typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) {
+      return obj.map(sanitizePayload).filter(x => x !== undefined);
+    }
+    const clean: Record<string, any> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (v !== undefined) {
+        clean[k] = sanitizePayload(v);
+      }
+    }
+    return clean;
+  };
+
   const addProduct = async (data: Omit<Product, 'id'>) => {
-    const docRef = await addDoc(collection(db, 'products'), data);
+    const payload = sanitizePayload(data);
+    const docRef = await addDoc(collection(db, 'products'), payload);
     updateSitemapMetadata(db);
     return docRef;
   };
  
   const updateProduct = async (id: string, data: Partial<Product>) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id: _drop, ...payload } = data as Product;
-    await updateDoc(doc(db, 'products', id), payload as Record<string, unknown>);
+    const { id: _drop, ...rawPayload } = data as Product;
+    const payload = sanitizePayload(rawPayload);
+    await updateDoc(doc(db, 'products', id), payload);
     updateSitemapMetadata(db);
   };
  

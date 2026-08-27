@@ -78,8 +78,18 @@ Customer Information:
   };
 
   const product = useMemo(() => {
-    if (!slug || !products.length) return null;
-    const found = products.find(p => p.slug === slug || generateSlug(p.name) === slug || p.id === slug);
+    if (!slug || slug === 'undefined' || !products.length) return null;
+    const decodedSlug = decodeURIComponent(slug).toLowerCase().trim();
+    const found = products.find(p => {
+      const pSlug = (p.slug || '').toLowerCase().trim();
+      const pNameSlug = generateSlug(p.name).toLowerCase().trim();
+      const pName = (p.name || '').toLowerCase().trim();
+      return p.id === slug ||
+             pSlug === decodedSlug ||
+             pNameSlug === decodedSlug ||
+             pName === decodedSlug ||
+             pNameSlug === generateSlug(decodedSlug);
+    });
     if (found) return found;
     // Wait for Firestore load if it's not found in cache
     if (!productsLoaded) return null;
@@ -383,181 +393,181 @@ Customer Information:
               )}
             </div>
 
-            {/* Minimal & Professional B2B Pricing Section */}
-            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-5 mb-6">
+            {/* Clean & Minimal Modern B2B Pricing Section */}
+            <div className="mb-6 pt-1">
               <div className="flex flex-col gap-4">
                 {product.priceType === 'tiered' && ((product.priceTable?.rows && product.priceTable.rows.length > 0) || (product.priceTiers && product.priceTiers.length > 0)) ? (
                   <div className="space-y-4">
-                    {/* Header with Live Unit Rate & Total */}
-                    <div className="flex items-baseline justify-between flex-wrap gap-2 pb-3 border-b border-slate-200">
+                    {/* Clean Header with Live Unit Rate & Total */}
+                    <div className="flex items-baseline justify-between flex-wrap gap-2 pb-3 border-b border-slate-100">
                       <div>
-                        <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider block mb-0.5">
+                        <span className="text-[10.5px] font-bold text-blue-600 uppercase tracking-wider block mb-1">
                           Specification & Volume Pricing
                         </span>
                         <div className="flex items-baseline gap-2">
-                          <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                          <span className="text-3xl font-extrabold text-slate-900 tracking-tight">
                             AED {effectiveUnitPrice.toFixed(2)}
                           </span>
-                          <span className="text-xs text-slate-500 font-semibold">/ unit</span>
+                          <span className="text-xs text-slate-400 font-medium">/ unit</span>
                         </div>
                       </div>
 
                       {/* Realtime Order Total */}
                       <div className="text-right">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Estimated Total</span>
-                        <span className="text-lg font-black text-blue-700">
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Estimated Total</span>
+                        <span className="text-xl font-bold text-blue-600">
                           AED {(effectiveUnitPrice * quantity).toFixed(2)}
                         </span>
                       </div>
                     </div>
 
-                    {/* Dynamic Table with Exact Columns Defined by Admin/Prompt */}
-                    <div className="border border-slate-200/90 rounded-xl overflow-hidden bg-white shadow-2xs">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs border-collapse">
-                          <thead className="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-extrabold uppercase tracking-wider text-[10px]">
-                            <tr>
-                              <th className="p-2.5 w-10 text-center">Select</th>
-                              {product.priceTable && product.priceTable.columns ? (
-                                product.priceTable.columns.map((col, idx) => (
-                                  <th key={idx} className="p-2.5 whitespace-nowrap">{col}</th>
-                                ))
-                              ) : (
-                                <>
-                                  <th className="p-2.5 min-w-[120px]">Quantity Tier</th>
-                                  <th className="p-2.5 whitespace-nowrap">Price per Unit</th>
-                                  <th className="p-2.5 text-right whitespace-nowrap">Savings</th>
-                                </>
-                              )}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {product.priceTable?.rows && product.priceTable.rows.length > 0 ? (
-                              product.priceTable.rows.map((row, idx) => {
-                                const isRowActive = activeRow?.id === row.id || (!activeRow && idx === 0);
-                                return (
-                                  <tr
-                                    key={row.id || idx}
-                                    onClick={() => setSelectedRowId(row.id)}
-                                    className={`cursor-pointer transition-all ${
-                                      isRowActive
-                                        ? 'bg-blue-50/90 text-blue-950 font-bold'
-                                        : 'hover:bg-slate-50 text-slate-700'
-                                    }`}
-                                  >
-                                    <td className="p-2.5 text-center">
-                                      <input
-                                        type="radio"
-                                        name="productPriceTableRow"
-                                        checked={isRowActive}
-                                        onChange={() => setSelectedRowId(row.id)}
-                                        className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                      />
-                                    </td>
-                                    {product.priceTable.columns.map((col, cIdx) => (
-                                      <td key={cIdx} className="p-2.5 whitespace-nowrap font-medium">
-                                        {row.values?.[col] || (col.toLowerCase().includes('price') ? `AED ${Number(row.price || 0).toFixed(2)}` : '—')}
-                                      </td>
-                                    ))}
-                                  </tr>
-                                );
-                              })
+                    {/* Dynamic Clean Flat Table with Exact Columns Defined by Admin/Prompt */}
+                    <div className="overflow-x-auto -mx-1">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                            <th className="py-2.5 px-2 w-8 text-center">Select</th>
+                            {product.priceTable && product.priceTable.columns ? (
+                              product.priceTable.columns.map((col, idx) => (
+                                <th key={idx} className="py-2.5 px-3 whitespace-nowrap">{col}</th>
+                              ))
                             ) : (
-                              (product.priceTiers || []).map((tier, idx) => {
-                                const isTierActive = activeTier?.minQty === tier.minQty;
-                                return (
-                                  <tr
-                                    key={idx}
-                                    onClick={() => {
-                                      setQuantity(tier.minQty);
-                                      setSelectedRowId(String(idx + 1));
-                                    }}
-                                    className={`cursor-pointer transition-all ${
-                                      isTierActive
-                                        ? 'bg-blue-50/90 text-blue-900 font-bold'
-                                        : 'hover:bg-slate-50 text-slate-700'
-                                    }`}
-                                  >
-                                    <td className="p-2.5 text-center">
-                                      <input
-                                        type="radio"
-                                        name="productTierSelection"
-                                        checked={isTierActive}
-                                        onChange={() => setQuantity(tier.minQty)}
-                                        className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                      />
-                                    </td>
-                                    <td className="p-2.5 font-semibold">
-                                      {tier.minQty} {tier.maxQty ? `– ${tier.maxQty}` : '+'} units
-                                    </td>
-                                    <td className="p-2.5 font-extrabold text-slate-900 whitespace-nowrap">
-                                      AED {tier.price.toFixed(2)}
-                                    </td>
-                                    <td className="p-2.5 text-right whitespace-nowrap">
-                                      {tier.discount && tier.discount > 0 ? (
-                                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
-                                          {tier.discount}% OFF
-                                        </span>
-                                      ) : (
-                                        <span className="text-[10px] text-slate-400 font-medium">Standard</span>
-                                      )}
-                                    </td>
-                                  </tr>
-                                );
-                              })
+                              <>
+                                <th className="py-2.5 px-3 min-w-[120px]">Quantity Tier</th>
+                                <th className="py-2.5 px-3 whitespace-nowrap">Price per Unit</th>
+                                <th className="py-2.5 px-3 text-right whitespace-nowrap">Savings</th>
+                              </>
                             )}
-                          </tbody>
-                        </table>
-                      </div>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100/80">
+                          {product.priceTable?.rows && product.priceTable.rows.length > 0 ? (
+                            product.priceTable.rows.map((row, idx) => {
+                              const isRowActive = activeRow?.id === row.id || (!activeRow && idx === 0);
+                              return (
+                                <tr
+                                  key={row.id || idx}
+                                  onClick={() => setSelectedRowId(row.id)}
+                                  className={`cursor-pointer transition-colors ${
+                                    isRowActive
+                                      ? 'bg-blue-50/70 text-slate-900 font-bold'
+                                      : 'hover:bg-slate-50/70 text-slate-600'
+                                  }`}
+                                >
+                                  <td className="py-3 px-2 text-center">
+                                    <input
+                                      type="radio"
+                                      name="productPriceTableRow"
+                                      checked={isRowActive}
+                                      onChange={() => setSelectedRowId(row.id)}
+                                      className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                                    />
+                                  </td>
+                                  {product.priceTable.columns.map((col, cIdx) => (
+                                    <td key={cIdx} className="py-3 px-3 whitespace-nowrap">
+                                      {row.values?.[col] || (col.toLowerCase().includes('price') ? `AED ${Number(row.price || 0).toFixed(2)}` : '—')}
+                                    </td>
+                                  ))}
+                                </tr>
+                              );
+                            })
+                          ) : (
+                            (product.priceTiers || []).map((tier, idx) => {
+                              const isTierActive = activeTier?.minQty === tier.minQty;
+                              return (
+                                <tr
+                                  key={idx}
+                                  onClick={() => {
+                                    setQuantity(tier.minQty);
+                                    setSelectedRowId(String(idx + 1));
+                                  }}
+                                  className={`cursor-pointer transition-colors ${
+                                    isTierActive
+                                      ? 'bg-blue-50/70 text-slate-900 font-bold'
+                                      : 'hover:bg-slate-50/70 text-slate-600'
+                                  }`}
+                                >
+                                  <td className="py-3 px-2 text-center">
+                                    <input
+                                      type="radio"
+                                      name="productTierSelection"
+                                      checked={isTierActive}
+                                      onChange={() => setQuantity(tier.minQty)}
+                                      className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                                    />
+                                  </td>
+                                  <td className="py-3 px-3 font-semibold">
+                                    {tier.minQty} {tier.maxQty ? `– ${tier.maxQty}` : '+'} units
+                                  </td>
+                                  <td className="py-3 px-3 font-bold text-slate-900 whitespace-nowrap">
+                                    AED {tier.price.toFixed(2)}
+                                  </td>
+                                  <td className="py-3 px-3 text-right whitespace-nowrap">
+                                    {tier.discount && tier.discount > 0 ? (
+                                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                                        {tier.discount}% OFF
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] text-slate-400 font-medium">Standard</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
                     </div>
 
-                    {/* Quantity Selector Input */}
+                    {/* Clean Quantity Selector */}
                     <div className="pt-2">
-                      <label className="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider mb-2">
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
                         Select Order Quantity
                       </label>
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden shadow-2xs">
+                        <div className="flex items-center border border-slate-200 rounded-lg bg-white overflow-hidden">
                           <button
                             type="button"
                             onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                            className="w-10 h-10 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                            className="w-9 h-9 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer"
                           >
-                            <Minus className="w-4 h-4" />
+                            <Minus className="w-3.5 h-3.5" />
                           </button>
                           <input
                             type="number"
                             min="1"
                             value={quantity}
                             onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                            className="w-16 h-10 text-center font-extrabold text-sm focus:outline-none text-slate-900"
+                            className="w-14 h-9 text-center font-bold text-sm focus:outline-none text-slate-900"
                           />
                           <button
                             type="button"
                             onClick={() => setQuantity(prev => prev + 1)}
-                            className="w-10 h-10 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                            className="w-9 h-9 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer"
                           >
-                            <Plus className="w-4 h-4" />
+                            <Plus className="w-3.5 h-3.5" />
                           </button>
                         </div>
 
                         {/* Quick Presets based on product tiers */}
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {product.priceTiers.map((t, idx) => (
-                            <button
-                              key={idx}
-                              type="button"
-                              onClick={() => setQuantity(t.minQty)}
-                              className={`text-[11px] px-2.5 py-1.5 rounded-lg border font-bold transition-all cursor-pointer ${
-                                quantity === t.minQty
-                                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                                  : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
-                              }`}
-                            >
-                              {t.minQty} units
-                            </button>
-                          ))}
-                        </div>
+                        {product.priceTiers && product.priceTiers.length > 0 && (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {product.priceTiers.map((t, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setQuantity(t.minQty)}
+                                className={`text-[11px] px-2.5 py-1.5 rounded-lg border font-bold transition-all cursor-pointer ${
+                                  quantity === t.minQty
+                                    ? 'bg-blue-600 text-white border-blue-600'
+                                    : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
+                                }`}
+                              >
+                                {t.minQty} units
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -568,11 +578,11 @@ Customer Information:
                     {/* Standard Quantity Picker for Fixed / Range Products */}
                     <div className="flex items-center gap-3 pt-2">
                       <span className="text-xs font-bold text-slate-700">Quantity:</span>
-                      <div className="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden shadow-2xs">
+                      <div className="flex items-center border border-slate-200 rounded-lg bg-white overflow-hidden">
                         <button
                           type="button"
                           onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                          className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                          className="w-8 h-8 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer"
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
@@ -586,7 +596,7 @@ Customer Information:
                         <button
                           type="button"
                           onClick={() => setQuantity(prev => prev + 1)}
-                          className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                          className="w-8 h-8 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </button>
@@ -595,7 +605,7 @@ Customer Information:
                   </div>
                 )}
 
-                <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-600 pt-3 border-t border-slate-200/80">
+                <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-600 pt-3 border-t border-slate-100">
                   {product.moq && (
                     <span className="font-bold text-slate-800">
                       MOQ: <span className="font-extrabold text-slate-900">{product.moq}</span>

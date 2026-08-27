@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Settings, Save, Phone, MapPin, Mail, Instagram, Facebook, Linkedin, Youtube, Twitter, Image as ImageIcon, Plus, X, Users, Trash2, Shield, Layout, Upload, Loader, ArrowRight, MessageCircle, Sparkles, Layers, Sliders, Eye, ExternalLink, RefreshCw, Search, Check, CheckCircle2, PackageSearch } from 'lucide-react';
+import { Settings, Save, Phone, MapPin, Mail, Instagram, Facebook, Linkedin, Youtube, Twitter, Image as ImageIcon, Plus, X, Users, Trash2, Shield, Layout, Upload, Loader, ArrowRight, MessageCircle, Sparkles, Layers, Sliders, Eye, ExternalLink, RefreshCw, Search, Check, CheckCircle2, PackageSearch, Tag, Palette } from 'lucide-react';
 import WhatsAppIcon from '../../components/icons/WhatsAppIcon';
 import { useStore } from '../../context/StoreContext';
 import { uploadToR2 } from '../../lib/cloudflareR2';
+import { getHeroBadgeClasses, BadgeColor, BadgeShape, BadgeStyle } from '../../lib/badgeUtils';
 
 export default function AdminSettings() {
   const { settings, updateGeneralSettings, products } = useStore();
@@ -23,6 +24,7 @@ export default function AdminSettings() {
   const [productPickerNodeId, setProductPickerNodeId] = useState<string | null>(null);
   const [pickerSearch, setPickerSearch] = useState('');
   const [pickerCategory, setPickerCategory] = useState('All');
+  const [openStyleEditorCardId, setOpenStyleEditorCardId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/get-ip')
@@ -137,24 +139,58 @@ export default function AdminSettings() {
     }
   };
 
+  const defaultCards = [
+    { id: 'card-1', label: '1. Showcase Product', defaultTitle: 'ZYDEX Neutral Plus Silicone Sealant', defaultPrice: 'AED 5.00', defaultImage: 'https://pub-7ee997edc0944df3b82d8c4cec4131a1.r2.dev/hero-featured/1787742466716.jpg' },
+    { id: 'card-2', label: '2. Showcase Product', defaultTitle: 'Solar Warning LED Traffic Light 100mm', defaultPrice: 'AED 45.00', defaultImage: 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=500&auto=format&fit=crop' },
+    { id: 'card-3', label: '3. Showcase Product', defaultTitle: 'High Intensity Reflective Sheeting', defaultPrice: 'AED 85.00', defaultImage: 'https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?q=80&w=500&auto=format&fit=crop' },
+  ];
+
+  const currentCards = (heroConfig.featuredCards && heroConfig.featuredCards.length > 0)
+    ? heroConfig.featuredCards
+    : defaultCards;
+
   const updateFeaturedCard = (cardId: string, patch: any) => {
-    const defaultCards = [
-      { id: 'card-1', defaultLabel: 'Spotlight Card (Center Front)', defaultBadge: '🔥 Bestseller', defaultTitle: 'ZYDEX Neutral Plus Silicone Sealant', defaultPrice: 'AED 5.00', defaultLink: '/category/industrial-adhesive-tapes', defaultImage: 'https://pub-7ee997edc0944df3b82d8c4cec4131a1.r2.dev/hero-featured/1787742466716.jpg' },
-      { id: 'card-2', defaultLabel: 'Left Wing Card (Back Left)', defaultBadge: '⚡ UAE In Stock', defaultTitle: 'Solar Warning LED Traffic Light 100mm', defaultPrice: 'AED 45.00', defaultLink: '/category/traffic-safety', defaultImage: 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=500&auto=format&fit=crop' },
-      { id: 'card-3', defaultLabel: 'Right Wing Card (Back Right)', defaultBadge: '✨ Hot Deal', defaultTitle: 'High Intensity Reflective Microprismatic Sheeting', defaultPrice: 'AED 85.00', defaultLink: '/category/reflectors-signage', defaultImage: 'https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?q=80&w=500&auto=format&fit=crop' },
-    ];
-
-    const currentCards = heroConfig.featuredCards && heroConfig.featuredCards.length === 3
-      ? [...heroConfig.featuredCards]
-      : defaultCards;
-
-    const updated = currentCards.map(card => {
+    let exists = false;
+    let updated = currentCards.map(card => {
       if (card.id === cardId) {
+        exists = true;
         return { ...card, ...patch };
       }
       return card;
     });
 
+    if (!exists) {
+      updated.push({ id: cardId, ...patch });
+    }
+
+    updateHeroConfig({ featuredCards: updated });
+  };
+
+  const addFeaturedCard = () => {
+    if (currentCards.length >= 10) {
+      alert('You can add a maximum of 10 hero showcase products.');
+      return;
+    }
+    const newId = `card-${Date.now()}`;
+    const newCard = {
+      id: newId,
+      label: `${currentCards.length + 1}. Showcase Product`,
+      productId: '',
+      customBadge: '',
+      customTitle: '',
+      customPrice: '',
+    };
+    updateHeroConfig({ featuredCards: [...currentCards, newCard] });
+    setProductPickerNodeId(newId);
+    setPickerSearch('');
+  };
+
+  const removeFeaturedCard = (cardId: string) => {
+    if (currentCards.length <= 1) {
+      alert('You must have at least 1 hero showcase product.');
+      return;
+    }
+    const updated = currentCards.filter(c => c.id !== cardId);
     updateHeroConfig({ featuredCards: updated });
   };
 
@@ -830,117 +866,278 @@ export default function AdminSettings() {
               </div>
             </div>
 
-            {/* 3. HERO SHOWCASE PRODUCTS (3 PRODUCTS) */}
+            {/* 3. HERO SHOWCASE PRODUCTS (UP TO 10 PRODUCTS) */}
             <div className="bg-slate-50/80 rounded-xl p-5 border border-slate-200/80 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600" /> 3. Hero Showcase Products (3 Products)
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" /> 3. Hero Showcase Products ({currentCards.length}/10 Products)
                   </h3>
-                  <p className="text-[12px] text-slate-500 mt-0.5">Select the 3 featured products to display in the hero rotating 3D showcase.</p>
+                  <p className="text-[12px] text-slate-500 mt-0.5">
+                    Configure up to 10 featured products to display in the hero rotating 3D showcase. Add custom promotional tags like "Clearance Sale", "Hot Deal", or "Special Offer" for each item.
+                  </p>
                 </div>
+
+                {currentCards.length < 10 && (
+                  <button
+                    type="button"
+                    onClick={addFeaturedCard}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-sm shadow-blue-600/20 transition-all cursor-pointer shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Showcase Product</span>
+                  </button>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {[
-                  { id: 'card-1', label: '1. Center Spotlight Product', defaultBadge: '🔥 Bestseller', defaultTitle: 'ZYDEX Neutral Plus Silicone Sealant', defaultPrice: 'AED 5.00', defaultImage: 'https://pub-7ee997edc0944df3b82d8c4cec4131a1.r2.dev/hero-featured/1787742466716.jpg' },
-                  { id: 'card-2', label: '2. Left Wing Product', defaultBadge: '⚡ UAE In Stock', defaultTitle: 'Solar Warning LED Traffic Light 100mm', defaultPrice: 'AED 45.00', defaultImage: 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=500&auto=format&fit=crop' },
-                  { id: 'card-3', label: '3. Right Wing Product', defaultBadge: '✨ Hot Deal', defaultTitle: 'High Intensity Reflective Sheeting', defaultPrice: 'AED 85.00', defaultImage: 'https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?q=80&w=500&auto=format&fit=crop' },
-                ].map(cardDef => {
-                  const cardData = (heroConfig.featuredCards || []).find(n => n.id === cardDef.id) ||
-                                   (heroConfig.orbitNodes || []).find(n => n.id === (cardDef.id === 'card-1' ? 'node-1' : cardDef.id === 'card-2' ? 'node-2' : 'node-4')) || {};
-                  const selectedProduct = products.find(p => p.id === cardData.productId);
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {currentCards.map((card, idx) => {
+                  const selectedProduct = products.find(p => p.id === card.productId);
 
                   return (
-                    <div key={cardDef.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-4 flex flex-col justify-between">
-                      <div>
+                    <div key={card.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-4 flex flex-col justify-between">
+                      <div className="space-y-3">
                         {/* Position Header */}
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-                          <span className="text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
-                            {cardDef.label}
-                          </span>
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-[11px] font-black flex items-center justify-center">
+                              {idx + 1}
+                            </span>
+                            <span className="text-xs font-bold text-slate-800">
+                              {idx === 0 ? 'Center Spotlight' : `Showcase #${idx + 1}`}
+                            </span>
+                          </div>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setProductPickerNodeId(cardDef.id);
-                              setPickerSearch('');
-                            }}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-sm shadow-blue-600/20 transition-all cursor-pointer"
-                          >
-                            <Search className="w-3.5 h-3.5" />
-                            <span>{selectedProduct ? 'Change Product' : 'Choose Product'}</span>
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProductPickerNodeId(card.id);
+                                setPickerSearch('');
+                              }}
+                              className="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 transition-all cursor-pointer"
+                            >
+                              <Search className="w-3 h-3" />
+                              <span>{selectedProduct ? 'Change' : 'Select'}</span>
+                            </button>
+
+                            {currentCards.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeFeaturedCard(card.id)}
+                                title="Remove this product from hero showcase"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         {/* Selected Product Display */}
                         {selectedProduct ? (
                           <div className="space-y-3">
-                            {/* Product Image Preview */}
-                            <div className="w-full aspect-[4/3] rounded-xl bg-slate-50 border border-slate-200/80 overflow-hidden flex items-center justify-center p-3">
-                              <img
-                                src={selectedProduct.image}
-                                alt={selectedProduct.name}
-                                className="w-full h-full object-contain"
-                              />
+                            {/* Product Image & Info */}
+                            <div className="flex gap-3 items-center bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                              <div className="w-14 h-14 rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center p-1 shrink-0">
+                                <img
+                                  src={selectedProduct.image}
+                                  alt={selectedProduct.name}
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="inline-block text-[9.5px] font-extrabold uppercase tracking-wider text-blue-700 bg-blue-100/60 px-1.5 py-0.5 rounded mb-0.5">
+                                  {selectedProduct.category || 'Product'}
+                                </span>
+                                <h4 className="text-xs font-bold text-slate-800 line-clamp-1">
+                                  {selectedProduct.name}
+                                </h4>
+                                <p className="text-xs font-black text-[#0052d9] mt-0.5">
+                                  {selectedProduct.price ? `AED ${selectedProduct.price}` : 'Wholesale'}
+                                </p>
+                              </div>
                             </div>
 
-                            {/* Product Name & Details */}
-                            <div>
-                              <span className="inline-flex items-center text-[10px] font-extrabold uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md mb-1">
-                                {selectedProduct.category || 'Product'}
-                              </span>
-                              <h4 className="text-xs font-bold text-slate-800 line-clamp-2 leading-snug">
-                                {selectedProduct.name}
-                              </h4>
-                              <p className="text-xs font-extrabold text-[#0052d9] mt-1">
-                                {selectedProduct.price ? `AED ${selectedProduct.price}` : 'Wholesale pricing'}
-                              </p>
+                            {/* Custom Promotional Tag / Badge Input with Color & Shape Editor */}
+                            <div className="space-y-2 pt-1 border-t border-slate-100 mt-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <label className="block text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                                  <Tag className="w-3.5 h-3.5 text-blue-600" />
+                                  <span>Custom Promotional Tag</span>
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => setOpenStyleEditorCardId(openStyleEditorCardId === card.id ? null : card.id)}
+                                  className={`flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
+                                    openStyleEditorCardId === card.id
+                                      ? 'bg-blue-600 text-white shadow-xs'
+                                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                                  }`}
+                                >
+                                  <Palette className="w-3 h-3" />
+                                  <span>{openStyleEditorCardId === card.id ? 'Close Style' : 'Edit Style'}</span>
+                                </button>
+                              </div>
+
+                              {/* Text Input */}
+                              <input
+                                type="text"
+                                value={card.customBadge || ''}
+                                onChange={(e) => updateFeaturedCard(card.id, { customBadge: e.target.value })}
+                                placeholder="e.g. Clearance Sale, Hot Deal, 50% OFF"
+                                className="w-full text-xs border border-gray-250 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium"
+                              />
+
+                              {/* Live Tag Preview */}
+                              {card.customBadge?.trim() ? (
+                                <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-100">
+                                  <span className="text-[10px] text-slate-400 font-semibold">Live Tag Preview:</span>
+                                  <span className={`text-[11px] font-extrabold px-3 py-0.5 tracking-wide ${getHeroBadgeClasses(card.customBadgeColor || 'red', card.customBadgeShape || 'pill', card.customBadgeStyle || 'solid')}`}>
+                                    {card.customBadge}
+                                  </span>
+                                </div>
+                              ) : (
+                                <p className="text-[10.5px] text-slate-400">
+                                  Leave empty if no tag is needed.
+                                </p>
+                              )}
+
+                              {/* Expandable Tag Style Customizer (Color, Shape, Fill) */}
+                              {openStyleEditorCardId === card.id && (
+                                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3 animate-in fade-in duration-200">
+                                  {/* 1. Color Palette */}
+                                  <div>
+                                    <span className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1.5">
+                                      Tag Color
+                                    </span>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      {[
+                                        { id: 'red', name: 'Red Fire', bg: 'bg-red-500' },
+                                        { id: 'green', name: 'Emerald', bg: 'bg-emerald-500' },
+                                        { id: 'blue', name: 'Royal Blue', bg: 'bg-blue-600' },
+                                        { id: 'amber', name: 'Amber Gold', bg: 'bg-amber-500' },
+                                        { id: 'purple', name: 'Violet', bg: 'bg-purple-600' },
+                                        { id: 'rose', name: 'Rose Pink', bg: 'bg-rose-500' },
+                                        { id: 'black', name: 'Dark Slate', bg: 'bg-slate-900' },
+                                      ].map(col => {
+                                        const isActive = (card.customBadgeColor || 'red') === col.id;
+                                        return (
+                                          <button
+                                            key={col.id}
+                                            type="button"
+                                            onClick={() => updateFeaturedCard(card.id, { customBadgeColor: col.id })}
+                                            title={col.name}
+                                            className={`w-6 h-6 rounded-full ${col.bg} transition-transform flex items-center justify-center cursor-pointer ${
+                                              isActive ? 'ring-2 ring-offset-2 ring-blue-600 scale-110' : 'hover:scale-105 opacity-80 hover:opacity-100'
+                                            }`}
+                                          >
+                                            {isActive && <Check className="w-3 h-3 text-white stroke-[3]" />}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+
+                                  {/* 2. Shape Selector */}
+                                  <div>
+                                    <span className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1.5">
+                                      Tag Shape
+                                    </span>
+                                    <div className="grid grid-cols-4 gap-1.5">
+                                      {[
+                                        { id: 'pill', label: 'Pill' },
+                                        { id: 'rounded', label: 'Rounded' },
+                                        { id: 'ribbon', label: 'Ribbon' },
+                                        { id: 'square', label: 'Square' },
+                                      ].map(shp => {
+                                        const isActive = (card.customBadgeShape || 'pill') === shp.id;
+                                        return (
+                                          <button
+                                            key={shp.id}
+                                            type="button"
+                                            onClick={() => updateFeaturedCard(card.id, { customBadgeShape: shp.id })}
+                                            className={`py-1 px-1.5 rounded-lg text-[10.5px] font-bold text-center border transition-all cursor-pointer ${
+                                              isActive
+                                                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                                                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                                            }`}
+                                          >
+                                            {shp.label}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+
+                                  {/* 3. Fill Style Selector */}
+                                  <div>
+                                    <span className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1.5">
+                                      Fill Style
+                                    </span>
+                                    <div className="grid grid-cols-3 gap-1.5">
+                                      {[
+                                        { id: 'solid', label: 'Solid' },
+                                        { id: 'soft', label: 'Soft Tint' },
+                                        { id: 'outline', label: 'Outline' },
+                                      ].map(sty => {
+                                        const isActive = (card.customBadgeStyle || 'solid') === sty.id;
+                                        return (
+                                          <button
+                                            key={sty.id}
+                                            type="button"
+                                            onClick={() => updateFeaturedCard(card.id, { customBadgeStyle: sty.id })}
+                                            className={`py-1 px-1.5 rounded-lg text-[10.5px] font-bold text-center border transition-all cursor-pointer ${
+                                              isActive
+                                                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                                                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                                            }`}
+                                          >
+                                            {sty.label}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         ) : (
                           /* Empty Placeholder */
                           <div 
                             onClick={() => {
-                              setProductPickerNodeId(cardDef.id);
+                              setProductPickerNodeId(card.id);
                               setPickerSearch('');
                             }}
-                            className="py-12 px-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50/60 hover:bg-blue-50/30 transition-all flex flex-col items-center justify-center text-center cursor-pointer group"
+                            className="py-8 px-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50/60 hover:bg-blue-50/30 transition-all flex flex-col items-center justify-center text-center cursor-pointer group"
                           >
-                            <PackageSearch className="w-8 h-8 text-slate-300 group-hover:text-blue-500 transition-colors mb-2" />
-                            <p className="text-xs font-bold text-slate-700 mb-1">No product selected</p>
+                            <PackageSearch className="w-7 h-7 text-slate-300 group-hover:text-blue-500 transition-colors mb-1.5" />
+                            <p className="text-xs font-bold text-slate-700 mb-0.5">No product selected</p>
                             <span className="text-[11px] text-blue-600 font-semibold group-hover:underline">
                               Click to select from catalog
                             </span>
                           </div>
                         )}
                       </div>
-
-                      {/* Remove Button if Selected */}
-                      {selectedProduct && (
-                        <div className="pt-3 border-t border-slate-100 flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              updateFeaturedCard(cardDef.id, {
-                                productId: '',
-                                customTitle: '',
-                                customImageUrl: '',
-                                customBadge: '',
-                                customPrice: '',
-                                linkUrl: '',
-                              });
-                            }}
-                            className="text-xs font-semibold text-red-500 hover:text-red-700 flex items-center gap-1 hover:underline cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Remove Product</span>
-                          </button>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
+
+                {/* Add Card Slot Button if < 10 */}
+                {currentCards.length < 10 && (
+                  <button
+                    type="button"
+                    onClick={addFeaturedCard}
+                    className="min-h-[220px] rounded-2xl border-2 border-dashed border-slate-300 hover:border-blue-500 bg-slate-50/40 hover:bg-blue-50/30 transition-all flex flex-col items-center justify-center text-center p-6 cursor-pointer group"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-white shadow-xs group-hover:bg-blue-600 text-slate-400 group-hover:text-white flex items-center justify-center transition-all mb-2">
+                      <Plus className="w-5 h-5" />
+                    </div>
+                    <p className="text-xs font-bold text-slate-800 group-hover:text-blue-700">Add Hero Showcase Product</p>
+                    <span className="text-[11px] text-slate-400 mt-1">({currentCards.length}/10 slots used)</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1242,7 +1439,7 @@ export default function AdminSettings() {
                               customTitle: p.name,
                               customImageUrl: p.image,
                               customPrice: p.price ? `AED ${p.price}` : 'Wholesale Rate',
-                              customBadge: p.category || 'Featured Item',
+                              customBadge: currentCard?.customBadge || '',
                               linkUrl: `/product/${p.slug || p.id}`,
                             });
                             setProductPickerNodeId(null);

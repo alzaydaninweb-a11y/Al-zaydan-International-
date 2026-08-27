@@ -532,9 +532,11 @@ export default function SearchPage() {
                     params.set('q', txt);
                     navigate({ search: params.toString() });
                   }}
-                  onSelectProduct={(prod) => {
+                  onSelectProduct={(productId) => {
                     setShowSearchDropdown(false);
-                    navigate(`/product/${prod.slug || prod.id}`);
+                    const prod = ALL_PRODUCTS.find(p => p.id === productId);
+                    const targetSlug = prod ? (prod.slug || generateSlug(prod.name) || prod.id) : productId;
+                    navigate(`/product/${targetSlug}`);
                   }}
                   onClose={() => setShowSearchDropdown(false)}
                   onRecentRemove={(term) => {

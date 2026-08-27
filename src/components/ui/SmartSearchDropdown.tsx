@@ -200,8 +200,9 @@ export default function SmartSearchDropdown({
                   <button
                     key={item}
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => onSelectText(item)}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${focusedIndex === flatIdx ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors cursor-pointer ${focusedIndex === flatIdx ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                   >
                     <Search className="w-3.5 h-3.5 text-gray-300 shrink-0" />
                     <span className="text-[13px] text-gray-700">{highlight(item, query)}</span>
@@ -227,8 +228,9 @@ export default function SmartSearchDropdown({
                   <button
                     key={cat}
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => { navigate(`/category/${categoryDetails?.[cat]?.slug || generateSlug(cat)}`); onClose(); }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${focusedIndex === flatIdx ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors cursor-pointer ${focusedIndex === flatIdx ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                   >
                     <div className="w-5 h-5 bg-blue-50 rounded flex items-center justify-center shrink-0">
                       <Tag className="w-3 h-3 text-blue-500" />
@@ -256,8 +258,9 @@ export default function SmartSearchDropdown({
                   <button
                     key={item.id}
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => onSelectProduct(item.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${focusedIndex === flatIdx ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors cursor-pointer ${focusedIndex === flatIdx ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                   >
                     <img
                       src={item.image}
@@ -294,8 +297,9 @@ export default function SmartSearchDropdown({
                   <button
                     key={kw}
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => onSelectText(kw)}
-                    className="px-3 py-1.5 text-[12px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-full border border-gray-200 hover:border-blue-200 transition-colors"
+                    className="px-3 py-1.5 text-[12px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-full border border-gray-200 hover:border-blue-200 transition-colors cursor-pointer"
                   >
                     {highlight(kw, query)}
                   </button>
@@ -309,8 +313,9 @@ export default function SmartSearchDropdown({
             <div className="border-t border-gray-100 px-4 py-2.5">
               <button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => onSelectText(query)}
-                className="flex items-center gap-2 text-[12.5px] text-blue-600 font-semibold hover:text-blue-700 transition-colors"
+                className="flex items-center gap-2 text-[12.5px] text-blue-600 font-semibold hover:text-blue-700 transition-colors cursor-pointer w-full"
               >
                 <Search className="w-3.5 h-3.5" />
                 Search all results for "<span className="italic">{query}</span>"

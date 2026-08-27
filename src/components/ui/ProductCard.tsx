@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   MessageCircle, FileText, ShoppingCart, Star, Package, Zap,
   BadgeCheck, Globe, Clock, Truck, Bookmark, BookmarkCheck,
-  ChevronRight, Phone
+  ChevronRight, ChevronDown, Phone
 } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useStore } from '../../context/StoreContext';
@@ -128,6 +128,8 @@ export default function ProductCard({ product, compact = false }: Props) {
     navigate(`/rfq?product=${encodeURIComponent(product.name)}`);
   };
 
+  const productUrl = `/product/${product.slug || generateSlug(product.name) || product.id}`;
+
   /* Save */
   const handleSave = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -148,21 +150,52 @@ export default function ProductCard({ product, compact = false }: Props) {
     if (product.priceType === 'tiered') {
       const displayRow = product.priceTable?.rows?.find(r => r.isCardDisplayPrice) || product.priceTable?.rows?.[0];
       const displayTier = product.priceTiers?.find(t => t.isCardDisplayPrice) || product.priceTiers?.[0];
-      const cardPrice = displayRow?.price ?? displayTier?.price ?? product.price;
+      const cardPrice = displayRow?.price ?? displayTier?.price ?? product.price ?? 0;
+
+      // Extract non-price key-value pairs (including table headers)
+      const nonPriceEntries = displayRow?.values
+        ? Object.entries(displayRow.values).filter(([k]) => !/price|rate|cost|aed/i.test(k))
+        : (displayTier ? [['Min Qty', `${displayTier.minQty} units`]] : []);
+
+      const discountTag = displayRow?.values?.['Discount'] || (displayTier?.discount ? `${displayTier.discount}% OFF` : '');
 
       return (
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-1 min-h-[46px] justify-center">
           <div className="flex items-baseline gap-1.5 flex-wrap">
             <span className="text-[15px] font-extrabold text-slate-900">
               AED {Number(cardPrice || 0).toFixed(2)}
             </span>
-            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded">
-              Price Table
-            </span>
+            {discountTag && (
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded">
+                {discountTag}
+              </span>
+            )}
           </div>
-          <span className="text-[10px] text-slate-400 font-medium">
-            Multiple options in table
-          </span>
+
+          {nonPriceEntries.length > 0 ? (
+            <Link
+              to={productUrl}
+              className="group/specs flex items-center justify-between gap-1.5 text-[10.5px] bg-slate-50 hover:bg-blue-50/80 border border-slate-100 hover:border-blue-200 rounded-lg px-2 py-1 transition-all"
+              title="Click to view all available sizes & options"
+            >
+              <div className="flex items-center gap-1.5 flex-wrap overflow-hidden line-clamp-1">
+                {nonPriceEntries.map(([colName, colVal], idx) => (
+                  <span key={idx} className="inline-flex items-center gap-0.5 whitespace-nowrap">
+                    <span className="text-slate-400 font-medium text-[10px]">{colName}:</span>
+                    <span className="font-bold text-slate-800 text-[10.5px]">{colVal}</span>
+                    {idx < nonPriceEntries.length - 1 && <span className="text-slate-300 ml-1">|</span>}
+                  </span>
+                ))}
+              </div>
+              <div className="shrink-0 w-4 h-4 rounded-full bg-white shadow-xs text-blue-600 group-hover/specs:bg-blue-600 group-hover/specs:text-white flex items-center justify-center transition-all ml-0.5">
+                <ChevronDown className="w-3 h-3 group-hover/specs:translate-y-0.5 transition-transform" />
+              </div>
+            </Link>
+          ) : (
+            <span className="text-[10px] text-slate-400 font-medium">
+              Wholesale pricing available
+            </span>
+          )}
         </div>
       );
     }
@@ -197,8 +230,8 @@ export default function ProductCard({ product, compact = false }: Props) {
             </span>
           )}
           {(product.discount ?? 0) > 0 && (
-            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">
-              −{product.discount}%
+            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+              {product.discount}% OFF
             </span>
           )}
         </div>

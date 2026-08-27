@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ChevronRight, Shield, Award, Globe, Lock, Headphones, ChevronLeft,
-  Database, FlaskConical, Atom, Home as HomeIcon, Settings, Cpu, Package, Scissors, Factory, Menu, AlertCircle, Search, ArrowRight, Sparkles
+  Database, FlaskConical, Atom, Home as HomeIcon, Settings, Cpu, Package, Scissors, Factory, Menu, AlertCircle, Search, ArrowRight, Sparkles,
+  FileText, Zap, RotateCcw, ChevronDown
 } from 'lucide-react';
 import { useStore, Product } from '../context/StoreContext';
 import { useCart } from '../context/CartContext';
@@ -10,13 +11,13 @@ import { generateSlug } from '../lib/blogService';
 import ProductSection from '../components/home/ProductSection';
 import ProductCard from '../components/ui/ProductCard';
 import WhatsAppIcon from '../components/icons/WhatsAppIcon';
-import { FileText, Zap } from 'lucide-react';
 import SmartSearchDropdown, {
   getRecentSearches, saveRecentSearch, removeRecentSearch
 } from '../components/ui/SmartSearchDropdown';
 
 import ProcurementSupport from '../components/home/ProcurementSupport';
 import { useSEO } from '../lib/useSEO';
+import { getHeroBadgeClasses } from '../lib/badgeUtils';
 
 const HOME_SCHEMA = {
   '@context': 'https://schema.org',
@@ -464,21 +465,61 @@ export default function Home() {
   const [activeDeckIndex, setActiveDeckIndex] = useState(0);
   const [isDeckPaused, setIsDeckPaused] = useState(false);
   const [addedCardId, setAddedCardId] = useState<string | null>(null);
+  const [flippedCardIds, setFlippedCardIds] = useState<Record<string, boolean>>({});
   const { addToCart } = useCart();
+
+  const toggleCardFlip = (cardId: string) => {
+    setFlippedCardIds(prev => ({ ...prev, [cardId]: !prev[cardId] }));
+  };
 
   const heroConfig = settings?.heroConfig;
 
-  const cardIds: Array<'card-1' | 'card-2' | 'card-3'> = ['card-1', 'card-2', 'card-3'];
+  const configuredCards = (heroConfig?.featuredCards && heroConfig.featuredCards.length > 0)
+    ? heroConfig.featuredCards
+    : [
+        { id: 'card-1' },
+        { id: 'card-2' },
+        { id: 'card-3' },
+      ];
+
+  const cardIds = configuredCards.map(c => c.id);
+  const totalCards = cardIds.length;
 
   useEffect(() => {
-    if (isDeckPaused) return;
-    const interval = setInterval(() => {
-      setActiveDeckIndex(prev => (prev + 1) % 3);
-    }, 4500);
-    return () => clearInterval(interval);
-  }, [isDeckPaused]);
+    if (isDeckPaused || totalCards === 0) return;
 
-  const getResolvedHeroProduct = (cardId: 'card-1' | 'card-2' | 'card-3', defaultIndex: number) => {
+    const centerCardId = cardIds[activeDeckIndex % totalCards];
+    const centerProduct = getResolvedHeroProduct(centerCardId, activeDeckIndex % totalCards);
+    const hasTable = centerProduct?.priceType === 'tiered' && !!(centerProduct?.priceTable?.rows && centerProduct.priceTable.rows.length > 0);
+
+    let flipTimer: NodeJS.Timeout | null = null;
+    let flipBackTimer: NodeJS.Timeout | null = null;
+
+    if (hasTable) {
+      // Auto-flip to show the price table at 2.4s
+      flipTimer = setTimeout(() => {
+        setFlippedCardIds({ [centerCardId]: true });
+      }, 2400);
+
+      // Auto-flip back to front at 5.4s
+      flipBackTimer = setTimeout(() => {
+        setFlippedCardIds({});
+      }, 5400);
+    }
+
+    const slideTimer = setTimeout(() => {
+      setFlippedCardIds({});
+      setActiveDeckIndex(prev => (prev + 1) % totalCards);
+    }, hasTable ? 6000 : 4500);
+
+    return () => {
+      if (flipTimer) clearTimeout(flipTimer);
+      if (flipBackTimer) clearTimeout(flipBackTimer);
+      clearTimeout(slideTimer);
+    };
+  }, [activeDeckIndex, isDeckPaused, totalCards]);
+
+  const getResolvedHeroProduct = (cardId: string, defaultIndex: number) => {
     const configured = (heroConfig?.featuredCards || []).find(n => n.id === cardId);
     const prod = configured?.productId 
       ? products.find(p => p.id === configured.productId) 
@@ -486,16 +527,29 @@ export default function Home() {
 
     if (!prod) return null;
 
+    const displayRow = prod.priceTable?.rows?.find(r => r.isCardDisplayPrice) || prod.priceTable?.rows?.[0];
+    const displayTier = prod.priceTiers?.find(t => t.isCardDisplayPrice) || prod.priceTiers?.[0];
+    const resolvedPrice = (prod.priceType === 'tiered')
+      ? (displayRow?.price ?? displayTier?.price ?? prod.price ?? 0)
+      : (prod.price || 0);
+
+    const customBadge = configured?.customBadge?.trim() || prod.badge || '';
+
     return {
       id: prod.id,
       name: prod.name,
       brand: prod.brand,
       image: prod.image,
-      badge: prod.badge || (defaultIndex === 0 ? 'Bestseller' : null),
+      badge: customBadge,
+      badgeColor: configured?.customBadgeColor || 'red',
+      badgeShape: configured?.customBadgeShape || 'pill',
+      badgeStyle: configured?.customBadgeStyle || 'solid',
       discount: prod.discount || 0,
-      price: prod.price || 0,
+      price: resolvedPrice,
       mrp: prod.mrp || 0,
       priceType: (prod as any).priceType || (prod.price ? 'fixed' : 'hidden'),
+      priceTable: prod.priceTable,
+      priceTiers: prod.priceTiers,
       specs: prod.specs && prod.specs.length > 0 ? prod.specs.slice(0, 2) : [prod.category].filter(Boolean),
       linkUrl: `/product/${(prod as any).slug || generateSlug(prod.name) || prod.id}`,
     };
@@ -526,154 +580,286 @@ export default function Home() {
     || '';
   const waNumber = settings?.whatsappRouting?.product || defaultNumber;
 
-  const renderExactHeroCard = (cardId: 'card-1' | 'card-2' | 'card-3', defaultIndex: number, isCenter: boolean) => {
+  const renderExactHeroCard = (cardId: string, defaultIndex: number, isCenter: boolean) => {
     const cardData = getResolvedHeroProduct(cardId, defaultIndex);
     if (!cardData) return null;
 
     const isAdded = addedCardId === cardData.id;
+    const isFlipped = !!flippedCardIds[cardId];
+    const hasPriceTable = cardData.priceType === 'tiered' && !!(cardData.priceTable?.rows && cardData.priceTable.rows.length > 0);
+
+    const primaryRow = cardData.priceTable?.rows?.find((r: any) => r.isCardDisplayPrice) || cardData.priceTable?.rows?.[0];
+    const nonPriceEntries = primaryRow?.values
+      ? Object.entries(primaryRow.values).filter(([k]) => !/price|rate|cost|aed/i.test(k))
+      : [];
+
     const waMsg = encodeURIComponent(
       `Hi, I'm interested in: ${cardData.name}. Please send me pricing & MOQ details.`
     );
     const waUrl = waNumber ? `https://wa.me/${waNumber.replace(/\D/g, '')}?text=${waMsg}` : '#';
 
     return (
-      <div className={`bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.12)] flex flex-col justify-between h-full group transition-all duration-500 ${
-        isCenter ? 'ring-1 ring-slate-900/5 hover:border-blue-400' : 'opacity-90'
-      }`}>
-        
-        {/* Top Badges & Image */}
-        <Link to={cardData.linkUrl} className="block relative" onClick={e => { if (!isCenter) e.preventDefault(); }}>
+      <div className="relative w-full h-[510px] sm:h-[545px] [perspective:1200px]">
+        <div className={`relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] ${
+          isFlipped ? '[transform:rotateY(180deg)]' : ''
+        }`}>
           
-          {/* Top Badges Row (Only true product badge & discount, no category name) */}
-          <div className="absolute top-0 left-0 z-10 flex flex-col gap-1.5 items-start">
-            {cardData.badge && (
-              <span className={`text-[11px] font-extrabold px-3 py-1 rounded-full shadow-xs tracking-wide ${
-                cardData.badge === 'Bestseller' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white'
-              }`}>
-                {cardData.badge}
-              </span>
-            )}
-            {cardData.discount > 0 && (
-              <span className="bg-red-50 text-red-600 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-red-100">
-                {cardData.discount}% OFF
-              </span>
-            )}
-          </div>
-
-          {/* Product Center Image */}
-          <div className="h-[175px] sm:h-[205px] w-full flex items-center justify-center p-2 mb-3 bg-white overflow-hidden rounded-2xl">
-            <img
-              src={cardData.image}
-              alt={cardData.name}
-              className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500"
-            />
-          </div>
-        </Link>
-
-        {/* Brand, Title & Spec Tags */}
-        <div className="flex-1 flex flex-col justify-between">
-          <Link to={cardData.linkUrl} className="block mb-2" onClick={e => { if (!isCenter) e.preventDefault(); }}>
-            {cardData.brand && (
-              <span className="text-xs font-black text-blue-600 tracking-wider uppercase block mb-1">
-                {cardData.brand}
-              </span>
-            )}
-            <h3 className="text-base sm:text-[17px] font-black text-slate-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
-              {cardData.name}
-            </h3>
-          </Link>
-
-          {/* Specs / Tags */}
-          {cardData.specs && cardData.specs.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {cardData.specs.map((tag: string, idx: number) => (
-                <span key={idx} className="bg-slate-100 text-slate-700 text-[11px] font-semibold px-2.5 py-1 rounded-lg">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Price Block */}
-          <div className="pt-2.5 border-t border-slate-100 mb-3.5">
-            {cardData.price > 0 ? (
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-xl sm:text-2xl font-black text-slate-900">
-                  AED {cardData.price.toFixed(2)}
-                </span>
-                {cardData.mrp > cardData.price && (
-                  <span className="text-xs text-slate-400 line-through font-semibold">
-                    AED {cardData.mrp.toFixed(2)}
+          {/* ─── FRONT FACE ─── */}
+          <div className={`absolute inset-0 [backface-visibility:hidden] bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.12)] flex flex-col justify-between h-full group transition-all duration-500 ${
+            isCenter ? 'ring-1 ring-slate-900/5 hover:border-blue-400' : 'opacity-90'
+          }`}>
+            
+            {/* Top Badges & Image */}
+            <div className="relative">
+              {/* Top Badges Row */}
+              <div className="absolute top-0 left-0 z-10 flex flex-col gap-1.5 items-start">
+                {cardData.badge && (
+                  <span className={`text-[11px] font-extrabold px-3 py-1 tracking-wide ${
+                    getHeroBadgeClasses(cardData.badgeColor, cardData.badgeShape, cardData.badgeStyle)
+                  }`}>
+                    {cardData.badge}
                   </span>
                 )}
                 {cardData.discount > 0 && (
-                  <span className="text-xs font-bold text-emerald-600">
+                  <span className="bg-emerald-50 text-emerald-700 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-100">
                     {cardData.discount}% OFF
                   </span>
                 )}
               </div>
-            ) : (
-              <div className="flex items-center">
-                <span className="text-base font-extrabold text-[#0052d9]">
-                  Wholesale Pricing Available
-                </span>
-              </div>
-            )}
-            <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-              Per unit · Bulk pricing available
-            </p>
-          </div>
 
-          {/* 2 Full Width Action Buttons (WhatsApp & Add to Quote List) */}
-          <div className="flex flex-col gap-2">
-            <a
-              href={waUrl}
-              target="_blank"
-              rel="noreferrer"
-              onClick={e => {
-                if (!isCenter) {
-                  e.preventDefault();
-                } else {
-                  e.stopPropagation();
-                }
-              }}
-              className="w-full flex items-center justify-center gap-2 h-10 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white transition-all shadow-xs shrink-0 cursor-pointer"
-            >
-              <WhatsAppIcon className="w-4 h-4 text-white" />
-              <span>Make an Enquiry</span>
-            </a>
+              {/* Product Center Image */}
+              <Link to={cardData.linkUrl} className="block" onClick={e => { if (!isCenter) e.preventDefault(); }}>
+                <div className="h-[175px] sm:h-[205px] w-full flex items-center justify-center p-2 mb-3 bg-white overflow-hidden rounded-2xl">
+                  <img
+                    src={cardData.image}
+                    alt={cardData.name}
+                    className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+              </Link>
+            </div>
 
-            <button
-              type="button"
-              onClick={(e) => {
-                if (!isCenter) {
-                  e.preventDefault();
-                } else {
-                  handleHeroAddQuote(e, cardData);
-                }
-              }}
-              className={`w-full flex items-center justify-center gap-2 h-10 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                isAdded
-                  ? 'bg-emerald-700 text-white'
-                  : 'bg-[#0052d9] hover:bg-blue-700 text-white shadow-xs'
-              }`}
-            >
-              {isAdded ? (
-                <>
-                  <Zap className="w-4 h-4 text-white" />
-                  <span>Added to Quote List ✓</span>
-                </>
-              ) : (
-                <>
-                  <FileText className="w-4 h-4 text-white" />
-                  <span>Add to Quote List</span>
-                </>
+            {/* Brand, Title & Spec Tags */}
+            <div className="flex-1 flex flex-col justify-between">
+              <Link to={cardData.linkUrl} className="block mb-2" onClick={e => { if (!isCenter) e.preventDefault(); }}>
+                {cardData.brand && (
+                  <span className="text-xs font-black text-blue-600 tracking-wider uppercase block mb-1">
+                    {cardData.brand}
+                  </span>
+                )}
+                <h3 className="text-base sm:text-[17px] font-black text-slate-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
+                  {cardData.name}
+                </h3>
+              </Link>
+
+              {/* Specs / Tags */}
+              {cardData.specs && cardData.specs.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {cardData.specs.map((tag: string, idx: number) => (
+                    <span key={idx} className="bg-slate-100 text-slate-700 text-[11px] font-semibold px-2.5 py-1 rounded-lg">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               )}
-            </button>
+
+              {/* Price Block */}
+              <div className="pt-2.5 border-t border-slate-100 mb-3.5">
+                {cardData.price > 0 ? (
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-xl sm:text-2xl font-black text-slate-900">
+                      AED {cardData.price.toFixed(2)}
+                    </span>
+                    {cardData.mrp > cardData.price && (
+                      <span className="text-xs text-slate-400 line-through font-semibold">
+                        AED {cardData.mrp.toFixed(2)}
+                      </span>
+                    )}
+                    {cardData.discount > 0 && (
+                      <span className="text-xs font-bold text-emerald-600">
+                        {cardData.discount}% OFF
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    <span className="text-base font-extrabold text-[#0052d9]">
+                      Wholesale Pricing Available
+                    </span>
+                  </div>
+                )}
+                {nonPriceEntries.length > 0 ? (
+                  <Link
+                    to={cardData.linkUrl}
+                    className="group/specs flex items-center justify-between gap-1.5 text-[10.5px] bg-slate-50 hover:bg-blue-50/80 border border-slate-100 hover:border-blue-200 rounded-lg px-2 py-1 transition-all mt-1"
+                    title="Click to view all available sizes & options"
+                    onClick={e => { if (!isCenter) e.preventDefault(); }}
+                  >
+                    <div className="flex items-center gap-1.5 flex-wrap overflow-hidden line-clamp-1">
+                      {nonPriceEntries.map(([colName, colVal], idx) => (
+                        <span key={idx} className="inline-flex items-center gap-0.5 whitespace-nowrap">
+                          <span className="text-slate-400 font-medium text-[10px]">{colName}:</span>
+                          <span className="font-bold text-slate-800 text-[10.5px]">{colVal}</span>
+                          {idx < nonPriceEntries.length - 1 && <span className="text-slate-300 ml-1">|</span>}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="shrink-0 w-4 h-4 rounded-full bg-white shadow-xs text-blue-600 group-hover/specs:bg-blue-600 group-hover/specs:text-white flex items-center justify-center transition-all ml-0.5">
+                      <ChevronDown className="w-3 h-3 group-hover/specs:translate-y-0.5 transition-transform" />
+                    </div>
+                  </Link>
+                ) : (
+                  <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                    Per unit · Bulk pricing available
+                  </p>
+                )}
+              </div>
+
+              {/* 2 Full Width Action Buttons (WhatsApp & Add to Quote List) */}
+              <div className="flex flex-col gap-2">
+                <a
+                  href={waUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={e => {
+                    if (!isCenter) {
+                      e.preventDefault();
+                    } else {
+                      e.stopPropagation();
+                    }
+                  }}
+                  className="w-full flex items-center justify-center gap-2 h-10 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white transition-all shadow-xs shrink-0 cursor-pointer"
+                >
+                  <WhatsAppIcon className="w-4 h-4 text-white" />
+                  <span>Make an Enquiry</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    if (!isCenter) {
+                      e.preventDefault();
+                    } else {
+                      handleHeroAddQuote(e, cardData);
+                    }
+                  }}
+                  className={`w-full flex items-center justify-center gap-2 h-10 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                    isAdded
+                      ? 'bg-emerald-700 text-white'
+                      : 'bg-[#0052d9] hover:bg-blue-700 text-white shadow-xs'
+                  }`}
+                >
+                  {isAdded ? (
+                    <>
+                      <Zap className="w-4 h-4 text-white" />
+                      <span>Added to Quote List ✓</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4 text-white" />
+                      <span>Add to Quote List</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+            </div>
+
           </div>
+
+          {/* ─── BACK FACE (PRICE TABLE SPECIFICATION MATRIX) ─── */}
+          {hasPriceTable && (
+            <div className={`absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] bg-white rounded-3xl p-5 sm:p-6 border border-blue-300 shadow-[0_20px_50px_rgba(0,82,217,0.12)] flex flex-col justify-between h-full group transition-all duration-500 ${
+              isCenter ? 'ring-2 ring-blue-500/20' : 'opacity-90'
+            }`}>
+              {/* Back Header */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-extrabold text-blue-600 uppercase tracking-widest bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                    Wholesale Pricing Matrix
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleCardFlip(cardId);
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Flip Card</span>
+                  </button>
+                </div>
+
+                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 leading-tight line-clamp-1 mb-0.5">
+                  {cardData.name}
+                </h3>
+                <p className="text-[10.5px] text-slate-400 font-medium">
+                  Select specifications & instant wholesale tiers
+                </p>
+              </div>
+
+              {/* Back Table: Fitted perfectly into card */}
+              <div className="my-2.5 flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-200/90 bg-slate-50/50 p-1">
+                <table className="w-full text-left text-[11px] border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-[9.5px] font-extrabold text-slate-500 uppercase tracking-wider bg-slate-100/70">
+                      {cardData.priceTable.columns.map((col: string, idx: number) => (
+                        <th key={idx} className="p-1.5 whitespace-nowrap">{col}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {cardData.priceTable.rows.map((row: any, idx: number) => (
+                      <tr
+                        key={row.id || idx}
+                        className={`transition-colors ${
+                          row.isCardDisplayPrice || idx === 0
+                            ? 'bg-blue-50/90 text-blue-950 font-bold'
+                            : 'hover:bg-white text-slate-700'
+                        }`}
+                      >
+                        {cardData.priceTable.columns.map((col: string, cIdx: number) => (
+                          <td key={cIdx} className="p-1.5 whitespace-nowrap">
+                            {row.values?.[col] || (col.toLowerCase().includes('price') ? `AED ${Number(row.price || 0).toFixed(2)}` : '—')}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Back Actions */}
+              <div className="flex flex-col gap-2 pt-1 border-t border-slate-100">
+                <a
+                  href={waUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={e => {
+                    if (!isCenter) e.preventDefault();
+                    else e.stopPropagation();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 h-10 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white transition-all shadow-xs shrink-0 cursor-pointer"
+                >
+                  <WhatsAppIcon className="w-4 h-4 text-white" />
+                  <span>Order on WhatsApp</span>
+                </a>
+
+                <Link
+                  to={cardData.linkUrl}
+                  className="w-full flex items-center justify-center gap-1.5 h-10 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-xs shrink-0 text-center"
+                >
+                  <span>View Product Page</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+
+            </div>
+          )}
 
         </div>
-
       </div>
     );
   };
@@ -774,9 +960,11 @@ export default function Home() {
                       navigate(`/search?q=${encodeURIComponent(text)}`);
                       setShowHeroDropdown(false);
                     }}
-                    onSelectProduct={(p) => {
+                    onSelectProduct={(productId) => {
                       setShowHeroDropdown(false);
-                      navigate(`/product/${p.slug || p.id}`);
+                      const prod = products.find(p => p.id === productId);
+                      const targetSlug = prod ? (prod.slug || generateSlug(prod.name) || prod.id) : productId;
+                      navigate(`/product/${targetSlug}`);
                     }}
                     onClose={() => setShowHeroDropdown(false)}
                     onRecentRemove={(text) => {
@@ -843,10 +1031,13 @@ export default function Home() {
               {/* Smooth Straight 3D Carousel Stage */}
               <div className="relative w-full max-w-[560px] h-[550px] sm:h-[580px] flex items-center justify-center">
                 {cardIds.map((cardId, i) => {
-                  const diff = (i - activeDeckIndex + 3) % 3;
+                  const N = totalCards;
+                  const currentIndex = ((activeDeckIndex % N) + N) % N;
+                  const diff = ((i - currentIndex) % N + N) % N;
+
                   const isCenter = diff === 0;
-                  const isRight = diff === 1;
-                  const isLeft = diff === 2;
+                  const isRight = N >= 2 && diff === 1;
+                  const isLeft = N >= 3 ? diff === N - 1 : false;
 
                   return (
                     <div
@@ -856,16 +1047,37 @@ export default function Home() {
                       }}
                       className={`absolute w-[295px] sm:w-[335px] lg:w-[350px] transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] ${
                         isCenter
-                          ? 'z-30 opacity-100 transform translate-x-0 scale-100 cursor-default'
+                          ? 'z-30 opacity-100 transform translate-x-0 scale-100 cursor-default pointer-events-auto'
                           : isRight
-                          ? 'z-10 opacity-80 hover:opacity-100 transform translate-x-[80px] sm:translate-x-[125px] lg:translate-x-[140px] scale-[0.88] cursor-pointer hover:scale-[0.91]'
-                          : 'z-10 opacity-80 hover:opacity-100 transform -translate-x-[80px] sm:-translate-x-[125px] lg:-translate-x-[140px] scale-[0.88] cursor-pointer hover:scale-[0.91]'
+                          ? 'z-10 opacity-80 hover:opacity-100 transform translate-x-[80px] sm:translate-x-[125px] lg:translate-x-[140px] scale-[0.88] cursor-pointer hover:scale-[0.91] pointer-events-auto'
+                          : isLeft
+                          ? 'z-10 opacity-80 hover:opacity-100 transform -translate-x-[80px] sm:-translate-x-[125px] lg:-translate-x-[140px] scale-[0.88] cursor-pointer hover:scale-[0.91] pointer-events-auto'
+                          : 'z-0 opacity-0 transform scale-75 pointer-events-none'
                       }`}
                     >
                       {renderExactHeroCard(cardId, i, isCenter)}
                     </div>
                   );
                 })}
+
+                {/* Carousel Indicator Dots */}
+                {totalCards > 1 && (
+                  <div className="absolute -bottom-6 sm:-bottom-7 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-30">
+                    {cardIds.map((_, dotIdx) => (
+                      <button
+                        key={dotIdx}
+                        type="button"
+                        onClick={() => setActiveDeckIndex(dotIdx)}
+                        className={`h-1.5 sm:h-2 rounded-full transition-all cursor-pointer ${
+                          dotIdx === ((activeDeckIndex % totalCards) + totalCards) % totalCards
+                            ? 'w-6 bg-blue-600 shadow-xs'
+                            : 'w-2 bg-slate-300 hover:bg-slate-400'
+                        }`}
+                        aria-label={`Go to slide ${dotIdx + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
 
             </div>
