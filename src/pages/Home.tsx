@@ -650,8 +650,8 @@ export default function Home() {
 
             </div>
 
-            {/* Right Column: Enlarged Hero Visual with 2 Dynamic Floating Product Cards */}
-            <div className="lg:col-span-6 xl:col-span-5 relative flex items-center justify-center min-h-[460px] lg:min-h-[540px]">
+            {/* Right Column: 2 Dynamic Animated Hero Product Cards */}
+            <div className="lg:col-span-6 xl:col-span-5 relative flex items-center justify-center min-h-[460px] lg:min-h-[520px]">
               
               {/* Harmonic Curved Wave Lines SVG container with local overflow control */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none -z-0">
@@ -667,122 +667,124 @@ export default function Home() {
                 </svg>
               </div>
 
-              {/* Main Specialist Portrait / Advertisements Slideshow (Unobstructed) */}
-              <div className="relative z-10 w-full max-w-[420px] sm:max-w-[460px] lg:max-w-[480px] mx-auto">
-                <div className="aspect-[4/4.3] rounded-[36px] overflow-hidden shadow-2xl bg-gradient-to-b from-slate-200/50 to-slate-300/30 border border-white/60 relative">
-                  {featuredSlides ? (
-                    featuredSlides.map((slide, idx) => {
-                      const isActive = idx === activeFeaturedIndex;
-                      const SlideContent = (
-                        <div
-                          key={slide.id}
-                          className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${isActive ? 'opacity-100 pointer-events-auto z-10' : 'opacity-0 pointer-events-none z-0'}`}
-                        >
-                          <img
-                            src={slide.imageUrl}
-                            alt={slide.altText || 'Featured Promotion'}
-                            className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-700"
-                          />
-                        </div>
-                      );
-
-                      if (slide.linkUrl) {
-                        return (
-                          <Link
-                            key={slide.id}
-                            to={slide.linkUrl}
-                            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out block ${isActive ? 'opacity-100 pointer-events-auto z-10' : 'opacity-0 pointer-events-none z-0'}`}
-                          >
-                            <img
-                              src={slide.imageUrl}
-                              alt={slide.altText || 'Featured Promotion'}
-                              className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-700"
-                            />
-                          </Link>
-                        );
-                      }
-                      return SlideContent;
-                    })
-                  ) : (
-                    <img
-                      src="/images/hero-specialist.jpg"
-                      alt="Industrial Procurement & Safety Specialist"
-                      className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-700"
-                    />
-                  )}
-                </div>
-
-                {/* ── 2 Floating Interactive Product Cards (Subtle Floating Animation) ── */}
-
-                {/* Card 1: Top-Left Floating Card */}
+              {/* 2 Full Interactive Hero Product Cards */}
+              <div className="relative z-10 w-full max-w-[560px] grid grid-cols-1 sm:grid-cols-2 gap-5 lg:gap-6 items-stretch">
+                
+                {/* Product Card 1 */}
                 {(() => {
                   const card = getResolvedCard('card-1', defaultFeaturedCards[0]);
                   return (
-                    <Link
-                      to={card.linkUrl}
-                      title={card.title}
-                      className="absolute -top-4 -left-3 sm:-top-7 sm:-left-8 lg:-left-12 z-30 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-2xl sm:rounded-3xl shadow-[0_18px_40px_-8px_rgba(0,0,0,0.18)] border border-white/90 ring-1 ring-slate-900/5 hover:shadow-[0_24px_50px_-6px_rgba(0,82,217,0.25)] transition-all duration-300 hover:scale-105 group max-w-[210px] sm:max-w-[250px] flex items-center gap-2.5 sm:gap-3 animate-float-slow hover:[animation-play-state:paused]"
-                    >
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200/80 overflow-hidden shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-                        <img
-                          src={card.imageUrl}
-                          alt={card.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="min-w-0 pr-1">
-                        <span className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md mb-0.5">
-                          {card.badge}
-                        </span>
-                        <h4 className="text-xs sm:text-[13px] font-bold text-slate-800 line-clamp-1 group-hover:text-[#0052d9] transition-colors leading-tight">
-                          {card.title}
-                        </h4>
-                        <div className="flex items-center justify-between gap-1 mt-1">
-                          <span className="text-[10px] sm:text-[11px] font-extrabold text-[#0052d9] truncate">
-                            {card.price}
+                    <div className="relative animate-float-slow hover:[animation-play-state:paused] flex flex-col">
+                      <Link
+                        to={card.linkUrl}
+                        className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.12)] hover:shadow-[0_24px_50px_-8px_rgba(0,82,217,0.22)] transition-all duration-300 hover:scale-[1.03] group flex flex-col justify-between flex-1 relative overflow-hidden"
+                      >
+                        {/* Top Badge & Category Tag */}
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100/80">
+                            {card.badge}
                           </span>
-                          <span className="text-slate-400 group-hover:text-[#0052d9] group-hover:translate-x-0.5 transition-all text-xs">
-                            →
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Verified UAE
                           </span>
                         </div>
-                      </div>
-                    </Link>
+
+                        {/* Product Main Image Box */}
+                        <div className="w-full aspect-[4/3.2] bg-slate-50 rounded-2xl overflow-hidden relative border border-slate-100 flex items-center justify-center p-3 mb-4 group-hover:bg-slate-100/50 transition-colors">
+                          <img
+                            src={card.imageUrl}
+                            alt={card.title}
+                            className="w-full h-full object-contain group-hover:scale-108 transition-transform duration-500"
+                          />
+                        </div>
+
+                        {/* Product Title & Details */}
+                        <div className="flex-1 flex flex-col justify-between">
+                          <div>
+                            <h3 className="text-sm sm:text-[15px] font-extrabold text-slate-800 line-clamp-2 leading-snug group-hover:text-[#0052d9] transition-colors mb-2">
+                              {card.title}
+                            </h3>
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium mb-4">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              <span>Direct Factory Supply</span>
+                            </div>
+                          </div>
+
+                          {/* Price & Action Button */}
+                          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-bold block uppercase leading-none mb-0.5">Wholesale</span>
+                              <span className="text-sm sm:text-base font-black text-[#0052d9]">
+                                {card.price}
+                              </span>
+                            </div>
+                            <span className="inline-flex items-center gap-1 bg-slate-900 group-hover:bg-[#0052d9] text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-sm">
+                              <span>View</span>
+                              <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    </div>
                   );
                 })()}
 
-                {/* Card 2: Bottom-Right Floating Card */}
+                {/* Product Card 2 */}
                 {(() => {
                   const card = getResolvedCard('card-2', defaultFeaturedCards[1]);
                   return (
-                    <Link
-                      to={card.linkUrl}
-                      title={card.title}
-                      className="absolute -bottom-4 -right-3 sm:-bottom-7 sm:-right-8 lg:-right-10 z-30 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-2xl sm:rounded-3xl shadow-[0_18px_40px_-8px_rgba(0,0,0,0.18)] border border-white/90 ring-1 ring-slate-900/5 hover:shadow-[0_24px_50px_-6px_rgba(0,82,217,0.25)] transition-all duration-300 hover:scale-105 group max-w-[210px] sm:max-w-[250px] flex items-center gap-2.5 sm:gap-3 animate-float-delayed hover:[animation-play-state:paused]"
-                    >
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200/80 overflow-hidden shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-                        <img
-                          src={card.imageUrl}
-                          alt={card.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="min-w-0 pr-1">
-                        <span className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md mb-0.5">
-                          {card.badge}
-                        </span>
-                        <h4 className="text-xs sm:text-[13px] font-bold text-slate-800 line-clamp-1 group-hover:text-[#0052d9] transition-colors leading-tight">
-                          {card.title}
-                        </h4>
-                        <div className="flex items-center justify-between gap-1 mt-1">
-                          <span className="text-[10px] sm:text-[11px] font-extrabold text-[#0052d9] truncate">
-                            {card.price}
+                    <div className="relative animate-float-delayed hover:[animation-play-state:paused] flex flex-col">
+                      <Link
+                        to={card.linkUrl}
+                        className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.12)] hover:shadow-[0_24px_50px_-8px_rgba(0,82,217,0.22)] transition-all duration-300 hover:scale-[1.03] group flex flex-col justify-between flex-1 relative overflow-hidden"
+                      >
+                        {/* Top Badge & Category Tag */}
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100/80">
+                            {card.badge}
                           </span>
-                          <span className="text-slate-400 group-hover:text-[#0052d9] group-hover:translate-x-0.5 transition-all text-xs">
-                            →
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            In Stock
                           </span>
                         </div>
-                      </div>
-                    </Link>
+
+                        {/* Product Main Image Box */}
+                        <div className="w-full aspect-[4/3.2] bg-slate-50 rounded-2xl overflow-hidden relative border border-slate-100 flex items-center justify-center p-3 mb-4 group-hover:bg-slate-100/50 transition-colors">
+                          <img
+                            src={card.imageUrl}
+                            alt={card.title}
+                            className="w-full h-full object-contain group-hover:scale-108 transition-transform duration-500"
+                          />
+                        </div>
+
+                        {/* Product Title & Details */}
+                        <div className="flex-1 flex flex-col justify-between">
+                          <div>
+                            <h3 className="text-sm sm:text-[15px] font-extrabold text-slate-800 line-clamp-2 leading-snug group-hover:text-[#0052d9] transition-colors mb-2">
+                              {card.title}
+                            </h3>
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium mb-4">
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                              <span>GCC Certified Standard</span>
+                            </div>
+                          </div>
+
+                          {/* Price & Action Button */}
+                          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-bold block uppercase leading-none mb-0.5">Wholesale</span>
+                              <span className="text-sm sm:text-base font-black text-[#0052d9]">
+                                {card.price}
+                              </span>
+                            </div>
+                            <span className="inline-flex items-center gap-1 bg-slate-900 group-hover:bg-[#0052d9] text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-sm">
+                              <span>View</span>
+                              <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    </div>
                   );
                 })()}
 
