@@ -478,62 +478,26 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [isDeckPaused]);
 
-  const defaultHeroProducts = {
-    'card-1': {
-      id: 'default-hero-1',
-      name: 'ZYDEX Neutral Plus Silicone Sealant',
-      brand: 'ZYDEX',
-      image: 'https://pub-7ee997edc0944df3b82d8c4cec4131a1.r2.dev/hero-featured/1787742466716.jpg',
-      badge: 'Bestseller',
-      discount: 50,
-      price: 5.00,
-      mrp: 10.00,
-      tags: ['Neutral Cure Silicone Sealant', 'ZYDEX'],
-      linkUrl: '/category/industrial-adhesive-tapes',
-    },
-    'card-2': {
-      id: 'default-hero-2',
-      name: 'Solar Warning LED Traffic Light 100mm',
-      brand: 'SAFETY FIRST',
-      image: 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=500&auto=format&fit=crop',
-      badge: 'Popular',
-      discount: 35,
-      price: 45.00,
-      mrp: 70.00,
-      tags: ['Solar Powered', 'Road Safety'],
-      linkUrl: '/category/traffic-safety',
-    },
-    'card-3': {
-      id: 'default-hero-3',
-      name: 'High Intensity Reflective Microprismatic Sheeting',
-      brand: 'AL ZAYDAN',
-      image: 'https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?q=80&w=500&auto=format&fit=crop',
-      badge: 'Hot Deal',
-      discount: 25,
-      price: 85.00,
-      mrp: 115.00,
-      tags: ['Reflective Signage', 'GCC Standard'],
-      linkUrl: '/category/reflectors-signage',
-    },
-  };
+  const getResolvedHeroProduct = (cardId: 'card-1' | 'card-2' | 'card-3', defaultIndex: number) => {
+    const configured = (heroConfig?.featuredCards || []).find(n => n.id === cardId);
+    const prod = configured?.productId 
+      ? products.find(p => p.id === configured.productId) 
+      : products[defaultIndex] || products[0];
 
-  const getResolvedHeroProduct = (cardId: 'card-1' | 'card-2' | 'card-3') => {
-    const defaultDef = defaultHeroProducts[cardId];
-    const configured = (heroConfig?.featuredCards || []).find(n => n.id === cardId) ||
-                       (heroConfig?.orbitNodes || []).find(n => n.id === (cardId === 'card-1' ? 'node-1' : cardId === 'card-2' ? 'node-2' : 'node-4'));
-    if (!configured) return defaultDef;
-    const prod = configured.productId ? products.find(p => p.id === configured.productId) : null;
+    if (!prod) return null;
+
     return {
-      id: prod?.id || defaultDef.id,
-      name: configured.customTitle || prod?.name || defaultDef.name,
-      brand: prod?.brand || defaultDef.brand,
-      image: configured.customImageUrl || prod?.image || defaultDef.image,
-      badge: (configured as any).customBadge || defaultDef.badge,
-      discount: defaultDef.discount,
-      price: prod?.price || defaultDef.price,
-      mrp: prod?.mrp || (prod?.price ? prod.price * 1.5 : defaultDef.mrp),
-      tags: prod?.category ? [prod.category, prod.brand || 'Verified'] : defaultDef.tags,
-      linkUrl: configured.linkUrl || (prod ? `/product/${prod.slug || prod.id}` : defaultDef.linkUrl),
+      id: prod.id,
+      name: prod.name,
+      brand: prod.brand,
+      image: prod.image,
+      badge: prod.badge || (defaultIndex === 0 ? 'Bestseller' : null),
+      discount: prod.discount || 0,
+      price: prod.price || 0,
+      mrp: prod.mrp || 0,
+      priceType: (prod as any).priceType || (prod.price ? 'fixed' : 'hidden'),
+      specs: prod.specs && prod.specs.length > 0 ? prod.specs.slice(0, 2) : [prod.category].filter(Boolean),
+      linkUrl: `/product/${(prod as any).slug || generateSlug(prod.name) || prod.id}`,
     };
   };
 
@@ -550,7 +514,7 @@ export default function Home() {
       rating: 5,
       reviews: 12,
       image: card.image,
-      category: card.tags?.[0] ?? '',
+      category: card.specs?.[0] ?? '',
       inStock: true,
     } as any, 1);
     setAddedCardId(card.id);
@@ -562,8 +526,10 @@ export default function Home() {
     || '';
   const waNumber = settings?.whatsappRouting?.product || defaultNumber;
 
-  const renderExactHeroCard = (cardId: 'card-1' | 'card-2' | 'card-3', isCenter: boolean) => {
-    const cardData = getResolvedHeroProduct(cardId);
+  const renderExactHeroCard = (cardId: 'card-1' | 'card-2' | 'card-3', defaultIndex: number, isCenter: boolean) => {
+    const cardData = getResolvedHeroProduct(cardId, defaultIndex);
+    if (!cardData) return null;
+
     const isAdded = addedCardId === cardData.id;
     const waMsg = encodeURIComponent(
       `Hi, I'm interested in: ${cardData.name}. Please send me pricing & MOQ details.`
@@ -578,16 +544,18 @@ export default function Home() {
         {/* Top Badges & Image */}
         <Link to={cardData.linkUrl} className="block relative" onClick={e => { if (!isCenter) e.preventDefault(); }}>
           
-          {/* Top Badges Row */}
+          {/* Top Badges Row (Only true product badge & discount, no category name) */}
           <div className="absolute top-0 left-0 z-10 flex flex-col gap-1.5 items-start">
             {cardData.badge && (
-              <span className="bg-red-500 text-white text-[11px] font-extrabold px-3 py-1 rounded-full shadow-xs tracking-wide">
+              <span className={`text-[11px] font-extrabold px-3 py-1 rounded-full shadow-xs tracking-wide ${
+                cardData.badge === 'Bestseller' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white'
+              }`}>
                 {cardData.badge}
               </span>
             )}
             {cardData.discount > 0 && (
               <span className="bg-red-50 text-red-600 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-red-100">
-                −{cardData.discount}%
+                {cardData.discount}% OFF
               </span>
             )}
           </div>
@@ -605,40 +573,52 @@ export default function Home() {
         {/* Brand, Title & Spec Tags */}
         <div className="flex-1 flex flex-col justify-between">
           <Link to={cardData.linkUrl} className="block mb-2" onClick={e => { if (!isCenter) e.preventDefault(); }}>
-            <span className="text-xs font-black text-blue-600 tracking-wider uppercase block mb-1">
-              {cardData.brand || 'PREMIUM'}
-            </span>
+            {cardData.brand && (
+              <span className="text-xs font-black text-blue-600 tracking-wider uppercase block mb-1">
+                {cardData.brand}
+              </span>
+            )}
             <h3 className="text-base sm:text-[17px] font-black text-slate-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
               {cardData.name}
             </h3>
           </Link>
 
-          {/* Feature Tags */}
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {cardData.tags.map((tag: string, idx: number) => (
-              <span key={idx} className="bg-slate-100 text-slate-700 text-[11px] font-semibold px-2.5 py-1 rounded-lg">
-                {tag}
-              </span>
-            ))}
-          </div>
+          {/* Specs / Tags */}
+          {cardData.specs && cardData.specs.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {cardData.specs.map((tag: string, idx: number) => (
+                <span key={idx} className="bg-slate-100 text-slate-700 text-[11px] font-semibold px-2.5 py-1 rounded-lg">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Price Block */}
           <div className="pt-2.5 border-t border-slate-100 mb-3.5">
-            <div className="flex items-baseline gap-2 flex-wrap">
-              <span className="text-xl sm:text-2xl font-black text-slate-900">
-                AED {cardData.price.toFixed(2)}
-              </span>
-              {cardData.mrp > cardData.price && (
-                <span className="text-xs text-slate-400 line-through font-semibold">
-                  AED {cardData.mrp.toFixed(2)}
+            {cardData.price > 0 ? (
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <span className="text-xl sm:text-2xl font-black text-slate-900">
+                  AED {cardData.price.toFixed(2)}
                 </span>
-              )}
-              {cardData.discount > 0 && (
-                <span className="text-xs font-bold text-emerald-600">
-                  −{cardData.discount}%
+                {cardData.mrp > cardData.price && (
+                  <span className="text-xs text-slate-400 line-through font-semibold">
+                    AED {cardData.mrp.toFixed(2)}
+                  </span>
+                )}
+                {cardData.discount > 0 && (
+                  <span className="text-xs font-bold text-emerald-600">
+                    {cardData.discount}% OFF
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center">
+                <span className="text-base font-extrabold text-[#0052d9]">
+                  Wholesale Pricing Available
                 </span>
-              )}
-            </div>
+              </div>
+            )}
             <p className="text-[10px] text-slate-400 font-medium mt-0.5">
               Per unit · Bulk pricing available
             </p>
@@ -882,7 +862,7 @@ export default function Home() {
                           : 'z-10 opacity-80 hover:opacity-100 transform -translate-x-[80px] sm:-translate-x-[125px] lg:-translate-x-[140px] scale-[0.88] cursor-pointer hover:scale-[0.91]'
                       }`}
                     >
-                      {renderExactHeroCard(cardId, isCenter)}
+                      {renderExactHeroCard(cardId, i, isCenter)}
                     </div>
                   );
                 })}
