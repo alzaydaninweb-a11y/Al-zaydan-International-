@@ -197,11 +197,12 @@ export default function AdminSettings() {
 
   const updateFeaturedCard = (cardId: string, patch: any) => {
     const defaultCards = [
-      { id: 'card-1', label: 'Top Left Floating Card', customBadge: '🔥 Best Seller', customTitle: 'Traffic Signal Warning Lights', customPrice: 'Wholesale Certified', linkUrl: '/category/traffic-safety' },
-      { id: 'card-2', label: 'Bottom Right Floating Card', customBadge: '⚡ UAE In Stock', customTitle: 'Zydex Neutral Silicone Sealant', customPrice: 'Direct Factory Rate', linkUrl: '/category/industrial-adhesive-tapes' },
+      { id: 'card-1', defaultLabel: 'Spotlight Card (Center Front)', defaultBadge: '🔥 Bestseller', defaultTitle: 'ZYDEX Neutral Plus Silicone Sealant', defaultPrice: 'AED 5.00', defaultLink: '/category/industrial-adhesive-tapes', defaultImage: 'https://pub-7ee997edc0944df3b82d8c4cec4131a1.r2.dev/hero-featured/1787742466716.jpg' },
+      { id: 'card-2', defaultLabel: 'Left Wing Card (Back Left)', defaultBadge: '⚡ UAE In Stock', defaultTitle: 'Solar Warning LED Traffic Light 100mm', defaultPrice: 'AED 45.00', defaultLink: '/category/traffic-safety', defaultImage: 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=500&auto=format&fit=crop' },
+      { id: 'card-3', defaultLabel: 'Right Wing Card (Back Right)', defaultBadge: '✨ Hot Deal', defaultTitle: 'High Intensity Reflective Microprismatic Sheeting', defaultPrice: 'AED 85.00', defaultLink: '/category/reflectors-signage', defaultImage: 'https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?q=80&w=500&auto=format&fit=crop' },
     ];
 
-    const currentCards = heroConfig.featuredCards && heroConfig.featuredCards.length === 2
+    const currentCards = heroConfig.featuredCards && heroConfig.featuredCards.length === 3
       ? [...heroConfig.featuredCards]
       : defaultCards;
 
@@ -1007,14 +1008,14 @@ export default function AdminSettings() {
               </div>
             </div>
 
-            {/* 4. HERO FLOATING PRODUCT CARDS (2 INTERACTIVE CARDS) */}
+            {/* 4. HERO ROTATING 3-CARD COVERFLOW DECK */}
             <div className="bg-slate-50/80 rounded-xl p-5 border border-slate-200/80 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600" /> 4. Hero Floating Product Cards (2 Interactive Cards)
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" /> 4. Hero Rotating 3-Card 3D Deck (CoverFlow)
                   </h3>
-                  <p className="text-[12px] text-slate-500 mt-0.5">Select 2 featured products to display as floating, animated interactive cards over the hero section.</p>
+                  <p className="text-[12px] text-slate-500 mt-0.5">Select 3 featured products to display in the 3D rotating coverflow deck (Center spotlight, Left wing, and Right wing).</p>
                 </div>
               </div>
 
@@ -1031,13 +1032,14 @@ export default function AdminSettings() {
                 }}
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {[
-                  { id: 'card-1', defaultLabel: 'Top Left Floating Card', defaultBadge: '🔥 Best Seller', defaultTitle: 'Traffic Signal Warning Lights', defaultPrice: 'Wholesale Certified', defaultLink: '/category/traffic-safety', defaultImage: 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=400&auto=format&fit=crop' },
-                  { id: 'card-2', defaultLabel: 'Bottom Right Floating Card', defaultBadge: '⚡ UAE In Stock', defaultTitle: 'Zydex Neutral Silicone Sealant', defaultPrice: 'Direct Factory Rate', defaultLink: '/category/industrial-adhesive-tapes', defaultImage: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=400&auto=format&fit=crop' },
+                  { id: 'card-1', defaultLabel: '1. Center Spotlight Card', defaultBadge: '🔥 Bestseller', defaultTitle: 'ZYDEX Neutral Plus Silicone Sealant', defaultPrice: 'AED 5.00', defaultLink: '/category/industrial-adhesive-tapes', defaultImage: 'https://pub-7ee997edc0944df3b82d8c4cec4131a1.r2.dev/hero-featured/1787742466716.jpg' },
+                  { id: 'card-2', defaultLabel: '2. Left Wing Card (Back Left)', defaultBadge: '⚡ UAE In Stock', defaultTitle: 'Solar Warning LED Traffic Light 100mm', defaultPrice: 'AED 45.00', defaultLink: '/category/traffic-safety', defaultImage: 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=500&auto=format&fit=crop' },
+                  { id: 'card-3', defaultLabel: '3. Right Wing Card (Back Right)', defaultBadge: '✨ Hot Deal', defaultTitle: 'High Intensity Reflective Sheeting', defaultPrice: 'AED 85.00', defaultLink: '/category/reflectors-signage', defaultImage: 'https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?q=80&w=500&auto=format&fit=crop' },
                 ].map(cardDef => {
                   const cardData = (heroConfig.featuredCards || []).find(n => n.id === cardDef.id) ||
-                                   (heroConfig.orbitNodes || []).find(n => n.id === (cardDef.id === 'card-1' ? 'node-1' : 'node-4')) || {};
+                                   (heroConfig.orbitNodes || []).find(n => n.id === (cardDef.id === 'card-1' ? 'node-1' : cardDef.id === 'card-2' ? 'node-2' : 'node-4')) || {};
                   const selectedProduct = products.find(p => p.id === cardData.productId);
                   const displayImage = cardData.customImageUrl || selectedProduct?.image || cardDef.defaultImage;
                   const displayTitle = cardData.customTitle || selectedProduct?.name || cardDef.defaultTitle;
