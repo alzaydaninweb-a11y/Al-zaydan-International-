@@ -19,16 +19,6 @@ export default function AdminSettings() {
   const [bgUploading, setBgUploading] = useState(false);
   const bgFileRef = useRef<HTMLInputElement>(null);
 
-  const [newFeaturedUrl, setNewFeaturedUrl] = useState('');
-  const [newFeaturedLink, setNewFeaturedLink] = useState('');
-  const [newFeaturedAlt, setNewFeaturedAlt] = useState('');
-  const [featuredUploading, setFeaturedUploading] = useState(false);
-  const featuredFileRef = useRef<HTMLInputElement>(null);
-
-  const [nodeUploadingId, setNodeUploadingId] = useState<string | null>(null);
-  const nodeFileRef = useRef<HTMLInputElement>(null);
-  const [activeNodeUploadKey, setActiveNodeUploadKey] = useState<string>('');
-
   // Searchable Product Catalog Picker Modal State
   const [productPickerNodeId, setProductPickerNodeId] = useState<string | null>(null);
   const [pickerSearch, setPickerSearch] = useState('');
@@ -145,54 +135,6 @@ export default function AdminSettings() {
     } finally {
       setBgUploading(false);
     }
-  };
-
-  const handleFeaturedImageUpload = async (file: File) => {
-    setFeaturedUploading(true);
-    try {
-      const url = await uploadToR2(file, 'hero-featured');
-      const slides = [...(heroConfig.featuredSlides || [])];
-      slides.push({
-        id: Math.random().toString(36).substr(2, 9),
-        imageUrl: url,
-        linkUrl: newFeaturedLink.trim() || '',
-        altText: 'Featured Promotion',
-      });
-      updateHeroConfig({
-        featuredSlides: slides,
-        featuredImageUrl: url,
-      });
-      setNewFeaturedUrl('');
-      setNewFeaturedLink('');
-      setNewFeaturedAlt('');
-    } catch (err) {
-      alert('Featured image upload failed. Please try again.');
-    } finally {
-      setFeaturedUploading(false);
-    }
-  };
-
-  const addFeaturedSlide = () => {
-    if (!newFeaturedUrl.trim()) return;
-    const slides = [...(heroConfig.featuredSlides || [])];
-    slides.push({
-      id: Math.random().toString(36).substr(2, 9),
-      imageUrl: newFeaturedUrl.trim(),
-      linkUrl: newFeaturedLink.trim() || '',
-      altText: newFeaturedAlt.trim() || 'Featured Promotion',
-    });
-    updateHeroConfig({
-      featuredSlides: slides,
-      featuredImageUrl: newFeaturedUrl.trim(),
-    });
-    setNewFeaturedUrl('');
-    setNewFeaturedLink('');
-    setNewFeaturedAlt('');
-  };
-
-  const removeFeaturedSlide = (id: string) => {
-    const slides = (heroConfig.featuredSlides || []).filter((s: any) => s.id !== id);
-    updateHeroConfig({ featuredSlides: slides });
   };
 
   const updateFeaturedCard = (cardId: string, patch: any) => {
@@ -888,225 +830,95 @@ export default function AdminSettings() {
               </div>
             </div>
 
-            {/* 3. FEATURED BANNER IMAGES (AUTO-SLIDE WITH REDIRECT LINKS) */}
-            <div className="bg-slate-50/80 rounded-xl p-5 border border-slate-200/80 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
-                    <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> 3. Featured Advertisements & Visuals (Auto-Slider)
-                  </h3>
-                  <p className="text-[12px] text-slate-500 mt-0.5">Upload multiple ad banners or specialist photos. Slides automatically transition smoothly without cluttered dots, and redirect when clicked.</p>
-                </div>
-              </div>
-
-              {/* Add New Featured Slide Form */}
-              <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="md:col-span-2">
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Image URL or Upload</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="url"
-                        value={newFeaturedUrl}
-                        onChange={e => setNewFeaturedUrl(e.target.value)}
-                        placeholder="https://example.com/ad-banner.jpg"
-                        className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-slate-50/50"
-                      />
-                      <input
-                        type="file"
-                        ref={featuredFileRef}
-                        className="hidden"
-                        accept="image/*"
-                        onChange={e => e.target.files && handleFeaturedImageUpload(e.target.files[0])}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => featuredFileRef.current?.click()}
-                        disabled={featuredUploading}
-                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition-colors flex items-center gap-1.5 border border-slate-200 shrink-0 cursor-pointer"
-                      >
-                        {featuredUploading ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                        Upload
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 px-1">Redirect Link (When Clicked)</label>
-                    <input
-                      type="text"
-                      value={newFeaturedLink}
-                      onChange={e => setNewFeaturedLink(e.target.value)}
-                      placeholder="e.g. /category/traffic-safety or /search"
-                      className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-slate-50/50"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center pt-2">
-                  <div className="flex items-center gap-2">
-                    {newFeaturedUrl && (
-                      <div className="flex items-center gap-2 p-1.5 bg-slate-50 border border-slate-200 rounded-xl">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
-                          <img src={newFeaturedUrl} alt="Preview" className="w-full h-full object-cover" />
-                        </div>
-                        <span className="text-xs text-slate-600 font-semibold truncate max-w-[200px]">Image Ready</span>
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addFeaturedSlide}
-                    disabled={!newFeaturedUrl.trim()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2 rounded-xl text-xs transition-colors shadow-sm shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Add Featured Slide
-                  </button>
-                </div>
-              </div>
-
-              {/* Current Featured Slides List */}
-              <div className="space-y-2">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase px-1">
-                  Active Featured Slides ({(heroConfig.featuredSlides || []).length})
-                </label>
-                {(heroConfig.featuredSlides || []).length === 0 ? (
-                  <div className="text-center py-6 bg-white rounded-xl border border-dashed border-slate-200">
-                    <p className="text-xs text-slate-400">No custom featured slides uploaded. Showing default specialist portrait.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    {(heroConfig.featuredSlides || []).map((slide, idx) => (
-                      <div key={slide.id} className="relative bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs group flex flex-col justify-between">
-                        <div className="aspect-[4/3] relative bg-slate-100">
-                          <img src={slide.imageUrl} alt={slide.altText || `Slide ${idx + 1}`} className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => removeFeaturedSlide(slide.id)}
-                            className="absolute top-2 right-2 p-1.5 bg-red-600/90 hover:bg-red-700 text-white rounded-lg shadow-sm transition-transform group-hover:scale-105 cursor-pointer"
-                            title="Delete Slide"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                        <div className="p-2.5 bg-slate-50/70 border-t border-slate-100">
-                          <div className="text-[11px] font-semibold text-slate-700 truncate">Slide #{idx + 1}</div>
-                          {slide.linkUrl ? (
-                            <div className="text-[10px] text-blue-600 truncate flex items-center gap-1">
-                              <ExternalLink className="w-2.5 h-2.5 shrink-0" />
-                              {slide.linkUrl}
-                            </div>
-                          ) : (
-                            <div className="text-[10px] text-slate-400 italic">No link assigned</div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* 4. HERO ROTATING 3-CARD COVERFLOW DECK */}
+            {/* 3. HERO SHOWCASE PRODUCTS (3 PRODUCTS) */}
             <div className="bg-slate-50/80 rounded-xl p-5 border border-slate-200/80 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600" /> 4. Hero Rotating 3-Card 3D Deck (CoverFlow)
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" /> 3. Hero Showcase Products (3 Products)
                   </h3>
-                  <p className="text-[12px] text-slate-500 mt-0.5">Select 3 featured products to display in the 3D rotating coverflow deck (Center spotlight, Left wing, and Right wing).</p>
+                  <p className="text-[12px] text-slate-500 mt-0.5">Select the 3 featured products to display in the hero rotating 3D showcase.</p>
                 </div>
               </div>
 
-              {/* Hidden file input for card image uploads */}
-              <input
-                type="file"
-                ref={nodeFileRef}
-                className="hidden"
-                accept="image/*"
-                onChange={e => {
-                  if (e.target.files && activeNodeUploadKey) {
-                    handleCardImageUpload(activeNodeUploadKey, e.target.files[0]);
-                  }
-                }}
-              />
-
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {[
-                  { id: 'card-1', defaultLabel: '1. Center Spotlight Card', defaultBadge: '🔥 Bestseller', defaultTitle: 'ZYDEX Neutral Plus Silicone Sealant', defaultPrice: 'AED 5.00', defaultLink: '/category/industrial-adhesive-tapes', defaultImage: 'https://pub-7ee997edc0944df3b82d8c4cec4131a1.r2.dev/hero-featured/1787742466716.jpg' },
-                  { id: 'card-2', defaultLabel: '2. Left Wing Card (Back Left)', defaultBadge: '⚡ UAE In Stock', defaultTitle: 'Solar Warning LED Traffic Light 100mm', defaultPrice: 'AED 45.00', defaultLink: '/category/traffic-safety', defaultImage: 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=500&auto=format&fit=crop' },
-                  { id: 'card-3', defaultLabel: '3. Right Wing Card (Back Right)', defaultBadge: '✨ Hot Deal', defaultTitle: 'High Intensity Reflective Sheeting', defaultPrice: 'AED 85.00', defaultLink: '/category/reflectors-signage', defaultImage: 'https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?q=80&w=500&auto=format&fit=crop' },
+                  { id: 'card-1', label: '1. Center Spotlight Product', defaultBadge: '🔥 Bestseller', defaultTitle: 'ZYDEX Neutral Plus Silicone Sealant', defaultPrice: 'AED 5.00', defaultImage: 'https://pub-7ee997edc0944df3b82d8c4cec4131a1.r2.dev/hero-featured/1787742466716.jpg' },
+                  { id: 'card-2', label: '2. Left Wing Product', defaultBadge: '⚡ UAE In Stock', defaultTitle: 'Solar Warning LED Traffic Light 100mm', defaultPrice: 'AED 45.00', defaultImage: 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=500&auto=format&fit=crop' },
+                  { id: 'card-3', label: '3. Right Wing Product', defaultBadge: '✨ Hot Deal', defaultTitle: 'High Intensity Reflective Sheeting', defaultPrice: 'AED 85.00', defaultImage: 'https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?q=80&w=500&auto=format&fit=crop' },
                 ].map(cardDef => {
                   const cardData = (heroConfig.featuredCards || []).find(n => n.id === cardDef.id) ||
                                    (heroConfig.orbitNodes || []).find(n => n.id === (cardDef.id === 'card-1' ? 'node-1' : cardDef.id === 'card-2' ? 'node-2' : 'node-4')) || {};
                   const selectedProduct = products.find(p => p.id === cardData.productId);
-                  const displayImage = cardData.customImageUrl || selectedProduct?.image || cardDef.defaultImage;
-                  const displayTitle = cardData.customTitle || selectedProduct?.name || cardDef.defaultTitle;
-                  const displayBadge = cardData.customBadge || selectedProduct?.category || cardDef.defaultBadge;
-                  const displayPrice = cardData.customPrice || (selectedProduct?.price ? `AED ${selectedProduct.price}` : cardDef.defaultPrice);
-                  const displayLink = cardData.linkUrl || (selectedProduct ? `/product/${selectedProduct.slug || selectedProduct.id}` : cardDef.defaultLink);
 
                   return (
-                    <div key={cardDef.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-4">
-                      
-                      {/* Card Header with Position & Search Button */}
-                      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                        <span className="text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
-                          {cardDef.defaultLabel}
-                        </span>
+                    <div key={cardDef.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-4 flex flex-col justify-between">
+                      <div>
+                        {/* Position Header */}
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                          <span className="text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
+                            {cardDef.label}
+                          </span>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setProductPickerNodeId(cardDef.id);
-                            setPickerSearch('');
-                          }}
-                          className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-sm shadow-blue-600/20 transition-all cursor-pointer"
-                        >
-                          <Search className="w-3.5 h-3.5" />
-                          <span>{cardData.productId ? 'Change Product' : 'Search Catalog'}</span>
-                        </button>
-                      </div>
-
-                      {/* ── Live Floating Card Simulation Preview ── */}
-                      <div className="p-3 bg-gradient-to-br from-slate-100/90 to-slate-200/50 rounded-2xl border border-slate-200/60">
-                        <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
-                          Live Card Appearance (Floating on Homepage)
-                        </label>
-                        <div className="bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-md border border-white/90 flex items-center gap-3 max-w-[280px]">
-                          <div className="w-13 h-13 rounded-xl bg-slate-50 border border-slate-200/80 overflow-hidden shrink-0 shadow-xs">
-                            <img src={displayImage} alt={displayTitle} className="w-full h-full object-cover" />
-                          </div>
-                          <div className="min-w-0 pr-1">
-                            <span className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md mb-0.5">
-                              {displayBadge}
-                            </span>
-                            <h4 className="text-xs font-bold text-slate-800 line-clamp-1 leading-tight">
-                              {displayTitle}
-                            </h4>
-                            <div className="flex items-center justify-between gap-1 mt-1">
-                              <span className="text-[10px] font-extrabold text-[#0052d9] truncate">
-                                {displayPrice}
-                              </span>
-                              <span className="text-slate-400 text-xs">→</span>
-                            </div>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProductPickerNodeId(cardDef.id);
+                              setPickerSearch('');
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-sm shadow-blue-600/20 transition-all cursor-pointer"
+                          >
+                            <Search className="w-3.5 h-3.5" />
+                            <span>{selectedProduct ? 'Change Product' : 'Choose Product'}</span>
+                          </button>
                         </div>
-                      </div>
 
-                      {/* Attached Product Notification */}
-                      {selectedProduct ? (
-                        <div className="bg-blue-50/60 border border-blue-200/80 rounded-xl p-2.5 flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-8 h-8 rounded-lg overflow-hidden border border-blue-200 bg-white shrink-0">
-                              <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover" />
+                        {/* Selected Product Display */}
+                        {selectedProduct ? (
+                          <div className="space-y-3">
+                            {/* Product Image Preview */}
+                            <div className="w-full aspect-[4/3] rounded-xl bg-slate-50 border border-slate-200/80 overflow-hidden flex items-center justify-center p-3">
+                              <img
+                                src={selectedProduct.image}
+                                alt={selectedProduct.name}
+                                className="w-full h-full object-contain"
+                              />
                             </div>
-                            <div className="min-w-0">
-                              <div className="text-xs font-bold text-slate-800 truncate">{selectedProduct.name}</div>
-                              <div className="text-[10px] text-slate-500 truncate">{selectedProduct.category}</div>
+
+                            {/* Product Name & Details */}
+                            <div>
+                              <span className="inline-flex items-center text-[10px] font-extrabold uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md mb-1">
+                                {selectedProduct.category || 'Product'}
+                              </span>
+                              <h4 className="text-xs font-bold text-slate-800 line-clamp-2 leading-snug">
+                                {selectedProduct.name}
+                              </h4>
+                              <p className="text-xs font-extrabold text-[#0052d9] mt-1">
+                                {selectedProduct.price ? `AED ${selectedProduct.price}` : 'Wholesale pricing'}
+                              </p>
                             </div>
                           </div>
+                        ) : (
+                          /* Empty Placeholder */
+                          <div 
+                            onClick={() => {
+                              setProductPickerNodeId(cardDef.id);
+                              setPickerSearch('');
+                            }}
+                            className="py-12 px-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50/60 hover:bg-blue-50/30 transition-all flex flex-col items-center justify-center text-center cursor-pointer group"
+                          >
+                            <PackageSearch className="w-8 h-8 text-slate-300 group-hover:text-blue-500 transition-colors mb-2" />
+                            <p className="text-xs font-bold text-slate-700 mb-1">No product selected</p>
+                            <span className="text-[11px] text-blue-600 font-semibold group-hover:underline">
+                              Click to select from catalog
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Remove Button if Selected */}
+                      {selectedProduct && (
+                        <div className="pt-3 border-t border-slate-100 flex justify-end">
                           <button
                             type="button"
                             onClick={() => {
@@ -1119,90 +931,13 @@ export default function AdminSettings() {
                                 linkUrl: '',
                               });
                             }}
-                            className="p-1 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
-                            title="Unlink Product"
+                            className="text-xs font-semibold text-red-500 hover:text-red-700 flex items-center gap-1 hover:underline cursor-pointer"
                           >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="p-2.5 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex items-center justify-between">
-                          <span className="text-xs text-slate-500">No catalog product linked.</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setProductPickerNodeId(cardDef.id);
-                              setPickerSearch('');
-                            }}
-                            className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
-                          >
-                            <PackageSearch className="w-3.5 h-3.5" /> Select from Catalog
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Remove Product</span>
                           </button>
                         </div>
                       )}
-
-                      {/* Card Customization Fields */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Badge Text</label>
-                          <input
-                            type="text"
-                            value={cardData.customBadge !== undefined ? cardData.customBadge : cardDef.defaultBadge}
-                            onChange={e => updateFeaturedCard(cardDef.id, { customBadge: e.target.value })}
-                            placeholder="e.g. 🔥 Best Seller"
-                            className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Price / Tag Line</label>
-                          <input
-                            type="text"
-                            value={cardData.customPrice !== undefined ? cardData.customPrice : cardDef.defaultPrice}
-                            onChange={e => updateFeaturedCard(cardDef.id, { customPrice: e.target.value })}
-                            placeholder="e.g. Wholesale Rate"
-                            className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Custom Image Upload */}
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Custom Image URL or Upload</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="url"
-                            value={cardData.customImageUrl || ''}
-                            onChange={e => updateFeaturedCard(cardDef.id, { customImageUrl: e.target.value })}
-                            placeholder="https://... (Optional custom image override)"
-                            className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveNodeUploadKey(cardDef.id);
-                              nodeFileRef.current?.click();
-                            }}
-                            disabled={nodeUploadingId === cardDef.id}
-                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2.5 py-1.5 rounded-lg text-[11px] transition-colors border border-slate-200 shrink-0 cursor-pointer flex items-center gap-1"
-                          >
-                            {nodeUploadingId === cardDef.id ? <Loader className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-                            <span>Upload</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Destination Link */}
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Destination Link</label>
-                        <input
-                          type="text"
-                          value={cardData.linkUrl !== undefined ? cardData.linkUrl : displayLink}
-                          onChange={e => updateFeaturedCard(cardDef.id, { linkUrl: e.target.value })}
-                          placeholder={cardDef.defaultLink}
-                          className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white font-mono text-slate-700"
-                        />
-                      </div>
                     </div>
                   );
                 })}
