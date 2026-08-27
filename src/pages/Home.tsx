@@ -5,9 +5,12 @@ import {
   Database, FlaskConical, Atom, Home as HomeIcon, Settings, Cpu, Package, Scissors, Factory, Menu, AlertCircle, Search, ArrowRight, Sparkles
 } from 'lucide-react';
 import { useStore, Product } from '../context/StoreContext';
+import { useCart } from '../context/CartContext';
 import { generateSlug } from '../lib/blogService';
 import ProductSection from '../components/home/ProductSection';
 import ProductCard from '../components/ui/ProductCard';
+import WhatsAppIcon from '../components/icons/WhatsAppIcon';
+import { FileText, Zap } from 'lucide-react';
 import SmartSearchDropdown, {
   getRecentSearches, saveRecentSearch, removeRecentSearch
 } from '../components/ui/SmartSearchDropdown';
@@ -459,6 +462,8 @@ export default function Home() {
 
 
   const [activeFeaturedIndex, setActiveFeaturedIndex] = useState(0);
+  const [addedCardId, setAddedCardId] = useState<string | null>(null);
+  const { addToCart } = useCart();
 
   const heroConfig = settings?.heroConfig;
   const featuredSlides = (heroConfig?.featuredSlides && heroConfig.featuredSlides.length > 0)
@@ -474,39 +479,198 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [featuredSlides, heroConfig?.slideInterval]);
 
-  const defaultFeaturedCards = [
-    {
-      id: 'card-1',
-      label: 'Top Left Floating Card',
-      customBadge: '🔥 Best Seller',
-      customTitle: 'Traffic Signal Warning Lights',
-      customPrice: 'Wholesale Certified',
-      customImageUrl: 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=400&auto=format&fit=crop',
-      linkUrl: '/category/traffic-safety'
+  const defaultHeroProducts = {
+    'card-1': {
+      id: 'default-hero-1',
+      name: 'Solar Warning LED Traffic Light 100mm',
+      brand: 'SAFETY FIRST',
+      image: 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=500&auto=format&fit=crop',
+      badge: 'Popular',
+      discount: 35,
+      price: 45.00,
+      mrp: 70.00,
+      tags: ['Solar Powered', 'Road Safety'],
+      linkUrl: '/category/traffic-safety',
     },
-    {
-      id: 'card-2',
-      label: 'Bottom Right Floating Card',
-      customBadge: '⚡ UAE In Stock',
-      customTitle: 'Zydex Neutral Silicone Sealant',
-      customPrice: 'Direct Factory Rate',
-      customImageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=400&auto=format&fit=crop',
-      linkUrl: '/category/industrial-adhesive-tapes'
+    'card-2': {
+      id: 'default-hero-2',
+      name: 'ZYDEX Neutral Plus Silicone Sealant',
+      brand: 'ZYDEX',
+      image: 'https://pub-7ee997edc0944df3b82d8c4cec4131a1.r2.dev/hero-featured/1787742466716.jpg',
+      badge: 'Bestseller',
+      discount: 50,
+      price: 5.00,
+      mrp: 10.00,
+      tags: ['Neutral Cure Silicone Sealant', 'ZYDEX'],
+      linkUrl: '/category/industrial-adhesive-tapes',
     },
-  ];
+  };
 
-  const getResolvedCard = (cardId: string, defaultDef: typeof defaultFeaturedCards[0]) => {
+  const getResolvedHeroProduct = (cardId: 'card-1' | 'card-2') => {
+    const defaultDef = defaultHeroProducts[cardId];
     const configured = (heroConfig?.featuredCards || []).find(n => n.id === cardId) ||
                        (heroConfig?.orbitNodes || []).find(n => n.id === (cardId === 'card-1' ? 'node-1' : 'node-4'));
     if (!configured) return defaultDef;
     const prod = configured.productId ? products.find(p => p.id === configured.productId) : null;
     return {
-      title: configured.customTitle || prod?.name || defaultDef.customTitle,
-      imageUrl: configured.customImageUrl || prod?.image || defaultDef.customImageUrl,
-      badge: (configured as any).customBadge || prod?.category || defaultDef.customBadge,
-      price: (configured as any).customPrice || (prod?.price ? `AED ${prod.price}` : defaultDef.customPrice),
+      id: prod?.id || defaultDef.id,
+      name: configured.customTitle || prod?.name || defaultDef.name,
+      brand: prod?.brand || defaultDef.brand,
+      image: configured.customImageUrl || prod?.image || defaultDef.image,
+      badge: (configured as any).customBadge || defaultDef.badge,
+      discount: defaultDef.discount,
+      price: prod?.price || defaultDef.price,
+      mrp: prod?.mrp || (prod?.price ? prod.price * 1.5 : defaultDef.mrp),
+      tags: prod?.category ? [prod.category, prod.brand || 'Verified'] : defaultDef.tags,
       linkUrl: configured.linkUrl || (prod ? `/product/${prod.slug || prod.id}` : defaultDef.linkUrl),
     };
+  };
+
+  const handleHeroAddQuote = (e: React.MouseEvent, card: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart({
+      id: card.id,
+      name: card.name,
+      brand: card.brand ?? '',
+      price: card.price,
+      mrp: card.mrp ?? card.price,
+      discount: card.discount ?? 0,
+      rating: 5,
+      reviews: 12,
+      image: card.image,
+      category: card.tags?.[0] ?? '',
+      inStock: true,
+    } as any, 1);
+    setAddedCardId(card.id);
+    setTimeout(() => setAddedCardId(null), 1800);
+  };
+
+  const defaultNumber = settings?.orderWhatsAppNumber
+    || settings?.phoneNumber?.replace(/\D/g, '')
+    || '';
+  const waNumber = settings?.whatsappRouting?.product || defaultNumber;
+
+  const renderExactHeroCard = (cardId: 'card-1' | 'card-2') => {
+    const cardData = getResolvedHeroProduct(cardId);
+    const isAdded = addedCardId === cardData.id;
+    const waMsg = encodeURIComponent(
+      `Hi, I'm interested in: ${cardData.name}. Please send me pricing & MOQ details.`
+    );
+    const waUrl = waNumber ? `https://wa.me/${waNumber.replace(/\D/g, '')}?text=${waMsg}` : '#';
+
+    return (
+      <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.12)] flex flex-col justify-between h-full group hover:border-blue-400 transition-all duration-300">
+        
+        {/* Top Badges & Image */}
+        <Link to={cardData.linkUrl} className="block relative">
+          
+          {/* Top Badges Row */}
+          <div className="absolute top-0 left-0 z-10 flex flex-col gap-1.5 items-start">
+            {cardData.badge && (
+              <span className="bg-red-500 text-white text-[11px] font-extrabold px-3 py-1 rounded-full shadow-xs tracking-wide">
+                {cardData.badge}
+              </span>
+            )}
+            {cardData.discount > 0 && (
+              <span className="bg-red-50 text-red-600 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-red-100">
+                −{cardData.discount}%
+              </span>
+            )}
+          </div>
+
+          {/* Product Center Image */}
+          <div className="h-[170px] sm:h-[195px] w-full flex items-center justify-center p-2 mb-3 bg-white overflow-hidden rounded-2xl">
+            <img
+              src={cardData.image}
+              alt={cardData.name}
+              className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500"
+            />
+          </div>
+        </Link>
+
+        {/* Brand, Title & Spec Tags */}
+        <div className="flex-1 flex flex-col justify-between">
+          <Link to={cardData.linkUrl} className="block mb-2">
+            <span className="text-xs font-black text-blue-600 tracking-wider uppercase block mb-1">
+              {cardData.brand || 'PREMIUM'}
+            </span>
+            <h3 className="text-base sm:text-[17px] font-black text-slate-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
+              {cardData.name}
+            </h3>
+          </Link>
+
+          {/* Feature Tags */}
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {cardData.tags.map((tag: string, idx: number) => (
+              <span key={idx} className="bg-slate-100 text-slate-700 text-[11px] font-semibold px-2.5 py-1 rounded-lg">
+                {tag}
+              </span>
+            ))}
+          </div>
+
+          {/* Price Block */}
+          <div className="pt-2.5 border-t border-slate-100 mb-3.5">
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <span className="text-xl sm:text-2xl font-black text-slate-900">
+                AED {cardData.price.toFixed(2)}
+              </span>
+              {cardData.mrp > cardData.price && (
+                <span className="text-xs text-slate-400 line-through font-semibold">
+                  AED {cardData.mrp.toFixed(2)}
+                </span>
+              )}
+              {cardData.discount > 0 && (
+                <span className="text-xs font-bold text-emerald-600">
+                  −{cardData.discount}%
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+              Per unit · Bulk pricing available
+            </p>
+          </div>
+
+          {/* 2 Full Width Action Buttons (WhatsApp & Add to Quote List) */}
+          <div className="flex flex-col gap-2">
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={e => e.stopPropagation()}
+              className="w-full flex items-center justify-center gap-2 h-10 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white transition-all shadow-xs shrink-0 cursor-pointer"
+            >
+              <WhatsAppIcon className="w-4 h-4 text-white" />
+              <span>Make an Enquiry</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={(e) => handleHeroAddQuote(e, cardData)}
+              className={`w-full flex items-center justify-center gap-2 h-10 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                isAdded
+                  ? 'bg-emerald-700 text-white'
+                  : 'bg-[#0052d9] hover:bg-blue-700 text-white shadow-xs'
+              }`}
+            >
+              {isAdded ? (
+                <>
+                  <Zap className="w-4 h-4 text-white" />
+                  <span>Added to Quote List ✓</span>
+                </>
+              ) : (
+                <>
+                  <FileText className="w-4 h-4 text-white" />
+                  <span>Add to Quote List</span>
+                </>
+              )}
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    );
   };
 
   return (
@@ -650,8 +814,8 @@ export default function Home() {
 
             </div>
 
-            {/* Right Column: 2 Dynamic Animated Hero Product Cards */}
-            <div className="lg:col-span-6 xl:col-span-5 relative flex items-center justify-center min-h-[460px] lg:min-h-[520px]">
+            {/* Right Column: 3D Layered Overlapping Hero Product Cards Deck */}
+            <div className="lg:col-span-6 xl:col-span-5 relative flex items-center justify-center min-h-[520px] lg:min-h-[580px]">
               
               {/* Harmonic Curved Wave Lines SVG container with local overflow control */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none -z-0">
@@ -667,126 +831,18 @@ export default function Home() {
                 </svg>
               </div>
 
-              {/* 2 Full Interactive Hero Product Cards */}
-              <div className="relative z-10 w-full max-w-[560px] grid grid-cols-1 sm:grid-cols-2 gap-5 lg:gap-6 items-stretch">
+              {/* 3D Overlapping Staggered Deck (One in Back, One in Front) */}
+              <div className="relative w-full max-w-[480px] h-[540px] flex items-center justify-center">
                 
-                {/* Product Card 1 */}
-                {(() => {
-                  const card = getResolvedCard('card-1', defaultFeaturedCards[0]);
-                  return (
-                    <div className="relative animate-float-slow hover:[animation-play-state:paused] flex flex-col">
-                      <Link
-                        to={card.linkUrl}
-                        className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.12)] hover:shadow-[0_24px_50px_-8px_rgba(0,82,217,0.22)] transition-all duration-300 hover:scale-[1.03] group flex flex-col justify-between flex-1 relative overflow-hidden"
-                      >
-                        {/* Top Badge & Category Tag */}
-                        <div className="flex items-center justify-between gap-2 mb-3">
-                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100/80">
-                            {card.badge}
-                          </span>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            Verified UAE
-                          </span>
-                        </div>
+                {/* ── CARD 1: IN THE BACK (Tilted Top-Right with Depth) ── */}
+                <div className="absolute top-0 right-1 sm:top-2 sm:right-3 z-10 w-[270px] sm:w-[310px] transform rotate-3 sm:rotate-6 scale-95 opacity-90 hover:opacity-100 hover:scale-100 hover:rotate-0 hover:z-30 transition-all duration-500 animate-float-delayed hover:[animation-play-state:paused]">
+                  {renderExactHeroCard('card-1')}
+                </div>
 
-                        {/* Product Main Image Box */}
-                        <div className="w-full aspect-[4/3.2] bg-slate-50 rounded-2xl overflow-hidden relative border border-slate-100 flex items-center justify-center p-3 mb-4 group-hover:bg-slate-100/50 transition-colors">
-                          <img
-                            src={card.imageUrl}
-                            alt={card.title}
-                            className="w-full h-full object-contain group-hover:scale-108 transition-transform duration-500"
-                          />
-                        </div>
-
-                        {/* Product Title & Details */}
-                        <div className="flex-1 flex flex-col justify-between">
-                          <div>
-                            <h3 className="text-sm sm:text-[15px] font-extrabold text-slate-800 line-clamp-2 leading-snug group-hover:text-[#0052d9] transition-colors mb-2">
-                              {card.title}
-                            </h3>
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium mb-4">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                              <span>Direct Factory Supply</span>
-                            </div>
-                          </div>
-
-                          {/* Price & Action Button */}
-                          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                            <div>
-                              <span className="text-[10px] text-slate-400 font-bold block uppercase leading-none mb-0.5">Wholesale</span>
-                              <span className="text-sm sm:text-base font-black text-[#0052d9]">
-                                {card.price}
-                              </span>
-                            </div>
-                            <span className="inline-flex items-center gap-1 bg-slate-900 group-hover:bg-[#0052d9] text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-sm">
-                              <span>View</span>
-                              <span className="group-hover:translate-x-0.5 transition-transform">→</span>
-                            </span>
-                          </div>
-                        </div>
-                      </Link>
-                    </div>
-                  );
-                })()}
-
-                {/* Product Card 2 */}
-                {(() => {
-                  const card = getResolvedCard('card-2', defaultFeaturedCards[1]);
-                  return (
-                    <div className="relative animate-float-delayed hover:[animation-play-state:paused] flex flex-col">
-                      <Link
-                        to={card.linkUrl}
-                        className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.12)] hover:shadow-[0_24px_50px_-8px_rgba(0,82,217,0.22)] transition-all duration-300 hover:scale-[1.03] group flex flex-col justify-between flex-1 relative overflow-hidden"
-                      >
-                        {/* Top Badge & Category Tag */}
-                        <div className="flex items-center justify-between gap-2 mb-3">
-                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100/80">
-                            {card.badge}
-                          </span>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            In Stock
-                          </span>
-                        </div>
-
-                        {/* Product Main Image Box */}
-                        <div className="w-full aspect-[4/3.2] bg-slate-50 rounded-2xl overflow-hidden relative border border-slate-100 flex items-center justify-center p-3 mb-4 group-hover:bg-slate-100/50 transition-colors">
-                          <img
-                            src={card.imageUrl}
-                            alt={card.title}
-                            className="w-full h-full object-contain group-hover:scale-108 transition-transform duration-500"
-                          />
-                        </div>
-
-                        {/* Product Title & Details */}
-                        <div className="flex-1 flex flex-col justify-between">
-                          <div>
-                            <h3 className="text-sm sm:text-[15px] font-extrabold text-slate-800 line-clamp-2 leading-snug group-hover:text-[#0052d9] transition-colors mb-2">
-                              {card.title}
-                            </h3>
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium mb-4">
-                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                              <span>GCC Certified Standard</span>
-                            </div>
-                          </div>
-
-                          {/* Price & Action Button */}
-                          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                            <div>
-                              <span className="text-[10px] text-slate-400 font-bold block uppercase leading-none mb-0.5">Wholesale</span>
-                              <span className="text-sm sm:text-base font-black text-[#0052d9]">
-                                {card.price}
-                              </span>
-                            </div>
-                            <span className="inline-flex items-center gap-1 bg-slate-900 group-hover:bg-[#0052d9] text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-sm">
-                              <span>View</span>
-                              <span className="group-hover:translate-x-0.5 transition-transform">→</span>
-                            </span>
-                          </div>
-                        </div>
-                      </Link>
-                    </div>
-                  );
-                })()}
+                {/* ── CARD 2: IN THE FRONT (Prominent Foreground Showcase) ── */}
+                <div className="absolute bottom-0 left-1 sm:bottom-2 sm:left-2 z-20 w-[280px] sm:w-[320px] transform -rotate-2 sm:-rotate-3 hover:rotate-0 hover:scale-[1.02] hover:z-30 transition-all duration-500 animate-float-slow hover:[animation-play-state:paused]">
+                  {renderExactHeroCard('card-2')}
+                </div>
 
               </div>
 
