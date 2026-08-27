@@ -571,7 +571,7 @@ export default function Home() {
     const waUrl = waNumber ? `https://wa.me/${waNumber.replace(/\D/g, '')}?text=${waMsg}` : '#';
 
     return (
-      <div className={`bg-white rounded-3xl p-4 sm:p-5 border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.12)] flex flex-col justify-between h-full group transition-all duration-300 ${
+      <div className={`bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.12)] flex flex-col justify-between h-full group transition-all duration-500 ${
         isCenter ? 'ring-1 ring-slate-900/5 hover:border-blue-400' : 'opacity-90'
       }`}>
         
@@ -581,19 +581,19 @@ export default function Home() {
           {/* Top Badges Row */}
           <div className="absolute top-0 left-0 z-10 flex flex-col gap-1.5 items-start">
             {cardData.badge && (
-              <span className="bg-red-500 text-white text-[10px] sm:text-[11px] font-extrabold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-xs tracking-wide">
+              <span className="bg-red-500 text-white text-[11px] font-extrabold px-3 py-1 rounded-full shadow-xs tracking-wide">
                 {cardData.badge}
               </span>
             )}
             {cardData.discount > 0 && (
-              <span className="bg-red-50 text-red-600 text-[10px] sm:text-[11px] font-extrabold px-2 sm:px-2.5 py-0.5 rounded-full border border-red-100">
+              <span className="bg-red-50 text-red-600 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-red-100">
                 −{cardData.discount}%
               </span>
             )}
           </div>
 
           {/* Product Center Image */}
-          <div className="h-[155px] sm:h-[185px] w-full flex items-center justify-center p-2 mb-2 sm:mb-3 bg-white overflow-hidden rounded-2xl">
+          <div className="h-[175px] sm:h-[205px] w-full flex items-center justify-center p-2 mb-3 bg-white overflow-hidden rounded-2xl">
             <img
               src={cardData.image}
               alt={cardData.name}
@@ -604,48 +604,48 @@ export default function Home() {
 
         {/* Brand, Title & Spec Tags */}
         <div className="flex-1 flex flex-col justify-between">
-          <Link to={cardData.linkUrl} className="block mb-1.5" onClick={e => { if (!isCenter) e.preventDefault(); }}>
-            <span className="text-[11px] font-black text-blue-600 tracking-wider uppercase block mb-0.5">
+          <Link to={cardData.linkUrl} className="block mb-2" onClick={e => { if (!isCenter) e.preventDefault(); }}>
+            <span className="text-xs font-black text-blue-600 tracking-wider uppercase block mb-1">
               {cardData.brand || 'PREMIUM'}
             </span>
-            <h3 className="text-sm sm:text-base font-black text-slate-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
+            <h3 className="text-base sm:text-[17px] font-black text-slate-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
               {cardData.name}
             </h3>
           </Link>
 
           {/* Feature Tags */}
-          <div className="flex flex-wrap gap-1 mb-2.5">
+          <div className="flex flex-wrap gap-1.5 mb-3">
             {cardData.tags.map((tag: string, idx: number) => (
-              <span key={idx} className="bg-slate-100 text-slate-700 text-[10px] font-semibold px-2 py-0.5 rounded-md">
+              <span key={idx} className="bg-slate-100 text-slate-700 text-[11px] font-semibold px-2.5 py-1 rounded-lg">
                 {tag}
               </span>
             ))}
           </div>
 
           {/* Price Block */}
-          <div className="pt-2 border-t border-slate-100 mb-3">
-            <div className="flex items-baseline gap-1.5 flex-wrap">
-              <span className="text-lg sm:text-xl font-black text-slate-900">
+          <div className="pt-2.5 border-t border-slate-100 mb-3.5">
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <span className="text-xl sm:text-2xl font-black text-slate-900">
                 AED {cardData.price.toFixed(2)}
               </span>
               {cardData.mrp > cardData.price && (
-                <span className="text-[11px] text-slate-400 line-through font-semibold">
+                <span className="text-xs text-slate-400 line-through font-semibold">
                   AED {cardData.mrp.toFixed(2)}
                 </span>
               )}
               {cardData.discount > 0 && (
-                <span className="text-[11px] font-bold text-emerald-600">
+                <span className="text-xs font-bold text-emerald-600">
                   −{cardData.discount}%
                 </span>
               )}
             </div>
-            <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium">
+            <p className="text-[10px] text-slate-400 font-medium mt-0.5">
               Per unit · Bulk pricing available
             </p>
           </div>
 
           {/* 2 Full Width Action Buttons (WhatsApp & Add to Quote List) */}
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             <a
               href={waUrl}
               target="_blank"
@@ -657,9 +657,9 @@ export default function Home() {
                   e.stopPropagation();
                 }
               }}
-              className="w-full flex items-center justify-center gap-1.5 h-9 rounded-xl text-[11px] sm:text-xs font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white transition-all shadow-xs shrink-0 cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 h-10 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white transition-all shadow-xs shrink-0 cursor-pointer"
             >
-              <WhatsAppIcon className="w-3.5 h-3.5 text-white" />
+              <WhatsAppIcon className="w-4 h-4 text-white" />
               <span>Make an Enquiry</span>
             </a>
 
@@ -672,7 +672,7 @@ export default function Home() {
                   handleHeroAddQuote(e, cardData);
                 }
               }}
-              className={`w-full flex items-center justify-center gap-1.5 h-9 rounded-xl text-[11px] sm:text-xs font-bold transition-all shrink-0 cursor-pointer ${
+              className={`w-full flex items-center justify-center gap-2 h-10 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 isAdded
                   ? 'bg-emerald-700 text-white'
                   : 'bg-[#0052d9] hover:bg-blue-700 text-white shadow-xs'
@@ -680,12 +680,12 @@ export default function Home() {
             >
               {isAdded ? (
                 <>
-                  <Zap className="w-3.5 h-3.5 text-white" />
+                  <Zap className="w-4 h-4 text-white" />
                   <span>Added to Quote List ✓</span>
                 </>
               ) : (
                 <>
-                  <FileText className="w-3.5 h-3.5 text-white" />
+                  <FileText className="w-4 h-4 text-white" />
                   <span>Add to Quote List</span>
                 </>
               )}
@@ -839,9 +839,9 @@ export default function Home() {
 
             </div>
 
-            {/* Right Column: 3D Rotating 3-Card CoverFlow Deck */}
+            {/* Right Column: 3D Rotating 3-Card Smooth Deck (Straight cards, no slope) */}
             <div 
-              className="lg:col-span-6 xl:col-span-5 relative flex flex-col items-center justify-center min-h-[540px] lg:min-h-[600px] select-none"
+              className="lg:col-span-6 xl:col-span-5 relative flex items-center justify-center min-h-[560px] lg:min-h-[620px] select-none"
               onMouseEnter={() => setIsDeckPaused(true)}
               onMouseLeave={() => setIsDeckPaused(false)}
             >
@@ -860,8 +860,8 @@ export default function Home() {
                 </svg>
               </div>
 
-              {/* 3D Rotating Stage (CoverFlow Deck with 3 cards) */}
-              <div className="relative w-full max-w-[500px] h-[520px] sm:h-[550px] flex items-center justify-center [perspective:1200px]">
+              {/* Smooth Straight 3D Carousel Stage */}
+              <div className="relative w-full max-w-[560px] h-[550px] sm:h-[580px] flex items-center justify-center">
                 {cardIds.map((cardId, i) => {
                   const diff = (i - activeDeckIndex + 3) % 3;
                   const isCenter = diff === 0;
@@ -874,35 +874,18 @@ export default function Home() {
                       onClick={() => {
                         if (!isCenter) setActiveDeckIndex(i);
                       }}
-                      className={`absolute w-[275px] sm:w-[310px] transition-all duration-700 ease-[cubic-bezier(0.34,1.3,0.64,1)] ${
+                      className={`absolute w-[295px] sm:w-[335px] lg:w-[350px] transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] ${
                         isCenter
-                          ? 'z-30 opacity-100 transform translate-x-0 scale-100 rotate-0 cursor-default'
+                          ? 'z-30 opacity-100 transform translate-x-0 scale-100 cursor-default'
                           : isRight
-                          ? 'z-10 opacity-75 hover:opacity-95 transform translate-x-[75px] sm:translate-x-[110px] scale-[0.87] rotate-6 cursor-pointer hover:scale-[0.90]'
-                          : 'z-10 opacity-75 hover:opacity-95 transform -translate-x-[75px] sm:-translate-x-[110px] scale-[0.87] -rotate-6 cursor-pointer hover:scale-[0.90]'
+                          ? 'z-10 opacity-80 hover:opacity-100 transform translate-x-[80px] sm:translate-x-[125px] lg:translate-x-[140px] scale-[0.88] cursor-pointer hover:scale-[0.91]'
+                          : 'z-10 opacity-80 hover:opacity-100 transform -translate-x-[80px] sm:-translate-x-[125px] lg:-translate-x-[140px] scale-[0.88] cursor-pointer hover:scale-[0.91]'
                       }`}
                     >
                       {renderExactHeroCard(cardId, isCenter)}
                     </div>
                   );
                 })}
-              </div>
-
-              {/* ── Carousel Dot Indicators ── */}
-              <div className="flex items-center gap-2 mt-4 z-40">
-                {cardIds.map((_, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setActiveDeckIndex(idx)}
-                    className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                      activeDeckIndex === idx
-                        ? 'w-7 bg-[#0052d9]'
-                        : 'w-2 bg-slate-300 hover:bg-slate-400'
-                    }`}
-                    aria-label={`Go to product ${idx + 1}`}
-                  />
-                ))}
               </div>
 
             </div>
