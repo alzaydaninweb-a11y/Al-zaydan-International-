@@ -173,6 +173,18 @@ export type GeneralSettings = {
       altText?: string;
     }[];
     slideInterval?: number;
+    featuredImageUrl?: string;
+    featuredImageLink?: string;
+    featuredCards?: {
+      id: string;
+      label: string;
+      productId?: string;
+      customTitle?: string;
+      customImageUrl?: string;
+      customBadge?: string;
+      customPrice?: string;
+      linkUrl?: string;
+    }[];
     orbitNodes?: {
       id: string;
       label: string;

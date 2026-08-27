@@ -195,35 +195,33 @@ export default function AdminSettings() {
     updateHeroConfig({ featuredSlides: slides });
   };
 
-  const updateOrbitNode = (nodeId: string, patch: any) => {
-    const defaultNodes = [
-      { id: 'node-1', label: 'Top Left (e.g. Adhesives)', customTitle: 'Industrial Adhesives & Raw Materials', linkUrl: '/category/industrial-adhesive-tapes' },
-      { id: 'node-2', label: 'Mid Left (e.g. Traffic Safety)', customTitle: 'Traffic Safety Equipment', linkUrl: '/category/traffic-safety' },
-      { id: 'node-3', label: 'Top Right (e.g. Reflective Sheeting)', customTitle: 'Reflective Sheeting & Safety', linkUrl: '/category/reflectors-signage' },
-      { id: 'node-4', label: 'Bottom Right (e.g. Packaging Supplies)', customTitle: 'Packaging & Logistics Materials', linkUrl: '/category/packaging-materials-supplier-uae' },
+  const updateFeaturedCard = (cardId: string, patch: any) => {
+    const defaultCards = [
+      { id: 'card-1', label: 'Top Left Floating Card', customBadge: '🔥 Best Seller', customTitle: 'Traffic Signal Warning Lights', customPrice: 'Wholesale Certified', linkUrl: '/category/traffic-safety' },
+      { id: 'card-2', label: 'Bottom Right Floating Card', customBadge: '⚡ UAE In Stock', customTitle: 'Zydex Neutral Silicone Sealant', customPrice: 'Direct Factory Rate', linkUrl: '/category/industrial-adhesive-tapes' },
     ];
 
-    const currentNodes = heroConfig.orbitNodes && heroConfig.orbitNodes.length === 4
-      ? [...heroConfig.orbitNodes]
-      : defaultNodes;
+    const currentCards = heroConfig.featuredCards && heroConfig.featuredCards.length === 2
+      ? [...heroConfig.featuredCards]
+      : defaultCards;
 
-    const updated = currentNodes.map(node => {
-      if (node.id === nodeId) {
-        return { ...node, ...patch };
+    const updated = currentCards.map(card => {
+      if (card.id === cardId) {
+        return { ...card, ...patch };
       }
-      return node;
+      return card;
     });
 
-    updateHeroConfig({ orbitNodes: updated });
+    updateHeroConfig({ featuredCards: updated });
   };
 
-  const handleNodeImageUpload = async (nodeId: string, file: File) => {
-    setNodeUploadingId(nodeId);
+  const handleCardImageUpload = async (cardId: string, file: File) => {
+    setNodeUploadingId(cardId);
     try {
-      const url = await uploadToR2(file, `hero-node-${nodeId}`);
-      updateOrbitNode(nodeId, { customImageUrl: url });
+      const url = await uploadToR2(file, `hero-card-${cardId}`);
+      updateFeaturedCard(cardId, { customImageUrl: url });
     } catch (err) {
-      alert('Orbit circle image upload failed. Please try again.');
+      alert('Card image upload failed. Please try again.');
     } finally {
       setNodeUploadingId(null);
     }
@@ -1009,18 +1007,18 @@ export default function AdminSettings() {
               </div>
             </div>
 
-            {/* 4. SURROUNDING FLOATING CIRCLES (PRODUCT SELECTORS & DIRECT LINKS) */}
+            {/* 4. HERO FLOATING PRODUCT CARDS (2 INTERACTIVE CARDS) */}
             <div className="bg-slate-50/80 rounded-xl p-5 border border-slate-200/80 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600" /> 4. Orbiting Floating Circles (Product Selector)
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" /> 4. Hero Floating Product Cards (2 Interactive Cards)
                   </h3>
-                  <p className="text-[12px] text-slate-500 mt-0.5">Search and select products from your catalog for each of the 4 circles orbiting the hero image. Includes live circle preview.</p>
+                  <p className="text-[12px] text-slate-500 mt-0.5">Select 2 featured products to display as floating, animated interactive cards over the hero section.</p>
                 </div>
               </div>
 
-              {/* Hidden file input for orbit node uploads */}
+              {/* Hidden file input for card image uploads */}
               <input
                 type="file"
                 ref={nodeFileRef}
@@ -1028,72 +1026,81 @@ export default function AdminSettings() {
                 accept="image/*"
                 onChange={e => {
                   if (e.target.files && activeNodeUploadKey) {
-                    handleNodeImageUpload(activeNodeUploadKey, e.target.files[0]);
+                    handleCardImageUpload(activeNodeUploadKey, e.target.files[0]);
                   }
                 }}
               />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {[
-                  { id: 'node-1', defaultLabel: 'Top Left Circle', defaultTitle: 'Industrial Adhesives & Raw Materials', defaultLink: '/category/industrial-adhesive-tapes', defaultImage: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=400&auto=format&fit=crop' },
-                  { id: 'node-2', defaultLabel: 'Mid Left Circle', defaultTitle: 'Traffic Safety Equipment', defaultLink: '/category/traffic-safety', defaultImage: 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=400&auto=format&fit=crop' },
-                  { id: 'node-3', defaultLabel: 'Top Right Circle', defaultTitle: 'Reflective Sheeting & Safety', defaultLink: '/category/reflectors-signage', defaultImage: 'https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?q=80&w=400&auto=format&fit=crop' },
-                  { id: 'node-4', defaultLabel: 'Bottom Right Circle', defaultTitle: 'Packaging & Logistics Materials', defaultLink: '/category/packaging-materials-supplier-uae', defaultImage: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=400&auto=format&fit=crop' },
-                ].map(nodeDef => {
-                  const nodeData = (heroConfig.orbitNodes || []).find(n => n.id === nodeDef.id) || {};
-                  const selectedProduct = products.find(p => p.id === nodeData.productId);
-                  const displayImage = nodeData.customImageUrl || selectedProduct?.image || nodeDef.defaultImage;
-                  const displayTitle = nodeData.customTitle || selectedProduct?.name || nodeDef.defaultTitle;
-                  const displayLink = nodeData.linkUrl || (selectedProduct ? `/product/${selectedProduct.slug || selectedProduct.id}` : nodeDef.defaultLink);
+                  { id: 'card-1', defaultLabel: 'Top Left Floating Card', defaultBadge: '🔥 Best Seller', defaultTitle: 'Traffic Signal Warning Lights', defaultPrice: 'Wholesale Certified', defaultLink: '/category/traffic-safety', defaultImage: 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=400&auto=format&fit=crop' },
+                  { id: 'card-2', defaultLabel: 'Bottom Right Floating Card', defaultBadge: '⚡ UAE In Stock', defaultTitle: 'Zydex Neutral Silicone Sealant', defaultPrice: 'Direct Factory Rate', defaultLink: '/category/industrial-adhesive-tapes', defaultImage: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=400&auto=format&fit=crop' },
+                ].map(cardDef => {
+                  const cardData = (heroConfig.featuredCards || []).find(n => n.id === cardDef.id) ||
+                                   (heroConfig.orbitNodes || []).find(n => n.id === (cardDef.id === 'card-1' ? 'node-1' : 'node-4')) || {};
+                  const selectedProduct = products.find(p => p.id === cardData.productId);
+                  const displayImage = cardData.customImageUrl || selectedProduct?.image || cardDef.defaultImage;
+                  const displayTitle = cardData.customTitle || selectedProduct?.name || cardDef.defaultTitle;
+                  const displayBadge = cardData.customBadge || selectedProduct?.category || cardDef.defaultBadge;
+                  const displayPrice = cardData.customPrice || (selectedProduct?.price ? `AED ${selectedProduct.price}` : cardDef.defaultPrice);
+                  const displayLink = cardData.linkUrl || (selectedProduct ? `/product/${selectedProduct.slug || selectedProduct.id}` : cardDef.defaultLink);
 
                   return (
-                    <div key={nodeDef.id} className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-4">
+                    <div key={cardDef.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-4">
                       
-                      {/* Node Header with Live Circle Preview Orb */}
+                      {/* Card Header with Position & Search Button */}
                       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                        <div className="flex items-center gap-3">
-                          {/* Live Preview Orb Badge */}
-                          <div className="relative group">
-                            <div className="w-12 h-12 rounded-full border-[2.5px] border-white shadow-md ring-2 ring-slate-900/10 overflow-hidden bg-slate-100 shrink-0">
-                              <img src={displayImage} alt={displayTitle} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                            </div>
-                            <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full flex items-center justify-center text-[8px] text-white font-black" title="Live Preview">
-                              ✓
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md">
-                              {nodeDef.defaultLabel}
-                            </span>
-                            <h4 className="text-xs font-semibold text-slate-600 truncate max-w-[200px] mt-0.5">
-                              {displayTitle}
-                            </h4>
-                          </div>
-                        </div>
+                        <span className="text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
+                          {cardDef.defaultLabel}
+                        </span>
 
-                        {/* Search & Choose from Catalog Button */}
                         <button
                           type="button"
                           onClick={() => {
-                            setProductPickerNodeId(nodeDef.id);
+                            setProductPickerNodeId(cardDef.id);
                             setPickerSearch('');
                           }}
                           className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-sm shadow-blue-600/20 transition-all cursor-pointer"
                         >
                           <Search className="w-3.5 h-3.5" />
-                          <span>{nodeData.productId ? 'Change Product' : 'Search Catalog'}</span>
+                          <span>{cardData.productId ? 'Change Product' : 'Search Catalog'}</span>
                         </button>
                       </div>
 
-                      {/* Selected Product Info Card */}
+                      {/* ── Live Floating Card Simulation Preview ── */}
+                      <div className="p-3 bg-gradient-to-br from-slate-100/90 to-slate-200/50 rounded-2xl border border-slate-200/60">
+                        <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
+                          Live Card Appearance (Floating on Homepage)
+                        </label>
+                        <div className="bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-md border border-white/90 flex items-center gap-3 max-w-[280px]">
+                          <div className="w-13 h-13 rounded-xl bg-slate-50 border border-slate-200/80 overflow-hidden shrink-0 shadow-xs">
+                            <img src={displayImage} alt={displayTitle} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="min-w-0 pr-1">
+                            <span className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md mb-0.5">
+                              {displayBadge}
+                            </span>
+                            <h4 className="text-xs font-bold text-slate-800 line-clamp-1 leading-tight">
+                              {displayTitle}
+                            </h4>
+                            <div className="flex items-center justify-between gap-1 mt-1">
+                              <span className="text-[10px] font-extrabold text-[#0052d9] truncate">
+                                {displayPrice}
+                              </span>
+                              <span className="text-slate-400 text-xs">→</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Attached Product Notification */}
                       {selectedProduct ? (
-                        <div className="bg-blue-50/60 border border-blue-200/80 rounded-xl p-3 flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-10 h-10 rounded-lg overflow-hidden border border-blue-200 bg-white shrink-0">
+                        <div className="bg-blue-50/60 border border-blue-200/80 rounded-xl p-2.5 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-8 h-8 rounded-lg overflow-hidden border border-blue-200 bg-white shrink-0">
                               <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover" />
                             </div>
                             <div className="min-w-0">
-                              <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wide">Attached Catalog Product</span>
                               <div className="text-xs font-bold text-slate-800 truncate">{selectedProduct.name}</div>
                               <div className="text-[10px] text-slate-500 truncate">{selectedProduct.category}</div>
                             </div>
@@ -1101,56 +1108,83 @@ export default function AdminSettings() {
                           <button
                             type="button"
                             onClick={() => {
-                              updateOrbitNode(nodeDef.id, {
+                              updateFeaturedCard(cardDef.id, {
                                 productId: '',
                                 customTitle: '',
                                 customImageUrl: '',
+                                customBadge: '',
+                                customPrice: '',
                                 linkUrl: '',
                               });
                             }}
-                            className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                            className="p-1 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
                             title="Unlink Product"
                           >
                             <X className="w-4 h-4" />
                           </button>
                         </div>
                       ) : (
-                        <div className="p-3 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex items-center justify-between">
-                          <span className="text-xs text-slate-500">No product selected from catalog.</span>
+                        <div className="p-2.5 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex items-center justify-between">
+                          <span className="text-xs text-slate-500">No catalog product linked.</span>
                           <button
                             type="button"
                             onClick={() => {
-                              setProductPickerNodeId(nodeDef.id);
+                              setProductPickerNodeId(cardDef.id);
                               setPickerSearch('');
                             }}
-                            className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+                            className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
                           >
-                            <PackageSearch className="w-3.5 h-3.5" /> Browse Products
+                            <PackageSearch className="w-3.5 h-3.5" /> Select from Catalog
                           </button>
                         </div>
                       )}
 
-                      {/* Custom Image / Upload Override */}
+                      {/* Card Customization Fields */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Badge Text</label>
+                          <input
+                            type="text"
+                            value={cardData.customBadge !== undefined ? cardData.customBadge : cardDef.defaultBadge}
+                            onChange={e => updateFeaturedCard(cardDef.id, { customBadge: e.target.value })}
+                            placeholder="e.g. 🔥 Best Seller"
+                            className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Price / Tag Line</label>
+                          <input
+                            type="text"
+                            value={cardData.customPrice !== undefined ? cardData.customPrice : cardDef.defaultPrice}
+                            onChange={e => updateFeaturedCard(cardDef.id, { customPrice: e.target.value })}
+                            placeholder="e.g. Wholesale Rate"
+                            className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Custom Image Upload */}
                       <div>
                         <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Custom Image URL or Upload</label>
                         <div className="flex gap-2">
                           <input
                             type="url"
-                            value={nodeData.customImageUrl || ''}
-                            onChange={e => updateOrbitNode(nodeDef.id, { customImageUrl: e.target.value })}
+                            value={cardData.customImageUrl || ''}
+                            onChange={e => updateFeaturedCard(cardDef.id, { customImageUrl: e.target.value })}
                             placeholder="https://... (Optional custom image override)"
                             className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
                           />
                           <button
                             type="button"
                             onClick={() => {
-                              setActiveNodeUploadKey(nodeDef.id);
+                              setActiveNodeUploadKey(cardDef.id);
                               nodeFileRef.current?.click();
                             }}
-                            disabled={nodeUploadingId === nodeDef.id}
+                            disabled={nodeUploadingId === cardDef.id}
                             className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2.5 py-1.5 rounded-lg text-[11px] transition-colors border border-slate-200 shrink-0 cursor-pointer flex items-center gap-1"
                           >
-                            {nodeUploadingId === nodeDef.id ? <Loader className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                            {nodeUploadingId === cardDef.id ? <Loader className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
                             <span>Upload</span>
                           </button>
                         </div>
@@ -1161,9 +1195,9 @@ export default function AdminSettings() {
                         <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Destination Link</label>
                         <input
                           type="text"
-                          value={nodeData.linkUrl !== undefined ? nodeData.linkUrl : displayLink}
-                          onChange={e => updateOrbitNode(nodeDef.id, { linkUrl: e.target.value })}
-                          placeholder={nodeDef.defaultLink}
+                          value={cardData.linkUrl !== undefined ? cardData.linkUrl : displayLink}
+                          onChange={e => updateFeaturedCard(cardDef.id, { linkUrl: e.target.value })}
+                          placeholder={cardDef.defaultLink}
                           className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white font-mono text-slate-700"
                         />
                       </div>
@@ -1458,17 +1492,20 @@ export default function AdminSettings() {
                 return (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {filtered.slice(0, 80).map(p => {
-                      const currentNode = (heroConfig.orbitNodes || []).find(n => n.id === productPickerNodeId);
-                      const isSelected = currentNode?.productId === p.id;
+                      const currentCard = (heroConfig.featuredCards || []).find(n => n.id === productPickerNodeId) ||
+                                          (heroConfig.orbitNodes || []).find(n => n.id === (productPickerNodeId === 'card-1' ? 'node-1' : 'node-4'));
+                      const isSelected = currentCard?.productId === p.id;
 
                       return (
                         <div
                           key={p.id}
                           onClick={() => {
-                            updateOrbitNode(productPickerNodeId!, {
+                            updateFeaturedCard(productPickerNodeId!, {
                               productId: p.id,
                               customTitle: p.name,
                               customImageUrl: p.image,
+                              customPrice: p.price ? `AED ${p.price}` : 'Wholesale Rate',
+                              customBadge: p.category || 'Featured Item',
                               linkUrl: `/product/${p.slug || p.id}`,
                             });
                             setProductPickerNodeId(null);

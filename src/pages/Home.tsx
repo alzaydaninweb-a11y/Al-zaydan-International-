@@ -474,44 +474,37 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [featuredSlides, heroConfig?.slideInterval]);
 
-  const defaultOrbitNodes = [
+  const defaultFeaturedCards = [
     {
-      id: 'node-1',
-      label: 'Top Left',
-      customTitle: 'Industrial Adhesives & Raw Materials',
-      customImageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=400&auto=format&fit=crop',
-      linkUrl: '/category/industrial-adhesive-tapes'
-    },
-    {
-      id: 'node-2',
-      label: 'Mid Left',
-      customTitle: 'Traffic Safety Equipment',
+      id: 'card-1',
+      label: 'Top Left Floating Card',
+      customBadge: '🔥 Best Seller',
+      customTitle: 'Traffic Signal Warning Lights',
+      customPrice: 'Wholesale Certified',
       customImageUrl: 'https://images.unsplash.com/photo-1584844308364-a690e03eaff1?q=80&w=400&auto=format&fit=crop',
       linkUrl: '/category/traffic-safety'
     },
     {
-      id: 'node-3',
-      label: 'Top Right',
-      customTitle: 'Reflective Sheeting & Safety',
-      customImageUrl: 'https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?q=80&w=400&auto=format&fit=crop',
-      linkUrl: '/category/reflectors-signage'
-    },
-    {
-      id: 'node-4',
-      label: 'Bottom Right',
-      customTitle: 'Packaging & Logistics Materials',
-      customImageUrl: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=400&auto=format&fit=crop',
-      linkUrl: '/category/packaging-materials-supplier-uae'
+      id: 'card-2',
+      label: 'Bottom Right Floating Card',
+      customBadge: '⚡ UAE In Stock',
+      customTitle: 'Zydex Neutral Silicone Sealant',
+      customPrice: 'Direct Factory Rate',
+      customImageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=400&auto=format&fit=crop',
+      linkUrl: '/category/industrial-adhesive-tapes'
     },
   ];
 
-  const getResolvedNode = (nodeId: string, defaultDef: typeof defaultOrbitNodes[0]) => {
-    const configured = (heroConfig?.orbitNodes || []).find(n => n.id === nodeId);
+  const getResolvedCard = (cardId: string, defaultDef: typeof defaultFeaturedCards[0]) => {
+    const configured = (heroConfig?.featuredCards || []).find(n => n.id === cardId) ||
+                       (heroConfig?.orbitNodes || []).find(n => n.id === (cardId === 'card-1' ? 'node-1' : 'node-4'));
     if (!configured) return defaultDef;
     const prod = configured.productId ? products.find(p => p.id === configured.productId) : null;
     return {
       title: configured.customTitle || prod?.name || defaultDef.customTitle,
       imageUrl: configured.customImageUrl || prod?.image || defaultDef.customImageUrl,
+      badge: (configured as any).customBadge || prod?.category || defaultDef.customBadge,
+      price: (configured as any).customPrice || (prod?.price ? `AED ${prod.price}` : defaultDef.customPrice),
       linkUrl: configured.linkUrl || (prod ? `/product/${prod.slug || prod.id}` : defaultDef.linkUrl),
     };
   };
@@ -657,8 +650,8 @@ export default function Home() {
 
             </div>
 
-            {/* Right Column: Enlarged Hero Visual with Wavy Lines & Floating Category Orbs */}
-            <div className="lg:col-span-6 xl:col-span-5 relative flex items-center justify-center min-h-[440px] lg:min-h-[520px]">
+            {/* Right Column: Enlarged Hero Visual with 2 Dynamic Floating Product Cards */}
+            <div className="lg:col-span-6 xl:col-span-5 relative flex items-center justify-center min-h-[460px] lg:min-h-[540px]">
               
               {/* Harmonic Curved Wave Lines SVG container with local overflow control */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none -z-0">
@@ -674,7 +667,7 @@ export default function Home() {
                 </svg>
               </div>
 
-              {/* Main Specialist Portrait / Advertisements Slideshow */}
+              {/* Main Specialist Portrait / Advertisements Slideshow (Unobstructed) */}
               <div className="relative z-10 w-full max-w-[420px] sm:max-w-[460px] lg:max-w-[480px] mx-auto">
                 <div className="aspect-[4/4.3] rounded-[36px] overflow-hidden shadow-2xl bg-gradient-to-b from-slate-200/50 to-slate-300/30 border border-white/60 relative">
                   {featuredSlides ? (
@@ -719,80 +712,76 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* ── Floating Circular Preview Orbs (Anchored around the portrait card boundary) ── */}
+                {/* ── 2 Floating Interactive Product Cards (Subtle Floating Animation) ── */}
 
-                {/* Orb 1: Top Left */}
+                {/* Card 1: Top-Left Floating Card */}
                 {(() => {
-                  const node = getResolvedNode('node-1', defaultOrbitNodes[0]);
+                  const card = getResolvedCard('card-1', defaultFeaturedCards[0]);
                   return (
                     <Link
-                      to={node.linkUrl}
-                      title={node.title}
-                      className="absolute -top-5 -left-5 sm:-top-8 sm:-left-8 lg:-top-9 lg:-left-9 z-20 w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full border-[4px] border-white shadow-[0_16px_35px_rgba(0,0,0,0.2)] overflow-hidden hover:scale-115 transition-all duration-300 group bg-white ring-4 ring-slate-900/5"
+                      to={card.linkUrl}
+                      title={card.title}
+                      className="absolute -top-4 -left-3 sm:-top-7 sm:-left-8 lg:-left-12 z-30 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-2xl sm:rounded-3xl shadow-[0_18px_40px_-8px_rgba(0,0,0,0.18)] border border-white/90 ring-1 ring-slate-900/5 hover:shadow-[0_24px_50px_-6px_rgba(0,82,217,0.25)] transition-all duration-300 hover:scale-105 group max-w-[210px] sm:max-w-[250px] flex items-center gap-2.5 sm:gap-3 animate-float-slow hover:[animation-play-state:paused]"
                     >
-                      <img
-                        src={node.imageUrl}
-                        alt={node.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                      <span className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200/80 overflow-hidden shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                        <img
+                          src={card.imageUrl}
+                          alt={card.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 pr-1">
+                        <span className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md mb-0.5">
+                          {card.badge}
+                        </span>
+                        <h4 className="text-xs sm:text-[13px] font-bold text-slate-800 line-clamp-1 group-hover:text-[#0052d9] transition-colors leading-tight">
+                          {card.title}
+                        </h4>
+                        <div className="flex items-center justify-between gap-1 mt-1">
+                          <span className="text-[10px] sm:text-[11px] font-extrabold text-[#0052d9] truncate">
+                            {card.price}
+                          </span>
+                          <span className="text-slate-400 group-hover:text-[#0052d9] group-hover:translate-x-0.5 transition-all text-xs">
+                            →
+                          </span>
+                        </div>
+                      </div>
                     </Link>
                   );
                 })()}
 
-                {/* Orb 2: Mid Left */}
+                {/* Card 2: Bottom-Right Floating Card */}
                 {(() => {
-                  const node = getResolvedNode('node-2', defaultOrbitNodes[1]);
+                  const card = getResolvedCard('card-2', defaultFeaturedCards[1]);
                   return (
                     <Link
-                      to={node.linkUrl}
-                      title={node.title}
-                      className="absolute top-[40%] -left-7 sm:-left-10 lg:-left-11 z-20 w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full border-[4px] border-white shadow-[0_16px_35px_rgba(0,0,0,0.2)] overflow-hidden hover:scale-115 transition-all duration-300 group bg-white ring-4 ring-slate-900/5"
+                      to={card.linkUrl}
+                      title={card.title}
+                      className="absolute -bottom-4 -right-3 sm:-bottom-7 sm:-right-8 lg:-right-10 z-30 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-2xl sm:rounded-3xl shadow-[0_18px_40px_-8px_rgba(0,0,0,0.18)] border border-white/90 ring-1 ring-slate-900/5 hover:shadow-[0_24px_50px_-6px_rgba(0,82,217,0.25)] transition-all duration-300 hover:scale-105 group max-w-[210px] sm:max-w-[250px] flex items-center gap-2.5 sm:gap-3 animate-float-delayed hover:[animation-play-state:paused]"
                     >
-                      <img
-                        src={node.imageUrl}
-                        alt={node.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                      <span className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
-                    </Link>
-                  );
-                })()}
-
-                {/* Orb 3: Top Right */}
-                {(() => {
-                  const node = getResolvedNode('node-3', defaultOrbitNodes[2]);
-                  return (
-                    <Link
-                      to={node.linkUrl}
-                      title={node.title}
-                      className="absolute -top-5 -right-5 sm:-top-8 sm:-right-8 lg:-top-9 lg:-right-9 z-20 w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full border-[4px] border-white shadow-[0_16px_35px_rgba(0,0,0,0.2)] overflow-hidden hover:scale-115 transition-all duration-300 group bg-white ring-4 ring-slate-900/5"
-                    >
-                      <img
-                        src={node.imageUrl}
-                        alt={node.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                      <span className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
-                    </Link>
-                  );
-                })()}
-
-                {/* Orb 4: Bottom Right */}
-                {(() => {
-                  const node = getResolvedNode('node-4', defaultOrbitNodes[3]);
-                  return (
-                    <Link
-                      to={node.linkUrl}
-                      title={node.title}
-                      className="absolute bottom-3 -right-6 sm:bottom-5 sm:-right-10 lg:bottom-6 lg:-right-11 z-20 w-24 h-24 sm:w-30 sm:h-30 lg:w-34 lg:h-34 rounded-full border-[5px] border-white shadow-[0_20px_40px_rgba(0,0,0,0.24)] overflow-hidden hover:scale-115 transition-all duration-300 group bg-white ring-4 ring-slate-900/5"
-                    >
-                      <img
-                        src={node.imageUrl}
-                        alt={node.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                      <span className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200/80 overflow-hidden shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                        <img
+                          src={card.imageUrl}
+                          alt={card.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 pr-1">
+                        <span className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md mb-0.5">
+                          {card.badge}
+                        </span>
+                        <h4 className="text-xs sm:text-[13px] font-bold text-slate-800 line-clamp-1 group-hover:text-[#0052d9] transition-colors leading-tight">
+                          {card.title}
+                        </h4>
+                        <div className="flex items-center justify-between gap-1 mt-1">
+                          <span className="text-[10px] sm:text-[11px] font-extrabold text-[#0052d9] truncate">
+                            {card.price}
+                          </span>
+                          <span className="text-slate-400 group-hover:text-[#0052d9] group-hover:translate-x-0.5 transition-all text-xs">
+                            →
+                          </span>
+                        </div>
+                      </div>
                     </Link>
                   );
                 })()}
