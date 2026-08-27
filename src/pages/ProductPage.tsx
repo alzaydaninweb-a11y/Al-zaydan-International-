@@ -386,19 +386,24 @@ Customer Information:
             {/* Minimal & Professional B2B Pricing Section */}
             <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-5 mb-6">
               <div className="flex flex-col gap-4">
-                         {product.priceType === 'tiered' && product.priceTable && product.priceTable.rows && product.priceTable.rows.length > 0 ? (
+                {product.priceType === 'tiered' && ((product.priceTiers && product.priceTiers.length > 0) || (product.priceTable && product.priceTable.rows && product.priceTable.rows.length > 0)) ? (
                   <div className="space-y-4">
-                    {/* Header with Live Unit Rate */}
+                    {/* Header with Live Unit Rate & Total */}
                     <div className="flex items-baseline justify-between flex-wrap gap-2 pb-3 border-b border-slate-200">
                       <div>
                         <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider block mb-0.5">
-                          Pricing Options Table
+                          Volume Tier Pricing
                         </span>
                         <div className="flex items-baseline gap-2">
                           <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
                             AED {effectiveUnitPrice.toFixed(2)}
                           </span>
                           <span className="text-xs text-slate-500 font-semibold">/ unit</span>
+                          {activeTier?.discount && activeTier.discount > 0 ? (
+                            <span className="text-xs font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-200">
+                              {activeTier.discount}% OFF
+                            </span>
+                          ) : null}
                         </div>
                       </div>
 
@@ -411,50 +416,74 @@ Customer Information:
                       </div>
                     </div>
 
-                    {/* Dynamic Custom Columns Table */}
+                    {/* Quantity-Based Tier Table */}
                     <div className="border border-slate-200/90 rounded-xl overflow-hidden bg-white shadow-2xs">
                       <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs border-collapse">
                           <thead className="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-extrabold uppercase tracking-wider text-[10px]">
                             <tr>
-                              <th className="p-2.5 w-10 text-center">Select</th>
-                              {product.priceTable.columns.map((col, idx) => (
-                                <th key={idx} className="p-2.5 whitespace-nowrap">
-                                  {col}
-                                </th>
-                              ))}
-                              <th className="p-2.5 text-right whitespace-nowrap">Rate</th>
+                              <th className="p-2.5 min-w-[120px]">Quantity Tier</th>
+                              {/* Render any custom column headers */}
+                              {(product.priceTable?.columns || [])
+                                .filter(c => !/^(min\s*qty|max\s*qty|quantity|unit\s*price|price|discount|savings)$/i.test(c.trim()))
+                                .map((col, idx) => (
+                                  <th key={idx} className="p-2.5 whitespace-nowrap">{col}</th>
+                                ))}
+                              <th className="p-2.5 whitespace-nowrap">Price per Unit</th>
+                              <th className="p-2.5 text-right whitespace-nowrap">Savings</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
-                            {product.priceTable.rows.map((row, idx) => {
-                              const isRowActive = activeRow?.id === row.id;
+                            {(product.priceTiers || []).map((tier, idx) => {
+                              const isTierActive = activeTier?.minQty === tier.minQty;
                               return (
                                 <tr
-                                  key={row.id || idx}
-                                  onClick={() => setSelectedRowId(row.id)}
+                                  key={idx}
+                                  onClick={() => {
+                                    setQuantity(tier.minQty);
+                                    setSelectedRowId(String(idx + 1));
+                                  }}
                                   className={`cursor-pointer transition-all ${
-                                    isRowActive
-                                      ? 'bg-blue-50/90 font-semibold text-blue-950'
+                                    isTierActive
+                                      ? 'bg-blue-50/90 text-blue-900 font-bold'
                                       : 'hover:bg-slate-50 text-slate-700'
                                   }`}
                                 >
-                                  <td className="p-2.5 text-center">
-                                    <input
-                                      type="radio"
-                                      name="productPriceTableRow"
-                                      checked={isRowActive}
-                                      onChange={() => setSelectedRowId(row.id)}
-                                      className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                    />
+                                  <td className="p-2.5">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`w-2 h-2 rounded-full ${isTierActive ? 'bg-blue-600' : 'bg-slate-300'}`} />
+                                      <span className="font-semibold">
+                                        {tier.minQty} {tier.maxQty ? `– ${tier.maxQty}` : '+'} units
+                                      </span>
+                                      {isTierActive && (
+                                        <span className="text-[9px] font-extrabold bg-blue-600 text-white px-1.5 py-0.2 rounded-full uppercase tracking-wider">
+                                          Active
+                                        </span>
+                                      )}
+                                    </div>
                                   </td>
-                                  {product.priceTable.columns.map((col, cIdx) => (
-                                    <td key={cIdx} className="p-2.5 whitespace-nowrap font-medium">
-                                      {row.values?.[col] || '—'}
-                                    </td>
-                                  ))}
-                                  <td className="p-2.5 text-right font-extrabold text-slate-900 whitespace-nowrap">
-                                    AED {Number(row.price || 0).toFixed(2)}
+
+                                  {/* Custom columns */}
+                                  {(product.priceTable?.columns || [])
+                                    .filter(c => !/^(min\s*qty|max\s*qty|quantity|unit\s*price|price|discount|savings)$/i.test(c.trim()))
+                                    .map((col, cIdx) => (
+                                      <td key={cIdx} className="p-2.5 whitespace-nowrap font-medium text-slate-600">
+                                        {(tier as any).customValues?.[col] || '—'}
+                                      </td>
+                                    ))}
+
+                                  <td className="p-2.5 font-extrabold text-slate-900 whitespace-nowrap">
+                                    AED {tier.price.toFixed(2)}
+                                  </td>
+
+                                  <td className="p-2.5 text-right whitespace-nowrap">
+                                    {tier.discount && tier.discount > 0 ? (
+                                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+                                        {tier.discount}% OFF
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] text-slate-400 font-medium">Standard</span>
+                                    )}
                                   </td>
                                 </tr>
                               );
