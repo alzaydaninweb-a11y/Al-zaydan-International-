@@ -15,12 +15,15 @@ const EMPTY_FORM = {
   specifications: [] as { key: string; value: string }[],
   inStock: true, featured: false, topSelling: false,
   priceType: 'fixed' as 'fixed' | 'range' | 'hidden' | 'tiered',
-  priceTiers: [
-    { minQty: 1, maxQty: 49, price: 10, discount: 0, isCardDisplayPrice: true, customValues: {} as Record<string, string> },
-    { minQty: 50, maxQty: 199, price: 8.5, discount: 15, isCardDisplayPrice: false, customValues: {} as Record<string, string> },
-    { minQty: 200, maxQty: null, price: 7, discount: 30, isCardDisplayPrice: false, customValues: {} as Record<string, string> },
-  ] as Array<PriceTier & { customValues?: Record<string, string> }>,
-  priceCustomColumns: [] as string[],
+  priceTable: {
+    columns: ['Min Qty', 'Max Qty', 'Unit Price (AED)', 'Discount'],
+    rows: [
+      { id: '1', values: { 'Min Qty': '1', 'Max Qty': '49', 'Unit Price (AED)': '10.00', 'Discount': 'Standard' }, price: 10, isCardDisplayPrice: true },
+      { id: '2', values: { 'Min Qty': '50', 'Max Qty': '199', 'Unit Price (AED)': '8.50', 'Discount': '15% OFF' }, price: 8.5, isCardDisplayPrice: false },
+      { id: '3', values: { 'Min Qty': '200', 'Max Qty': '+', 'Unit Price (AED)': '7.00', 'Discount': '30% OFF' }, price: 7, isCardDisplayPrice: false },
+    ],
+  },
+  priceTiers: [] as PriceTier[],
   priceMin: '', priceMax: '',
   moq: '', leadTime: '', shippingRegion: '', badge: '',
   trustBadges: [] as string[],
@@ -52,42 +55,25 @@ export default function AdminProductForm() {
 
   const [form, setForm] = useState<typeof EMPTY_FORM>(() => {
     if (existingProduct) {
-      let loadedTiers: Array<PriceTier & { customValues?: Record<string, string> }> = EMPTY_FORM.priceTiers;
-      let loadedCustomCols: string[] = [];
+      let loadedTable = EMPTY_FORM.priceTable;
 
-      if (existingProduct.priceTiers && existingProduct.priceTiers.length > 0) {
-        loadedTiers = existingProduct.priceTiers.map(t => ({
-          minQty: t.minQty ?? 1,
-          maxQty: t.maxQty !== undefined ? t.maxQty : null,
-          price: t.price ?? 0,
-          discount: t.discount ?? 0,
-          isCardDisplayPrice: !!t.isCardDisplayPrice,
-          customValues: (t as any).customValues || {},
-        }));
-      } else if (existingProduct.priceTable?.rows && existingProduct.priceTable.rows.length > 0) {
-        loadedCustomCols = (existingProduct.priceTable.columns || []).filter(
-          c => !/^(min\s*qty|max\s*qty|quantity|unit\s*price|price|discount)$/i.test(c.trim())
-        );
-        loadedTiers = existingProduct.priceTable.rows.map((r, i) => {
-          let minQ = (r as any).minQty;
-          let maxQ = (r as any).maxQty;
-          if (minQ === undefined && r.values) {
-            const rawQ = r.values['Quantity'] || r.values['Quantity Range'] || r.values['Min Qty'] || '';
-            const match = rawQ.match(/^(\d+)(?:\s*[-–—to,]\s*(\d+))?/);
-            if (match) {
-              minQ = parseInt(match[1], 10);
-              maxQ = match[2] ? parseInt(match[2], 10) : null;
-            }
-          }
-          return {
-            minQty: minQ || (i === 0 ? 1 : 50 * i),
-            maxQty: maxQ !== undefined ? maxQ : (i === 0 ? 49 : null),
-            price: r.price || 10,
-            discount: (r as any).discount || 0,
-            isCardDisplayPrice: !!r.isCardDisplayPrice,
-            customValues: r.values || {},
-          };
-        });
+      if (existingProduct.priceTable && existingProduct.priceTable.rows?.length > 0) {
+        loadedTable = existingProduct.priceTable;
+      } else if (existingProduct.priceTiers && existingProduct.priceTiers.length > 0) {
+        loadedTable = {
+          columns: ['Min Qty', 'Max Qty', 'Unit Price (AED)', 'Discount'],
+          rows: existingProduct.priceTiers.map((t, idx) => ({
+            id: String(idx + 1),
+            values: {
+              'Min Qty': String(t.minQty),
+              'Max Qty': t.maxQty != null ? String(t.maxQty) : '+',
+              'Unit Price (AED)': String(t.price),
+              'Discount': t.discount ? `${t.discount}% OFF` : 'Standard',
+            },
+            price: t.price,
+            isCardDisplayPrice: !!t.isCardDisplayPrice,
+          })),
+        };
       }
 
       return {
@@ -107,8 +93,8 @@ export default function AdminProductForm() {
         featured: existingProduct.featured || false,
         topSelling: existingProduct.topSelling || false,
         priceType: existingProduct.priceType || 'fixed',
-        priceTiers: loadedTiers,
-        priceCustomColumns: loadedCustomCols,
+        priceTable: loadedTable,
+        priceTiers: existingProduct.priceTiers || [],
         priceMin: String(existingProduct.priceMin ?? ''),
         priceMax: String(existingProduct.priceMax ?? ''),
         moq: existingProduct.moq || '',
@@ -412,107 +398,96 @@ export default function AdminProductForm() {
   const [showQuickTierModal, setShowQuickTierModal] = useState(false);
   const [quickTierText, setQuickTierText] = useState('');
 
-  // ── Price Table Tier Handlers (Min Qty, Max Qty, Unit Price, Discount + Custom Columns) ──
-  const addPriceTierRow = () => {
-    const current = form.priceTiers || [];
-    const lastTier = current[current.length - 1];
-    const newMin = lastTier ? (lastTier.maxQty ? lastTier.maxQty + 1 : (lastTier.minQty ? lastTier.minQty + 50 : 1)) : 1;
-    const initialCustomVals: Record<string, string> = {};
-    (form.priceCustomColumns || []).forEach(col => { initialCustomVals[col] = ''; });
-
-    const newTier = {
-      minQty: newMin,
-      maxQty: null,
-      price: lastTier ? Math.max(1, parseFloat((lastTier.price * 0.9).toFixed(2))) : 10,
-      discount: lastTier ? (lastTier.discount ? lastTier.discount + 5 : 5) : 0,
-      isCardDisplayPrice: current.length === 0,
-      customValues: initialCustomVals,
-    };
-    set('priceTiers', [...current, newTier]);
-  };
-
-  const updatePriceTierRow = (index: number, field: string, val: any) => {
-    const next = [...(form.priceTiers || [])];
-    next[index] = { ...next[index], [field]: val };
-
-    // Auto-calculate discount relative to tier 0 if price changed
-    if (field === 'price' && index > 0 && next[0]?.price > 0) {
-      const basePrice = next[0].price;
-      const thisPrice = parseFloat(val) || 0;
-      if (basePrice > thisPrice && thisPrice > 0) {
-        next[index].discount = Math.round(((basePrice - thisPrice) / basePrice) * 100);
-      }
-    }
-    set('priceTiers', next);
-  };
-
-  const updatePriceTierCustomVal = (index: number, colName: string, val: string) => {
-    const next = [...(form.priceTiers || [])];
-    const currentCustom = next[index]?.customValues || {};
-    next[index] = {
-      ...next[index],
-      customValues: { ...currentCustom, [colName]: val },
-    };
-    set('priceTiers', next);
-  };
-
-  const removePriceTierRow = (index: number) => {
-    const current = form.priceTiers || [];
-    const wasDisplay = current[index]?.isCardDisplayPrice;
-    const next = current.filter((_, i) => i !== index);
-    if (wasDisplay && next.length > 0) {
-      next[0].isCardDisplayPrice = true;
-    }
-    set('priceTiers', next);
-  };
-
-  const setCardDisplayTier = (index: number) => {
-    const next = (form.priceTiers || []).map((t, i) => ({
-      ...t,
-      isCardDisplayPrice: i === index,
+  // ── 100% Dynamic Price Table Handlers (Columns & Rows) ──
+  const addPriceTableColumn = () => {
+    const table = form.priceTable || { columns: [], rows: [] };
+    const newColName = `Column ${table.columns.length + 1}`;
+    const newColumns = [...table.columns, newColName];
+    const newRows = table.rows.map(r => ({
+      ...r,
+      values: { ...(r.values || {}), [newColName]: '' },
     }));
-    set('priceTiers', next);
+    set('priceTable', { columns: newColumns, rows: newRows });
   };
 
-  // Custom Column Management
-  const addPriceCustomColumn = () => {
-    const currentCols = form.priceCustomColumns || [];
-    const newColName = `Column ${currentCols.length + 1}`;
-    const nextCols = [...currentCols, newColName];
-    const nextTiers = (form.priceTiers || []).map(t => ({
-      ...t,
-      customValues: { ...(t.customValues || {}), [newColName]: '' },
-    }));
-    set('priceCustomColumns', nextCols);
-    set('priceTiers', nextTiers);
-  };
-
-  const renamePriceCustomColumn = (oldName: string, newName: string) => {
+  const renamePriceTableColumn = (oldName: string, newName: string) => {
     if (!newName.trim() || oldName === newName) return;
-    const nextCols = (form.priceCustomColumns || []).map(c => c === oldName ? newName.trim() : c);
-    const nextTiers = (form.priceTiers || []).map(t => {
-      const newCustom: Record<string, string> = {};
-      Object.keys(t.customValues || {}).forEach(k => {
-        newCustom[k === oldName ? newName.trim() : k] = t.customValues?.[k] || '';
+    const table = form.priceTable || { columns: [], rows: [] };
+    const newColumns = table.columns.map(c => c === oldName ? newName.trim() : c);
+    const newRows = table.rows.map(r => {
+      const newValues: Record<string, string> = {};
+      Object.keys(r.values || {}).forEach(k => {
+        newValues[k === oldName ? newName.trim() : k] = r.values[k];
       });
-      return { ...t, customValues: newCustom };
+      return { ...r, values: newValues };
     });
-    set('priceCustomColumns', nextCols);
-    set('priceTiers', nextTiers);
+    set('priceTable', { columns: newColumns, rows: newRows });
   };
 
-  const removePriceCustomColumn = (colName: string) => {
-    const nextCols = (form.priceCustomColumns || []).filter(c => c !== colName);
-    const nextTiers = (form.priceTiers || []).map(t => {
-      const newCustom = { ...(t.customValues || {}) };
-      delete newCustom[colName];
-      return { ...t, customValues: newCustom };
+  const removePriceTableColumn = (colName: string) => {
+    const table = form.priceTable || { columns: [], rows: [] };
+    if (table.columns.length <= 1) {
+      alert('You must have at least one column.');
+      return;
+    }
+    const newColumns = table.columns.filter(c => c !== colName);
+    const newRows = table.rows.map(r => {
+      const newValues = { ...(r.values || {}) };
+      delete newValues[colName];
+      return { ...r, values: newValues };
     });
-    set('priceCustomColumns', nextCols);
-    set('priceTiers', nextTiers);
+    set('priceTable', { columns: newColumns, rows: newRows });
   };
 
-  // ── Smart Prompt / Table Parser: Parses Natural Language Instructions, Ranges, and Custom Tables ──
+  const addPriceTableRow = () => {
+    const table = form.priceTable || { columns: ['Option', 'Price (AED)'], rows: [] };
+    const newRowId = Math.random().toString(36).substring(2, 9);
+    const initialVals: Record<string, string> = {};
+    table.columns.forEach(c => { initialVals[c] = ''; });
+    const newRow = {
+      id: newRowId,
+      values: initialVals,
+      price: 0,
+      isCardDisplayPrice: table.rows.length === 0,
+    };
+    set('priceTable', { ...table, rows: [...table.rows, newRow] });
+  };
+
+  const updatePriceTableRowValue = (rowId: string, colName: string, val: string) => {
+    const table = form.priceTable || { columns: [], rows: [] };
+    const newRows = table.rows.map(r => {
+      if (r.id !== rowId) return r;
+      const newVals = { ...(r.values || {}), [colName]: val };
+      let newPrice = r.price;
+      if (/price|rate|cost|aed/i.test(colName)) {
+        const num = parseFloat(val.replace(/[^0-9.]/g, ''));
+        if (!isNaN(num) && num > 0) newPrice = num;
+      }
+      return { ...r, values: newVals, price: newPrice };
+    });
+    set('priceTable', { ...table, rows: newRows });
+  };
+
+  const removePriceTableRow = (rowId: string) => {
+    const table = form.priceTable || { columns: [], rows: [] };
+    const wasDisplay = table.rows.find(r => r.id === rowId)?.isCardDisplayPrice;
+    const newRows = table.rows.filter(r => r.id !== rowId);
+    if (wasDisplay && newRows.length > 0) {
+      newRows[0].isCardDisplayPrice = true;
+    }
+    set('priceTable', { ...table, rows: newRows });
+  };
+
+  const setCardDisplayRow = (rowId: string) => {
+    const table = form.priceTable || { columns: [], rows: [] };
+    const newRows = table.rows.map(r => ({
+      ...r,
+      isCardDisplayPrice: r.id === rowId,
+    }));
+    set('priceTable', { ...table, rows: newRows });
+  };
+
+  // ── Prompt / Smart Fill: Completely builds ONLY the columns & rows specified in the Prompt ──
   const parsePromptSmartFill = (rawText: string) => {
     const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) {
@@ -520,16 +495,12 @@ export default function AdminProductForm() {
       return;
     }
 
-    // Filter out markdown divider lines
     const cleanLines = lines.filter(l => !/^[|\s-:]+$/.test(l));
     if (cleanLines.length === 0) return;
 
-    // Helper to split line by delimiters
     const splitLine = (line: string): string[] => {
       let trimmed = line;
-      if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
-        trimmed = trimmed.slice(1, -1);
-      }
+      if (trimmed.startsWith('|') && trimmed.endsWith('|')) trimmed = trimmed.slice(1, -1);
       if (trimmed.includes('|')) return trimmed.split('|').map(s => s.trim());
       if (trimmed.includes('\t')) return trimmed.split('\t').map(s => s.trim());
       if (trimmed.includes(';') && !trimmed.includes(',')) return trimmed.split(';').map(s => s.trim());
@@ -537,134 +508,100 @@ export default function AdminProductForm() {
       return [trimmed];
     };
 
-    // Check if input is a structured table with explicit column headers
-    const firstLineCells = splitLine(cleanLines[0]);
-    const isHeaderTable = cleanLines.length > 1 && firstLineCells.length >= 2 && firstLineCells.some(c => /qty|quantity|price|rate|lead|spec|pack/i.test(c));
+    let headerLine = cleanLines[0];
+    let rowLines = cleanLines.slice(1);
 
-    if (isHeaderTable) {
-      // Parse Table with custom columns
-      let headers = firstLineCells;
-      if (/^columns?:/i.test(headers[0])) {
-        headers[0] = headers[0].replace(/^columns?:/i, '').trim();
-      }
+    if (/^columns?:/i.test(headerLine)) {
+      headerLine = headerLine.replace(/^columns?:/i, '').trim();
+    }
 
-      // Identify custom columns (excluding minQty/maxQty/price/discount)
-      const customCols: string[] = [];
-      headers.forEach(h => {
-        if (!/^(min\s*qty|max\s*qty|quantity|unit\s*price|price|rate|cost|discount|savings)$/i.test(h.trim())) {
-          customCols.push(h.trim());
+    // Check if input is standard range lines e.g. "1-49: 10, 50-199: 8.5" without a table header
+    if (cleanLines.length >= 2 && !cleanLines[0].includes('|') && !cleanLines[0].includes(',') && !cleanLines[0].includes('\t') && /^\d+/.test(cleanLines[0])) {
+      const columns = ['Quantity Range', 'Unit Price (AED)'];
+      const rows: Array<{ id: string; values: Record<string, string>; price: number; isCardDisplayPrice: boolean }> = [];
+      
+      cleanLines.forEach((line, idx) => {
+        const rangeMatch = line.match(/(?:min\s*)?(\d+)\s*(?:-|–|—|to|,|\s+to\s+|(?:max\s*))(\d+)\s*[:=,@\s]*(?:price\s*)?(?:AED|aed)?\s*(\d+(?:\.\d+)?)/i);
+        const openMatch = line.match(/(?:min\s*)?(\d+)\s*(?:\+|and above|and more|plus)?\s*[:=,@\s]*(?:price\s*)?(?:AED|aed)?\s*(\d+(?:\.\d+)?)/i);
+        if (rangeMatch) {
+          const minQ = rangeMatch[1];
+          const maxQ = rangeMatch[2];
+          const p = parseFloat(rangeMatch[3]) || 0;
+          rows.push({
+            id: String(idx + 1),
+            values: { 'Quantity Range': `${minQ} – ${maxQ} units`, 'Unit Price (AED)': p.toFixed(2) },
+            price: p,
+            isCardDisplayPrice: idx === 0,
+          });
+        } else if (openMatch) {
+          const minQ = openMatch[1];
+          const p = parseFloat(openMatch[2]) || 0;
+          rows.push({
+            id: String(idx + 1),
+            values: { 'Quantity Range': `${minQ}+ units`, 'Unit Price (AED)': p.toFixed(2) },
+            price: p,
+            isCardDisplayPrice: idx === 0,
+          });
         }
       });
 
-      const parsedTiers: Array<PriceTier & { customValues?: Record<string, string> }> = [];
-
-      for (let i = 1; i < cleanLines.length; i++) {
-        const cells = splitLine(cleanLines[i]);
-        let minQty = 1;
-        let maxQty: number | null = null;
-        let price = 0;
-        let discount = 0;
-        const customVals: Record<string, string> = {};
-
-        headers.forEach((h, hIdx) => {
-          const val = cells[hIdx] !== undefined ? cells[hIdx] : '';
-          const hLower = h.toLowerCase().trim();
-
-          if (hLower.includes('min') && (hLower.includes('qty') || hLower.includes('quantity'))) {
-            minQty = parseInt(val, 10) || 1;
-          } else if (hLower.includes('max') && (hLower.includes('qty') || hLower.includes('quantity'))) {
-            maxQty = val && !val.includes('+') ? parseInt(val, 10) : null;
-          } else if (hLower.includes('qty') || hLower.includes('quantity')) {
-            const rangeMatch = val.match(/(\d+)\s*(?:-|–|—|to)\s*(\d+)/i);
-            const plusMatch = val.match(/(\d+)\s*(?:\+|and above|and more|plus)/i);
-            if (rangeMatch) {
-              minQty = parseInt(rangeMatch[1], 10);
-              maxQty = parseInt(rangeMatch[2], 10);
-            } else if (plusMatch) {
-              minQty = parseInt(plusMatch[1], 10);
-              maxQty = null;
-            } else {
-              const num = parseInt(val, 10);
-              if (!isNaN(num)) minQty = num;
-            }
-          } else if (hLower.includes('price') || hLower.includes('rate') || hLower.includes('cost') || hLower.includes('aed')) {
-            const pNum = parseFloat(val.replace(/[^0-9.]/g, ''));
-            if (!isNaN(pNum)) price = pNum;
-          } else if (hLower.includes('discount') || hLower.includes('saving')) {
-            const dNum = parseInt(val.replace(/[^0-9]/g, ''), 10);
-            if (!isNaN(dNum)) discount = dNum;
-          } else {
-            customVals[h] = val;
-          }
-        });
-
-        if (price > 0 || minQty > 0) {
-          parsedTiers.push({
-            minQty,
-            maxQty,
-            price: price || 10,
-            discount,
-            isCardDisplayPrice: parsedTiers.length === 0,
-            customValues: customVals,
-          });
-        }
-      }
-
-      if (parsedTiers.length > 0) {
-        set('priceCustomColumns', customCols);
-        set('priceTiers', parsedTiers);
+      if (rows.length > 0) {
+        set('priceTable', { columns, rows });
         setShowQuickTierModal(false);
         setQuickTierText('');
         return;
       }
     }
 
-    // Otherwise, parse prompt lines / natural language / regex ranges
-    const parsedTiers: Array<PriceTier & { customValues?: Record<string, string> }> = [];
-
-    for (const line of cleanLines) {
-      // Matches "1 - 49: 10.00" or "1 to 50 = AED 10" or "min 1 max 49 price 10"
-      const rangeMatch = line.match(/(?:min\s*)?(\d+)\s*(?:-|–|—|to|,|\s+to\s+|(?:max\s*))(\d+)\s*[:=,@\s]*(?:price\s*)?(?:AED|aed)?\s*(\d+(?:\.\d+)?)/i);
-      // Matches "200+: 7.00" or "200 and above = 7" or "min 200 price 7"
-      const openMatch = line.match(/(?:min\s*)?(\d+)\s*(?:\+|and above|and more|plus)?\s*[:=,@\s]*(?:price\s*)?(?:AED|aed)?\s*(\d+(?:\.\d+)?)/i);
-
-      if (rangeMatch) {
-        const minQty = parseInt(rangeMatch[1], 10);
-        const maxQty = parseInt(rangeMatch[2], 10);
-        const price = parseFloat(rangeMatch[3]);
-        if (!isNaN(minQty) && !isNaN(price)) {
-          parsedTiers.push({ minQty, maxQty, price, discount: 0, isCardDisplayPrice: false, customValues: {} });
-        }
-      } else if (openMatch) {
-        const minQty = parseInt(openMatch[1], 10);
-        const price = parseFloat(openMatch[2]);
-        if (!isNaN(minQty) && !isNaN(price)) {
-          parsedTiers.push({ minQty, maxQty: null, price, discount: 0, isCardDisplayPrice: false, customValues: {} });
-        }
-      }
-    }
-
-    if (parsedTiers.length === 0) {
-      alert('Could not parse instructions. Please check format like:\n1 - 49: 10.00\n50 - 199: 8.50\n200+: 7.00\n\nOr table format:\nMin Qty | Max Qty | Unit Price | Lead Time\n1 | 49 | 10 | 2 Days');
+    // Structured Prompt with Columns (e.g. Thickness | Width | Length | Price)
+    const columns = splitLine(headerLine).filter(Boolean);
+    if (columns.length === 0) {
+      alert('Could not detect column headers. Please provide columns separated by | or comma.');
       return;
     }
 
-    // Sort by minQty ascending
-    parsedTiers.sort((a, b) => a.minQty - b.minQty);
-    const basePrice = parsedTiers[0].price;
-    const finalTiers = parsedTiers.map((t, idx) => {
-      let discount = 0;
-      if (basePrice > t.price && basePrice > 0) {
-        discount = Math.round(((basePrice - t.price) / basePrice) * 100);
+    const rows: Array<{ id: string; values: Record<string, string>; price: number; isCardDisplayPrice: boolean }> = [];
+
+    rowLines.forEach((line, idx) => {
+      const cells = splitLine(line);
+      const values: Record<string, string> = {};
+      let rowPrice = 0;
+
+      columns.forEach((col, cIdx) => {
+        const val = cells[cIdx] !== undefined ? cells[cIdx] : '';
+        values[col] = val;
+        if (/price|rate|cost|aed/i.test(col) && rowPrice === 0) {
+          const num = parseFloat(val.replace(/[^0-9.]/g, ''));
+          if (!isNaN(num) && num > 0) rowPrice = num;
+        }
+      });
+
+      // Fallback price detection across any cell if not in designated price column
+      if (rowPrice === 0) {
+        for (const val of Object.values(values)) {
+          const num = parseFloat(val.replace(/[^0-9.]/g, ''));
+          if (!isNaN(num) && num > 0) {
+            rowPrice = num;
+            break;
+          }
+        }
       }
-      return {
-        ...t,
-        discount,
+
+      rows.push({
+        id: String(idx + 1),
+        values,
+        price: rowPrice || 10,
         isCardDisplayPrice: idx === 0,
-      };
+      });
     });
 
-    set('priceTiers', finalTiers);
+    if (rows.length === 0) {
+      alert('Could not parse any rows from your table input.');
+      return;
+    }
+
+    // Completely replace table with prompt columns & rows (Zero extra forced columns!)
+    set('priceTable', { columns, rows });
     setShowQuickTierModal(false);
     setQuickTierText('');
   };
@@ -683,8 +620,8 @@ export default function AdminProductForm() {
       if (Number(form.priceMin) >= Number(form.priceMax)) e.priceMax = 'Max price must be greater than min price';
     }
     if (form.priceType === 'tiered') {
-      if (!form.priceTiers || form.priceTiers.length === 0) {
-        e.priceTiers = 'At least one tier row is required in the Price Table';
+      if (!form.priceTable?.rows || form.priceTable.rows.length === 0) {
+        e.priceTiers = 'At least one row is required in the Price Table';
       }
     }
     if (!mediaUrls.length) e.image = 'At least one product image is required';
@@ -773,10 +710,10 @@ export default function AdminProductForm() {
       computedPrice = parseFloat(form.priceMin) || 0;
       computedMrp = parseFloat(form.priceMax) || 0;
     } else if (form.priceType === 'tiered') {
-      const displayTier = form.priceTiers.find(t => t.isCardDisplayPrice) || form.priceTiers[0];
-      computedPrice = displayTier ? displayTier.price : 0;
-      computedMrp = form.priceTiers[0] ? form.priceTiers[0].price : computedPrice;
-      computedDiscount = displayTier?.discount || 0;
+      const displayRow = form.priceTable?.rows?.find(r => r.isCardDisplayPrice) || form.priceTable?.rows?.[0];
+      computedPrice = displayRow?.price || 0;
+      computedMrp = form.priceTable?.rows?.[0]?.price || computedPrice;
+      computedDiscount = 0;
     }
 
     const productData: Omit<Product, 'id'> = {
@@ -796,26 +733,8 @@ export default function AdminProductForm() {
       topSelling: form.topSelling,
       description: form.description.trim(),
       priceType: form.priceType,
+      priceTable: form.priceType === 'tiered' ? form.priceTable : undefined,
       priceTiers: form.priceType === 'tiered' ? form.priceTiers : undefined,
-      priceTable: form.priceType === 'tiered' ? {
-        columns: ['Min Qty', 'Max Qty', ...(form.priceCustomColumns || []), 'Unit Price (AED)', 'Discount'],
-        rows: form.priceTiers.map((t, idx) => ({
-          id: String(idx + 1),
-          minQty: t.minQty,
-          maxQty: t.maxQty,
-          price: t.price,
-          discount: t.discount,
-          isCardDisplayPrice: !!t.isCardDisplayPrice,
-          values: {
-            'Min Qty': String(t.minQty),
-            'Max Qty': t.maxQty != null ? String(t.maxQty) : '+',
-            'Quantity Range': `${t.minQty}${t.maxQty ? ` – ${t.maxQty}` : '+'} units`,
-            'Unit Price (AED)': String(t.price),
-            'Discount': t.discount ? `${t.discount}% OFF` : 'Standard',
-            ...(t.customValues || {}),
-          },
-        })),
-      } : undefined,
       priceMin: form.priceType === 'range' ? parseFloat(form.priceMin) : undefined,
       priceMax: form.priceType === 'range' ? parseFloat(form.priceMax) : undefined,
       slug: form.slug.trim() || generateSlug(form.name),
@@ -1268,7 +1187,7 @@ export default function AdminProductForm() {
                     </div>
                   )}
 
-                  {/* 🆕 4th Option: Price Table with Min Qty, Max Qty, Price, Discount, and Custom Columns */}
+                  {/* 🆕 4th Option: 100% Dynamic Price Table (Fully customizable via Manual Edit or Prompt Takeover) */}
                   {form.priceType === 'tiered' && (
                     <div className="space-y-4">
                       {/* Top Action Bar */}
@@ -1276,10 +1195,10 @@ export default function AdminProductForm() {
                         <div>
                           <h3 className="text-xs font-extrabold text-blue-950 uppercase tracking-wider flex items-center gap-1.5">
                             <Table className="w-3.5 h-3.5 text-blue-600" />
-                            Quantity-Based Pricing Table
+                            Dynamic Pricing & Specification Table
                           </h3>
                           <p className="text-[11px] text-slate-600 mt-0.5">
-                            Set Min/Max quantities and unit rates. You can also add custom columns or use prompts to auto-generate!
+                            Add, edit, or delete any columns & rows. You can type column names directly in the header or use Prompt Fill!
                           </p>
                         </div>
                         <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0 flex-wrap">
@@ -1296,9 +1215,9 @@ export default function AdminProductForm() {
 
                           <button
                             type="button"
-                            onClick={addPriceCustomColumn}
+                            onClick={addPriceTableColumn}
                             className="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-white border border-slate-300 hover:border-slate-400 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg shadow-2xs transition-all cursor-pointer"
-                            title="Add a custom column like Lead Time, Specification, or Packaging"
+                            title="Add a custom column like Thickness, Width, Material, Packaging, etc."
                           >
                             <Plus className="w-3.5 h-3.5 text-slate-500" />
                             <span>Add Column</span>
@@ -1306,11 +1225,11 @@ export default function AdminProductForm() {
 
                           <button
                             type="button"
-                            onClick={addPriceTierRow}
+                            onClick={addPriceTableRow}
                             className="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-[#0052d9] hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-2xs transition-all cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" />
-                            <span>Add Tier</span>
+                            <span>Add Row</span>
                           </button>
                         </div>
                       </div>
@@ -1327,142 +1246,73 @@ export default function AdminProductForm() {
                           <table className="w-full text-left text-xs border-collapse">
                             <thead className="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-extrabold uppercase tracking-wider text-[10px]">
                               <tr>
-                                <th className="p-3 w-14 text-center border-r border-slate-200/80 bg-slate-100" title="Select which tier price appears on product cards">
+                                <th className="p-3 w-16 text-center border-r border-slate-200/80 bg-slate-100" title="Select which row's price is displayed on product cards">
                                   Card Price
                                 </th>
-                                <th className="p-3 min-w-[100px] border-r border-slate-200/80">Min Qty</th>
-                                <th className="p-3 min-w-[140px] border-r border-slate-200/80">Max Qty (Empty for +)</th>
                                 
-                                {/* Any Custom Columns */}
-                                {(form.priceCustomColumns || []).map((colName, cIdx) => (
-                                  <th key={cIdx} className="p-2 border-r border-slate-200/80 min-w-[140px]">
+                                {/* Dynamic Editable Columns */}
+                                {(form.priceTable?.columns || []).map((colName, cIdx) => (
+                                  <th key={cIdx} className="p-2 border-r border-slate-200/80 min-w-[130px]">
                                     <div className="flex items-center gap-1">
                                       <input
                                         type="text"
                                         value={colName}
-                                        onChange={e => renamePriceCustomColumn(colName, e.target.value)}
+                                        onChange={e => renamePriceTableColumn(colName, e.target.value)}
                                         placeholder={`Column ${cIdx + 1}`}
                                         className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-xs font-extrabold text-slate-800 focus:border-blue-500 outline-none"
                                       />
-                                      <button
-                                        type="button"
-                                        onClick={() => removePriceCustomColumn(colName)}
-                                        className="p-1 text-slate-400 hover:text-red-600 rounded transition-colors"
-                                        title={`Delete ${colName} column`}
-                                      >
-                                        <X className="w-3.5 h-3.5" />
-                                      </button>
+                                      {(form.priceTable?.columns || []).length > 1 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => removePriceTableColumn(colName)}
+                                          className="p-1 text-slate-400 hover:text-red-600 rounded transition-colors"
+                                          title={`Delete ${colName} column`}
+                                        >
+                                          <X className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
                                     </div>
                                   </th>
                                 ))}
 
-                                <th className="p-3 min-w-[120px] border-r border-slate-200/80">Unit Price (AED)</th>
-                                <th className="p-3 min-w-[120px] border-r border-slate-200/80">Discount / Savings</th>
                                 <th className="p-3 w-12 text-center">Action</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                              {(form.priceTiers || []).map((tier, idx) => (
-                                <tr key={idx} className={tier.isCardDisplayPrice ? 'bg-blue-50/50' : 'hover:bg-slate-50/70'}>
+                              {(form.priceTable?.rows || []).map((row, rIdx) => (
+                                <tr key={row.id || rIdx} className={row.isCardDisplayPrice ? 'bg-blue-50/50' : 'hover:bg-slate-50/70'}>
                                   {/* Radio to choose card display price */}
                                   <td className="p-3 text-center border-r border-slate-100">
                                     <input
                                       type="radio"
                                       name="cardDisplayPriceRadio"
-                                      checked={!!tier.isCardDisplayPrice}
-                                      onChange={() => setCardDisplayTier(idx)}
+                                      checked={!!row.isCardDisplayPrice}
+                                      onChange={() => setCardDisplayRow(row.id)}
                                       className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                      title="Show this tier price on product cards"
+                                      title="Show this row's price on product cards"
                                     />
                                   </td>
 
-                                  {/* Min Qty */}
-                                  <td className="p-2 border-r border-slate-100">
-                                    <input
-                                      type="number"
-                                      min="1"
-                                      value={tier.minQty ?? ''}
-                                      onChange={e => updatePriceTierRow(idx, 'minQty', parseInt(e.target.value) || 0)}
-                                      placeholder="1"
-                                      className="w-20 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:border-blue-500 outline-none bg-white"
-                                    />
-                                  </td>
-
-                                  {/* Max Qty */}
-                                  <td className="p-2 border-r border-slate-100">
-                                    <div className="flex items-center gap-1.5">
-                                      <input
-                                        type="number"
-                                        min={tier.minQty ? tier.minQty + 1 : 1}
-                                        value={tier.maxQty ?? ''}
-                                        onChange={e => updatePriceTierRow(idx, 'maxQty', e.target.value ? parseInt(e.target.value) : null)}
-                                        placeholder="Leave empty for +"
-                                        className="w-28 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:border-blue-500 outline-none bg-white"
-                                      />
-                                      {tier.maxQty == null && (
-                                        <span className="text-[11px] font-bold text-blue-600 bg-blue-100/70 px-1.5 py-0.5 rounded">
-                                          {tier.minQty}+
-                                        </span>
-                                      )}
-                                    </div>
-                                  </td>
-
-                                  {/* Any Custom Columns */}
-                                  {(form.priceCustomColumns || []).map((colName, cIdx) => (
+                                  {/* Dynamic Cells for each column */}
+                                  {(form.priceTable?.columns || []).map((colName, cIdx) => (
                                     <td key={cIdx} className="p-2 border-r border-slate-100">
                                       <input
                                         type="text"
-                                        value={(tier.customValues || {})[colName] ?? ''}
-                                        onChange={e => updatePriceTierCustomVal(idx, colName, e.target.value)}
+                                        value={row.values?.[colName] ?? ''}
+                                        onChange={e => updatePriceTableRowValue(row.id, colName, e.target.value)}
                                         placeholder={`Enter ${colName}...`}
                                         className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:border-blue-500 outline-none bg-white text-slate-800"
                                       />
                                     </td>
                                   ))}
 
-                                  {/* Unit Price */}
-                                  <td className="p-2 border-r border-slate-100">
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-slate-400 font-bold text-[11px]">AED</span>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={tier.price ?? ''}
-                                        onChange={e => updatePriceTierRow(idx, 'price', parseFloat(e.target.value) || 0)}
-                                        placeholder="0.00"
-                                        className="w-24 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:border-blue-500 outline-none bg-white"
-                                      />
-                                    </div>
-                                  </td>
-
-                                  {/* Discount / Savings */}
-                                  <td className="p-2 border-r border-slate-100">
-                                    <div className="flex items-center gap-1.5">
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        value={tier.discount ?? ''}
-                                        onChange={e => updatePriceTierRow(idx, 'discount', e.target.value ? parseInt(e.target.value) : 0)}
-                                        placeholder="Auto %"
-                                        className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-xs font-semibold focus:border-blue-500 outline-none bg-white"
-                                      />
-                                      {tier.discount && tier.discount > 0 ? (
-                                        <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded whitespace-nowrap">
-                                          {tier.discount}% OFF
-                                        </span>
-                                      ) : null}
-                                    </div>
-                                  </td>
-
-                                  {/* Delete Tier */}
+                                  {/* Delete Row */}
                                   <td className="p-2 text-center">
                                     <button
                                       type="button"
-                                      onClick={() => removePriceTierRow(idx)}
+                                      onClick={() => removePriceTableRow(row.id)}
                                       className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                                      title="Remove Tier"
+                                      title="Remove Row"
                                     >
                                       <Trash2 className="w-4 h-4" />
                                     </button>
@@ -1475,16 +1325,16 @@ export default function AdminProductForm() {
                       </div>
 
                       {/* Storefront Card Preview Notice */}
-                      {form.priceTiers && form.priceTiers.length > 0 && (
+                      {form.priceTable?.rows && form.priceTable.rows.length > 0 && (
                         <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center justify-between gap-3 text-xs">
                           <div className="flex items-center gap-2">
                             <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
                             <span className="text-slate-700">
                               Selected Card Display Price:{' '}
                               <strong className="text-blue-700 font-extrabold">
-                                AED {(form.priceTiers.find(t => t.isCardDisplayPrice) || form.priceTiers[0])?.price?.toFixed(2) || '0.00'}
+                                AED {(form.priceTable.rows.find(r => r.isCardDisplayPrice) || form.priceTable.rows[0])?.price?.toFixed(2) || '0.00'}
                               </strong>
-                              {' '}(Tiers: {form.priceTiers.length} bulk levels{form.priceCustomColumns?.length ? `, +${form.priceCustomColumns.length} custom columns` : ''})
+                              {' '}(Table: {form.priceTable.columns.length} columns × {form.priceTable.rows.length} rows)
                             </span>
                           </div>
                           <span className="text-[11px] font-semibold text-blue-600 bg-white border border-blue-200 px-2.5 py-1 rounded-md">
@@ -1541,7 +1391,7 @@ export default function AdminProductForm() {
                             rows={7}
                             value={quickTierText}
                             onChange={e => setQuickTierText(e.target.value)}
-                            placeholder={`Min Qty | Max Qty | Unit Price | Packaging | Lead Time\n1 | 49 | 10.00 | Box of 20 | 2 Days\n50 | 199 | 8.50 | Carton | 3 Days\n200 | | 7.00 | Pallet | 5 Days\n\nOr simply:\n1 - 49: 10.00\n50 - 199: 8.50\n200+: 7.00`}
+                            placeholder={`Thickness | Width | Length | Price (AED)\n0.13 mm | 12 mm | 10 m | 22.00\n0.13 mm | 25 mm | 10 m | 30.00\n0.13 mm | 50 mm | 10 m | 48.00\n0.18 mm | 50 mm | 10 m | 140.00\n0.13 mm | 50 mm | 30 m | 130.00`}
                             className="w-full border border-gray-300 rounded-xl p-3 text-xs font-mono focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-slate-50 leading-relaxed"
                           />
                         </div>
@@ -1553,22 +1403,22 @@ export default function AdminProductForm() {
                             Supported prompt & table formats:
                           </p>
                           <ul className="text-[11px] text-slate-600 space-y-0.5 list-disc list-inside">
-                            <li><strong>Prompt ranges:</strong> <code className="bg-white px-1 rounded border border-blue-100">1 - 49: 10.00</code>, <code className="bg-white px-1 rounded border border-blue-100">50 to 199 = AED 8.50</code>, <code className="bg-white px-1 rounded border border-blue-100">200+, 7.00</code></li>
-                            <li><strong>Custom columns table:</strong> <code className="bg-white px-1 rounded border border-blue-100">Min Qty | Max Qty | Unit Price | Lead Time | Packaging</code></li>
+                            <li><strong>Custom Columns:</strong> <code className="bg-white px-1 rounded border border-blue-100">Thickness | Width | Length | Price (AED)</code></li>
+                            <li><strong>Quantity Tiers:</strong> <code className="bg-white px-1 rounded border border-blue-100">Min Qty | Max Qty | Unit Price (AED) | Discount</code></li>
                           </ul>
 
                           <div className="mt-2.5 pt-2.5 border-t border-blue-100/80 flex items-center gap-2 flex-wrap">
                             <span className="text-[10px] font-bold text-blue-700 uppercase">Load Templates:</span>
                             <button
                               type="button"
-                              onClick={() => setQuickTierText(`Min Qty | Max Qty | Unit Price (AED) | Packaging | Lead Time\n1 | 49 | 10.00 | Box of 20 | 2 Days\n50 | 199 | 8.50 | Carton | 3 Days\n200 | | 7.00 | Pallet | 5 Days`)}
+                              onClick={() => setQuickTierText(`Thickness | Width | Length | Price (AED)\n0.13 mm | 12 mm | 10 m | 22.00\n0.13 mm | 25 mm | 10 m | 30.00\n0.13 mm | 50 mm | 10 m | 48.00\n0.18 mm | 50 mm | 10 m | 140.00\n0.13 mm | 50 mm | 30 m | 130.00`)}
                               className="text-[11px] bg-white border border-blue-200 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-50 font-medium cursor-pointer"
                             >
-                              Min/Max + Custom Specs (4 tiers)
+                              Thickness / Dimensions (5 rows)
                             </button>
                             <button
                               type="button"
-                              onClick={() => setQuickTierText(`1 - 49: 12.00\n50 - 199: 9.50\n200 - 499: 7.50\n500+: 5.00`)}
+                              onClick={() => setQuickTierText(`Min Qty | Max Qty | Unit Price (AED) | Discount\n1 | 49 | 10.00 | Standard\n50 | 199 | 8.50 | 15% OFF\n200 | + | 7.00 | 30% OFF`)}
                               className="text-[11px] bg-white border border-blue-200 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-50 font-medium cursor-pointer"
                             >
                               Standard Quantity Tiers
