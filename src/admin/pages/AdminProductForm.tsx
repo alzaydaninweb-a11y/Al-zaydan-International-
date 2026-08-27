@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useStore } from '../../context/StoreContext';
-import type { Product } from '../../context/StoreContext';
+import type { Product, PriceTier } from '../../context/StoreContext';
 import { uploadToR2 } from '../../lib/cloudflareR2';
-import { Upload, Link as LinkIcon, ChevronLeft, Save, ImageOff, Loader2, X, Package, Globe, ExternalLink } from 'lucide-react';
+import { Upload, Link as LinkIcon, ChevronLeft, Save, ImageOff, Loader2, X, Package, Globe, ExternalLink, Sparkles, Plus, Trash2, Table, CheckCircle2, HelpCircle, FileText } from 'lucide-react';
 import { generateSlug } from '../../lib/blogService';
 import { generateProductSEO } from '../../lib/seoGenerator';
 import { auth } from '../../lib/firebase';
@@ -14,7 +14,8 @@ const EMPTY_FORM = {
   images: [] as string[],
   specifications: [] as { key: string; value: string }[],
   inStock: true, featured: false, topSelling: false,
-  priceType: 'fixed' as 'fixed' | 'range' | 'hidden',
+  priceType: 'fixed' as 'fixed' | 'range' | 'hidden' | 'tiered',
+  priceTiers: [] as PriceTier[],
   priceMin: '', priceMax: '',
   moq: '', leadTime: '', shippingRegion: '', badge: '',
   trustBadges: [] as string[],
@@ -63,6 +64,7 @@ export default function AdminProductForm() {
         featured: existingProduct.featured || false,
         topSelling: existingProduct.topSelling || false,
         priceType: existingProduct.priceType || 'fixed',
+        priceTiers: existingProduct.priceTiers || [],
         priceMin: String(existingProduct.priceMin ?? ''),
         priceMax: String(existingProduct.priceMax ?? ''),
         moq: existingProduct.moq || '',
@@ -363,6 +365,109 @@ export default function AdminProductForm() {
     );
   };
 
+  const [showQuickTierModal, setShowQuickTierModal] = useState(false);
+  const [quickTierText, setQuickTierText] = useState('');
+
+  const addPriceTierRow = () => {
+    const current = form.priceTiers || [];
+    const lastTier = current[current.length - 1];
+    const newMin = lastTier ? (lastTier.maxQty ? lastTier.maxQty + 1 : lastTier.minQty + 50) : 1;
+    const newTier: PriceTier = {
+      minQty: newMin,
+      maxQty: null,
+      price: lastTier ? Math.max(1, parseFloat((lastTier.price * 0.9).toFixed(2))) : 10,
+      discount: lastTier ? (lastTier.discount ? lastTier.discount + 5 : 5) : undefined,
+      isCardDisplayPrice: current.length === 0,
+    };
+    set('priceTiers', [...current, newTier]);
+  };
+
+  const updatePriceTierRow = (index: number, field: keyof PriceTier, val: any) => {
+    const next = [...(form.priceTiers || [])];
+    next[index] = { ...next[index], [field]: val };
+    
+    // Auto-calculate discount relative to tier 0 if price changed
+    if (field === 'price' && index > 0 && next[0]?.price > 0) {
+      const basePrice = next[0].price;
+      const thisPrice = parseFloat(val) || 0;
+      if (basePrice > thisPrice && thisPrice > 0) {
+        next[index].discount = Math.round(((basePrice - thisPrice) / basePrice) * 100);
+      }
+    }
+    set('priceTiers', next);
+  };
+
+  const removePriceTierRow = (index: number) => {
+    const current = form.priceTiers || [];
+    const removedWasSelected = current[index]?.isCardDisplayPrice;
+    const next = current.filter((_, i) => i !== index);
+    if (removedWasSelected && next.length > 0) {
+      next[0].isCardDisplayPrice = true;
+    }
+    set('priceTiers', next);
+  };
+
+  const setCardDisplayTier = (index: number) => {
+    const next = (form.priceTiers || []).map((t, i) => ({
+      ...t,
+      isCardDisplayPrice: i === index,
+    }));
+    set('priceTiers', next);
+  };
+
+  const parseTieredText = (rawText: string) => {
+    const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+    const parsedTiers: PriceTier[] = [];
+
+    for (const line of lines) {
+      // Matches: "1 - 50: 10.00" or "1 to 50 = AED 10" or "1-50, 10"
+      const rangeMatch = line.match(/^(\d+)\s*(?:-|–|—|to|,)\s*(\d+)\s*[:=,@\s]*\s*(?:AED|aed)?\s*(\d+(?:\.\d+)?)/i);
+      // Matches: "500+: 5.00" or "500 and above = 5" or "500+, 5" or "500 = 5"
+      const openMatch = line.match(/^(\d+)\s*(?:\+|and above|and more|plus)?\s*[:=,@\s]*\s*(?:AED|aed)?\s*(\d+(?:\.\d+)?)/i);
+
+      if (rangeMatch) {
+        const minQty = parseInt(rangeMatch[1], 10);
+        const maxQty = parseInt(rangeMatch[2], 10);
+        const price = parseFloat(rangeMatch[3]);
+        if (!isNaN(minQty) && !isNaN(maxQty) && !isNaN(price)) {
+          parsedTiers.push({ minQty, maxQty, price, isCardDisplayPrice: false });
+        }
+      } else if (openMatch) {
+        const minQty = parseInt(openMatch[1], 10);
+        const price = parseFloat(openMatch[2]);
+        if (!isNaN(minQty) && !isNaN(price)) {
+          parsedTiers.push({ minQty, maxQty: null, price, isCardDisplayPrice: false });
+        }
+      }
+    }
+
+    if (parsedTiers.length === 0) {
+      alert('Could not parse any valid tiers. Please ensure format is like:\n1 - 50: 10.00\n51 - 200: 8.50\n201+: 5.00');
+      return;
+    }
+
+    // Sort by minQty ascending
+    parsedTiers.sort((a, b) => a.minQty - b.minQty);
+
+    // Calculate discounts relative to base tier
+    const basePrice = parsedTiers[0].price;
+    const tiersWithDiscount = parsedTiers.map((t, idx) => {
+      let discount = 0;
+      if (basePrice > t.price && basePrice > 0) {
+        discount = Math.round(((basePrice - t.price) / basePrice) * 100);
+      }
+      return {
+        ...t,
+        discount: discount > 0 ? discount : undefined,
+        isCardDisplayPrice: idx === 0,
+      };
+    });
+
+    set('priceTiers', tiersWithDiscount);
+    setShowQuickTierModal(false);
+    setQuickTierText('');
+  };
+
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = 'Product name is required';
@@ -375,6 +480,16 @@ export default function AdminProductForm() {
       if (!form.priceMin || isNaN(Number(form.priceMin))) e.priceMin = 'Valid minimum price is required';
       if (!form.priceMax || isNaN(Number(form.priceMax))) e.priceMax = 'Valid maximum price is required';
       if (Number(form.priceMin) >= Number(form.priceMax)) e.priceMax = 'Max price must be greater than min price';
+    }
+    if (form.priceType === 'tiered') {
+      if (!form.priceTiers || form.priceTiers.length === 0) {
+        e.priceTiers = 'At least one pricing tier is required in the Price Table';
+      } else {
+        const invalidTier = form.priceTiers.some(t => isNaN(t.minQty) || t.minQty <= 0 || isNaN(t.price) || t.price <= 0);
+        if (invalidTier) {
+          e.priceTiers = 'All tiers must have valid Min Quantity and Unit Price';
+        }
+      }
     }
     if (!mediaUrls.length) e.image = 'At least one product image is required';
     setErrors(e);
@@ -450,13 +565,32 @@ export default function AdminProductForm() {
     setSaving(true);
     setSaveError('');
 
+    let computedPrice = 0;
+    let computedMrp = 0;
+    let computedDiscount = 0;
+
+    if (form.priceType === 'fixed') {
+      computedPrice = parseFloat(form.price) || 0;
+      computedMrp = parseFloat(form.mrp) || 0;
+      computedDiscount = parseInt(form.discount) || 0;
+    } else if (form.priceType === 'range') {
+      computedPrice = parseFloat(form.priceMin) || 0;
+      computedMrp = parseFloat(form.priceMax) || 0;
+    } else if (form.priceType === 'tiered') {
+      const displayTier = form.priceTiers.find(t => t.isCardDisplayPrice) || form.priceTiers[0];
+      computedPrice = displayTier ? displayTier.price : 0;
+      const baseTier = form.priceTiers[0];
+      computedMrp = baseTier ? baseTier.price : computedPrice;
+      computedDiscount = displayTier?.discount || 0;
+    }
+
     const productData: Omit<Product, 'id'> = {
       name: form.name.trim(),
       brand: form.brand.trim(),
       category: form.category,
-      price: form.priceType === 'fixed' ? parseFloat(form.price) : (form.priceType === 'range' ? parseFloat(form.priceMin) : 0),
-      mrp: form.priceType === 'fixed' ? parseFloat(form.mrp) : (form.priceType === 'range' ? parseFloat(form.priceMax) : 0),
-      discount: form.priceType === 'fixed' ? (parseInt(form.discount) || 0) : 0,
+      price: computedPrice,
+      mrp: computedMrp,
+      discount: computedDiscount,
       rating: parseFloat(form.rating) || 4.5,
       reviews: parseInt(form.reviews) || 0,
       image: mediaUrls[0] || '',
@@ -467,6 +601,9 @@ export default function AdminProductForm() {
       topSelling: form.topSelling,
       description: form.description.trim(),
       priceType: form.priceType,
+      priceTiers: form.priceType === 'tiered' ? form.priceTiers : undefined,
+      priceMin: form.priceType === 'range' ? parseFloat(form.priceMin) : undefined,
+      priceMax: form.priceType === 'range' ? parseFloat(form.priceMax) : undefined,
       slug: form.slug.trim() || generateSlug(form.name),
       seoTitle: form.seoTitle.trim(),
       metaDescription: form.metaDescription.trim(),
@@ -812,11 +949,12 @@ export default function AdminProductForm() {
                   <h2 className="font-bold text-slate-900 mb-1 text-[15px]">Pricing</h2>
                   <p className="text-xs text-slate-400 mb-4">Choose how the price is shown to customers.</p>
 
-                  <div className="grid grid-cols-3 gap-2 mb-5">
-                    {(['fixed', 'range', 'hidden'] as const).map(type => {
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
+                    {(['fixed', 'range', 'tiered', 'hidden'] as const).map(type => {
                       const info: Record<string, { icon: string; title: string; desc: string; active: string; inactive: string }> = {
                         fixed: { icon: '💰', title: 'Fixed Price', desc: 'Show exact price', active: 'border-blue-500 bg-blue-50 ring-2 ring-blue-100', inactive: 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/40' },
                         range: { icon: '📊', title: 'Price Range', desc: 'Show min – max range', active: 'border-amber-500 bg-amber-50 ring-2 ring-amber-100', inactive: 'border-gray-200 hover:border-amber-300 hover:bg-amber-50/40' },
+                        tiered: { icon: '📋', title: 'Price Table', desc: 'Quantity-based tiers', active: 'border-blue-600 bg-blue-50 ring-2 ring-blue-200', inactive: 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/40' },
                         hidden: { icon: '🔒', title: 'Hide Price', desc: 'Contact for price', active: 'border-slate-500 bg-slate-100 ring-2 ring-slate-200', inactive: 'border-gray-200 hover:border-slate-400 hover:bg-slate-50' },
                       };
                       const i = info[type];
@@ -825,7 +963,16 @@ export default function AdminProductForm() {
                         <button
                           key={type}
                           type="button"
-                          onClick={() => set('priceType', type)}
+                          onClick={() => {
+                            set('priceType', type);
+                            if (type === 'tiered' && (!form.priceTiers || form.priceTiers.length === 0)) {
+                              set('priceTiers', [
+                                { minQty: 1, maxQty: 49, price: parseFloat(form.price) || 10, isCardDisplayPrice: true },
+                                { minQty: 50, maxQty: 199, price: parseFloat(form.price) ? parseFloat((parseFloat(form.price) * 0.85).toFixed(2)) : 8.5, discount: 15, isCardDisplayPrice: false },
+                                { minQty: 200, maxQty: null, price: parseFloat(form.price) ? parseFloat((parseFloat(form.price) * 0.7).toFixed(2)) : 7.0, discount: 30, isCardDisplayPrice: false }
+                              ]);
+                            }
+                          }}
                           className={`flex flex-col items-center gap-1 border-2 rounded-xl p-3 transition-all cursor-pointer text-center ${isActive ? i.active : i.inactive}`}
                         >
                           <span className="text-xl">{i.icon}</span>
@@ -907,6 +1054,185 @@ export default function AdminProductForm() {
                     </div>
                   )}
 
+                  {/* 🆕 4th Option: Price Table (Volume / Tiered Bulk Pricing) */}
+                  {form.priceType === 'tiered' && (
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-100 rounded-xl p-3.5">
+                        <div>
+                          <h3 className="text-xs font-extrabold text-blue-950 uppercase tracking-wider flex items-center gap-1.5">
+                            <Table className="w-3.5 h-3.5 text-blue-600" />
+                            Quantity-Based Pricing Table
+                          </h3>
+                          <p className="text-[11px] text-slate-600 mt-0.5">
+                            Select the radio button on any row to choose which price appears on product cards across the store.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0">
+                          {/* Sparkle Quick Rule-Based Parser */}
+                          <button
+                            type="button"
+                            onClick={() => setShowQuickTierModal(true)}
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-white border border-blue-200 hover:border-blue-400 text-blue-700 hover:text-blue-800 text-xs font-bold px-3 py-1.5 rounded-lg shadow-2xs transition-all cursor-pointer"
+                            title="Quick Rule-Based Paste"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
+                            <span>✨ Smart Fill / Paste</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={addPriceTierRow}
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-[#0052d9] hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-2xs transition-all cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add Tier</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {errors.priceTiers && (
+                        <p className="text-red-500 text-xs font-semibold bg-red-50 border border-red-200 px-3 py-2 rounded-lg">
+                          {errors.priceTiers}
+                        </p>
+                      )}
+
+                      {/* Tiers Table */}
+                      <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs">
+                            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider text-[10px]">
+                              <tr>
+                                <th className="p-3 w-12 text-center" title="Mark which tier price shows on product cards">
+                                  Card Price
+                                </th>
+                                <th className="p-3">Min Qty</th>
+                                <th className="p-3">Max Qty (Empty for +)</th>
+                                <th className="p-3">Unit Price (AED)</th>
+                                <th className="p-3">Discount / Savings</th>
+                                <th className="p-3 w-12 text-center">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {(form.priceTiers || []).map((tier, idx) => (
+                                <tr key={idx} className={tier.isCardDisplayPrice ? 'bg-blue-50/40' : 'hover:bg-slate-50/60'}>
+                                  {/* Radio to choose card display price */}
+                                  <td className="p-3 text-center">
+                                    <input
+                                      type="radio"
+                                      name="cardDisplayPriceRadio"
+                                      checked={!!tier.isCardDisplayPrice}
+                                      onChange={() => setCardDisplayTier(idx)}
+                                      className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                      title="Show this tier price on product cards"
+                                    />
+                                  </td>
+
+                                  {/* Min Qty */}
+                                  <td className="p-3">
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      value={tier.minQty ?? ''}
+                                      onChange={e => updatePriceTierRow(idx, 'minQty', parseInt(e.target.value) || 0)}
+                                      placeholder="1"
+                                      className="w-24 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:border-blue-500 outline-none bg-white"
+                                    />
+                                  </td>
+
+                                  {/* Max Qty */}
+                                  <td className="p-3">
+                                    <div className="flex items-center gap-1.5">
+                                      <input
+                                        type="number"
+                                        min={tier.minQty ? tier.minQty + 1 : 1}
+                                        value={tier.maxQty ?? ''}
+                                        onChange={e => updatePriceTierRow(idx, 'maxQty', e.target.value ? parseInt(e.target.value) : null)}
+                                        placeholder="Leave empty for +"
+                                        className="w-32 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:border-blue-500 outline-none bg-white"
+                                      />
+                                      {tier.maxQty == null && (
+                                        <span className="text-[11px] font-bold text-blue-600 bg-blue-100/70 px-1.5 py-0.5 rounded">
+                                          {tier.minQty}+
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+
+                                  {/* Unit Price */}
+                                  <td className="p-3">
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-slate-400 font-bold text-[11px]">AED</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={tier.price ?? ''}
+                                        onChange={e => updatePriceTierRow(idx, 'price', parseFloat(e.target.value) || 0)}
+                                        placeholder="0.00"
+                                        className="w-28 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:border-blue-500 outline-none bg-white"
+                                      />
+                                    </div>
+                                  </td>
+
+                                  {/* Discount / Savings */}
+                                  <td className="p-3">
+                                    <div className="flex items-center gap-1.5">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={tier.discount ?? ''}
+                                        onChange={e => updatePriceTierRow(idx, 'discount', e.target.value ? parseInt(e.target.value) : undefined)}
+                                        placeholder="Auto %"
+                                        className="w-20 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:border-blue-500 outline-none bg-white"
+                                      />
+                                      {tier.discount && tier.discount > 0 ? (
+                                        <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded whitespace-nowrap">
+                                          {tier.discount}% OFF
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                  </td>
+
+                                  {/* Delete Tier */}
+                                  <td className="p-3 text-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => removePriceTierRow(idx)}
+                                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                      title="Remove Tier"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Storefront Card Preview Notice */}
+                      {form.priceTiers && form.priceTiers.length > 0 && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center justify-between gap-3 text-xs">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+                            <span className="text-slate-700">
+                              Selected Card Display Price:{' '}
+                              <strong className="text-blue-700 font-extrabold">
+                                AED {(form.priceTiers.find(t => t.isCardDisplayPrice) || form.priceTiers[0])?.price?.toFixed(2) || '0.00'}
+                              </strong>
+                              {' '}(Tiers: {form.priceTiers.length} bulk levels)
+                            </span>
+                          </div>
+                          <span className="text-[11px] font-semibold text-blue-600 bg-white border border-blue-200 px-2.5 py-1 rounded-md">
+                            Live on Storefront
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {form.priceType === 'hidden' && (
                     <div className="bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 flex items-start gap-3">
                       <span className="text-2xl mt-0.5">🔒</span>
@@ -917,6 +1243,102 @@ export default function AdminProductForm() {
                     </div>
                   )}
                 </div>
+
+                {/* ⚡ Quick Paste / Smart Fill Rule-Based Modal */}
+                {showQuickTierModal && (
+                  <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                      
+                      {/* Modal Header */}
+                      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs">
+                            <Sparkles className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-extrabold text-slate-900">Quick-Paste Price Table (Rule-Based)</h3>
+                            <p className="text-[11px] text-slate-500">Paste your raw tier lines to generate the table instantly.</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowQuickTierModal(false)}
+                          className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-200/60 transition-colors"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {/* Modal Body */}
+                      <div className="p-5 space-y-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Paste Pricing Tiers
+                          </label>
+                          <textarea
+                            rows={6}
+                            value={quickTierText}
+                            onChange={e => setQuickTierText(e.target.value)}
+                            placeholder={`1 - 49: 10.00\n50 - 199: 8.50\n200 - 499: 7.00\n500+: 5.00`}
+                            className="w-full border border-gray-300 rounded-xl p-3 text-xs font-mono focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-slate-50 leading-relaxed"
+                          />
+                        </div>
+
+                        {/* Format Tips & Quick Fill Template Buttons */}
+                        <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-3">
+                          <p className="text-[11px] font-bold text-blue-900 mb-1.5 flex items-center gap-1">
+                            <HelpCircle className="w-3.5 h-3.5 text-blue-600" />
+                            Supported formats:
+                          </p>
+                          <ul className="text-[11px] text-slate-600 space-y-0.5 list-disc list-inside">
+                            <li><code className="bg-white px-1 rounded border border-blue-100">1 - 50: 10.00</code></li>
+                            <li><code className="bg-white px-1 rounded border border-blue-100">51 to 200 = AED 8.50</code></li>
+                            <li><code className="bg-white px-1 rounded border border-blue-100">201+, 5.00</code></li>
+                          </ul>
+
+                          <div className="mt-3 pt-2.5 border-t border-blue-100/80 flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] font-bold text-blue-700 uppercase">Load Samples:</span>
+                            <button
+                              type="button"
+                              onClick={() => setQuickTierText(`1 - 49: 12.00\n50 - 199: 9.50\n200 - 499: 7.50\n500+: 5.00`)}
+                              className="text-[11px] bg-white border border-blue-200 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-50 font-medium cursor-pointer"
+                            >
+                              Standard 4-Tier
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setQuickTierText(`1 - 99: 25.00\n100 - 499: 20.00\n500+: 15.00`)}
+                              className="text-[11px] bg-white border border-blue-200 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-50 font-medium cursor-pointer"
+                            >
+                              Wholesale 3-Tier
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Modal Footer */}
+                      <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setShowQuickTierModal(false)}
+                          className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200/60 transition-colors cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => parseTieredText(quickTierText)}
+                          disabled={!quickTierText.trim()}
+                          className="px-5 py-2 rounded-xl text-xs font-bold bg-[#0052d9] hover:bg-blue-700 text-white shadow-xs transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Generate Price Table</span>
+                        </button>
+                      </div>
+
+                    </div>
+                  </div>
+                )}
 
                 {/* Description */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">

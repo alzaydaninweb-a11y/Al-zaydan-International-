@@ -13,10 +13,18 @@ import { getPublishedBlogs, generateSlug } from '../lib/blogService';
 
 export type FAQ = { question: string; answer: string; };
 
-export type Product = {
+export interface PriceTier {
+  minQty: number;
+  maxQty?: number | null;
+  price: number;
+  discount?: number;
+  isCardDisplayPrice?: boolean;
+}
+
+export interface Product {
   id: string;
   name: string;
-  brand: string;
+  brand?: string;
   price: number;
   mrp: number;
   discount: number;
@@ -35,7 +43,8 @@ export type Product = {
   contentGenerated?: boolean;
   featured?: boolean;
   topSelling?: boolean;
-  priceType?: 'fixed' | 'range' | 'hidden';
+  priceType?: 'fixed' | 'range' | 'hidden' | 'tiered';
+  priceTiers?: PriceTier[];
   priceMin?: number;
   priceMax?: number;
   moq?: string;

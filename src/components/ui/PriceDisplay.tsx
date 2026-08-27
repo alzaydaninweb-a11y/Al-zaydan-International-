@@ -29,6 +29,31 @@ export default function PriceDisplay({ product, size = 'sm' }: Props) {
     );
   }
 
+  if (type === 'tiered' && product.priceTiers && product.priceTiers.length > 0) {
+    const displayTier = product.priceTiers.find(t => t.isCardDisplayPrice) || product.priceTiers[0];
+    const lowestTier = [...product.priceTiers].sort((a, b) => a.price - b.price)[0];
+    return isLarge ? (
+      <div className="flex items-baseline gap-2.5 flex-wrap">
+        <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          AED {displayTier.price.toFixed(2)}
+        </span>
+        <span className="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-md">
+          Volume Price Table Available
+        </span>
+      </div>
+    ) : (
+      <div className="flex items-baseline gap-1">
+        <span className="text-[13px] font-black text-slate-900 tracking-tight">
+          <span className="text-[9px] font-bold text-slate-400 mr-0.5">AED</span>
+          {displayTier.price.toFixed(2)}
+        </span>
+        <span className="text-[9px] text-blue-600 font-bold bg-blue-50 px-1 py-0.2 rounded">
+          Tiers
+        </span>
+      </div>
+    );
+  }
+
   if (type === 'range') {
     const min = product.priceMin ?? product.price;
     const max = product.priceMax ?? product.mrp;

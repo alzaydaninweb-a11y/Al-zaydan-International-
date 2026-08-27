@@ -29,7 +29,14 @@ export interface MarketplaceProduct {
   leadTime?: string;
   shippingRegion?: string;
   specs?: string[];
-  priceType?: 'fixed' | 'range' | 'hidden';
+  priceType?: 'fixed' | 'range' | 'hidden' | 'tiered';
+  priceTiers?: Array<{
+    minQty: number;
+    maxQty?: number | null;
+    price: number;
+    discount?: number;
+    isCardDisplayPrice?: boolean;
+  }>;
   priceMin?: number;
   priceMax?: number;
 }
@@ -119,7 +126,7 @@ export default function ProductCard({ product, compact = false }: Props) {
     setSaved(s => !s);
   };
 
-  /* Price renderer (preserved) */
+  /* Price renderer */
   const renderPrice = () => {
     if (product.priceType === 'hidden')
       return <span className="text-[12px] font-bold text-blue-700">Contact for Price</span>;
@@ -129,6 +136,25 @@ export default function ProductCard({ product, compact = false }: Props) {
           AED {product.priceMin.toFixed(2)}–{product.priceMax.toFixed(2)}
         </span>
       );
+    if (product.priceType === 'tiered' && product.priceTiers && product.priceTiers.length > 0) {
+      const displayTier = product.priceTiers.find(t => t.isCardDisplayPrice) || product.priceTiers[0];
+      const lowestTier = [...product.priceTiers].sort((a, b) => a.price - b.price)[0];
+      return (
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <span className="text-[15px] font-extrabold text-slate-900">
+              AED {displayTier.price.toFixed(2)}
+            </span>
+            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded">
+              Volume Rates
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-400 font-medium">
+            From AED {lowestTier.price.toFixed(2)} / unit
+          </span>
+        </div>
+      );
+    }
     return (
       <div className="flex items-baseline gap-1.5 flex-wrap">
         <span className="text-[15px] font-extrabold text-slate-900">
@@ -138,7 +164,7 @@ export default function ProductCard({ product, compact = false }: Props) {
           <span className="text-[11px] text-slate-400 line-through">AED {product.mrp!.toFixed(2)}</span>
         )}
         {(product.discount ?? 0) > 0 && (
-          <span className="text-[10px] font-bold text-emerald-600">−{product.discount}%</span>
+          <span className="text-[10px] font-bold text-emerald-600">{product.discount}% OFF</span>
         )}
       </div>
     );

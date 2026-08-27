@@ -265,8 +265,21 @@ ${rowsXml}
                       <span className="inline-block bg-slate-100 text-slate-600 text-xs font-semibold px-2.5 py-0.5 rounded-full">{product.category}</span>
                     </td>
                     <td className="px-4 py-3.5">
-                      <div className="font-bold text-slate-900">AED {product.price.toFixed(0)}</div>
-                      {product.discount > 0 && <div className="text-xs text-emerald-600 font-semibold">{product.discount}% off</div>}
+                      {product.priceType === 'hidden' ? (
+                        <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">Hidden</span>
+                      ) : product.priceType === 'range' ? (
+                        <div className="font-bold text-slate-900 text-xs">AED {product.priceMin ?? product.price}–{product.priceMax ?? product.mrp}</div>
+                      ) : product.priceType === 'tiered' ? (
+                        <div>
+                          <div className="font-bold text-blue-700 text-xs">AED {product.price?.toFixed(2)}</div>
+                          <div className="text-[10px] text-blue-600 font-semibold">{product.priceTiers?.length || 'Bulk'} Tiers Table</div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="font-bold text-slate-900">AED {product.price.toFixed(2)}</div>
+                          {product.discount > 0 && <div className="text-xs text-emerald-600 font-semibold">{product.discount}% off</div>}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3.5 hidden lg:table-cell">
                       <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${product.inStock ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>

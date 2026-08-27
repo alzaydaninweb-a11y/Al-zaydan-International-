@@ -187,9 +187,28 @@ Customer Information:
     return related.slice(0, 15);
   }, [products, product]);
 
+  const activeTier = useMemo(() => {
+    if (!product || product.priceType !== 'tiered' || !product.priceTiers || product.priceTiers.length === 0) {
+      return null;
+    }
+    const sorted = [...product.priceTiers].sort((a, b) => b.minQty - a.minQty);
+    return sorted.find(t => quantity >= t.minQty) || sorted[sorted.length - 1];
+  }, [product, quantity]);
+
+  const effectiveUnitPrice = useMemo(() => {
+    if (!product) return 0;
+    if (product.priceType === 'tiered' && activeTier) {
+      return activeTier.price;
+    }
+    return product.price || 0;
+  }, [product, activeTier]);
+
   const handleAddToCart = () => {
     if (product) {
-      addToCart(product, quantity);
+      const prodToCart = (product.priceType === 'tiered' && activeTier)
+        ? { ...product, price: activeTier.price, discount: activeTier.discount ?? product.discount }
+        : product;
+      addToCart(prodToCart, quantity);
       setIsAdded(true);
       setTimeout(() => setIsAdded(false), 2000);
     }
@@ -199,6 +218,7 @@ Customer Information:
     if (product) {
       const text = `Hello Al Zaydan International, I am interested in: *${product.name}*\n` +
                    `- Quantity: ${quantity}\n` +
+                   (product.priceType === 'tiered' && activeTier ? `- Tier Rate: AED ${activeTier.price.toFixed(2)}/unit (Tier: ${activeTier.minQty}${activeTier.maxQty ? `-${activeTier.maxQty}` : '+'} units)\n- Estimated Total: AED ${(effectiveUnitPrice * quantity).toFixed(2)}\n` : '') +
                    `- URL: ${window.location.href}\n\n` +
                    `Kindly share a quote.`;
       
@@ -339,8 +359,172 @@ Customer Information:
 
             {/* Minimal & Professional B2B Pricing Section */}
             <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-5 mb-6">
-              <div className="flex flex-col gap-3">
-                <PriceDisplay product={product} size="xl" />
+              <div className="flex flex-col gap-4">
+                
+                {product.priceType === 'tiered' && product.priceTiers && product.priceTiers.length > 0 ? (
+                  <div className="space-y-4">
+                    {/* Header with Live Unit Rate */}
+                    <div className="flex items-baseline justify-between flex-wrap gap-2 pb-3 border-b border-slate-200">
+                      <div>
+                        <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider block mb-0.5">
+                          Volume Tier Pricing
+                        </span>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                            AED {effectiveUnitPrice.toFixed(2)}
+                          </span>
+                          <span className="text-xs text-slate-500 font-semibold">/ unit</span>
+                          {activeTier?.discount && activeTier.discount > 0 ? (
+                            <span className="text-xs font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-200">
+                              {activeTier.discount}% OFF
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      {/* Realtime Order Total */}
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Estimated Total</span>
+                        <span className="text-lg font-black text-blue-700">
+                          AED {(effectiveUnitPrice * quantity).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Quantity-Based Tier Table */}
+                    <div className="border border-slate-200/90 rounded-xl overflow-hidden bg-white shadow-2xs">
+                      <div className="bg-slate-100/80 px-3 py-2 border-b border-slate-200 flex items-center justify-between text-[11px] font-extrabold text-slate-700 uppercase tracking-wider">
+                        <span>Quantity Tier</span>
+                        <span>Price per Unit</span>
+                        <span>Savings</span>
+                      </div>
+                      <div className="divide-y divide-slate-100 text-xs">
+                        {product.priceTiers.map((tier, idx) => {
+                          const isTierActive = activeTier?.minQty === tier.minQty;
+                          return (
+                            <div
+                              key={idx}
+                              onClick={() => setQuantity(tier.minQty)}
+                              className={`flex items-center justify-between px-3 py-2.5 transition-all cursor-pointer ${
+                                isTierActive
+                                  ? 'bg-blue-50/90 text-blue-900 font-bold ring-1 ring-inset ring-blue-400'
+                                  : 'hover:bg-slate-50 text-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${isTierActive ? 'bg-blue-600' : 'bg-slate-300'}`} />
+                                <span className="font-semibold">
+                                  {tier.minQty} {tier.maxQty ? `– ${tier.maxQty}` : '+'} units
+                                </span>
+                                {isTierActive && (
+                                  <span className="text-[9px] font-extrabold bg-blue-600 text-white px-1.5 py-0.2 rounded-full uppercase tracking-wider">
+                                    Active
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="font-extrabold text-slate-900">
+                                AED {tier.price.toFixed(2)}
+                              </div>
+
+                              <div>
+                                {tier.discount && tier.discount > 0 ? (
+                                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+                                    {tier.discount}% OFF
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-slate-400 font-medium">Standard</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Quantity Selector Input */}
+                    <div className="pt-2">
+                      <label className="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider mb-2">
+                        Select Order Quantity
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden shadow-2xs">
+                          <button
+                            type="button"
+                            onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                            className="w-10 h-10 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <input
+                            type="number"
+                            min="1"
+                            value={quantity}
+                            onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-16 h-10 text-center font-extrabold text-sm focus:outline-none text-slate-900"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setQuantity(prev => prev + 1)}
+                            className="w-10 h-10 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Quick Presets based on product tiers */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {product.priceTiers.map((t, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setQuantity(t.minQty)}
+                              className={`text-[11px] px-2.5 py-1.5 rounded-lg border font-bold transition-all cursor-pointer ${
+                                quantity === t.minQty
+                                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                                  : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
+                              }`}
+                            >
+                              {t.minQty} units
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <PriceDisplay product={product} size="xl" />
+
+                    {/* Standard Quantity Picker for Fixed / Range Products */}
+                    <div className="flex items-center gap-3 pt-2">
+                      <span className="text-xs font-bold text-slate-700">Quantity:</span>
+                      <div className="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden shadow-2xs">
+                        <button
+                          type="button"
+                          onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                          className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={quantity}
+                          onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-12 h-8 text-center font-bold text-xs focus:outline-none text-slate-900"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setQuantity(prev => prev + 1)}
+                          className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-600 pt-3 border-t border-slate-200/80">
                   {product.moq && (
